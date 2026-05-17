@@ -18,6 +18,8 @@
     "ism:import": "tsx scripts/ism-import.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1048.0",
+    "@aws-sdk/s3-request-presigner": "^3.1048.0",
     "@hookform/resolvers": "^5.2.2",
     "@react-email/components": "^1.0.12",
     "@react-pdf/renderer": "^4.5.1",
@@ -27,6 +29,7 @@
     "clsx": "^2.1.1",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
+    "jszip": "^3.10.1",
     "lucide-react": "^1.16.0",
     "next": "16.3.0-canary.21",
     "postgres": "^3.4.9",
@@ -34,6 +37,8 @@
     "react-dom": "19.2.6",
     "react-email": "^6.1.4",
     "react-hook-form": "^7.76.0",
+    "reactflow": "^11.11.4",
+    "recharts": "^3.8.1",
     "resend": "^6.12.3",
     "tailwind-merge": "^3.6.0",
     "uuid": "^14.0.0",

@@ -1,5 +1,13 @@
 import Link from 'next/link';
-import { LayoutDashboard, FolderKanban, Settings, ScrollText } from 'lucide-react';
+import {
+  LayoutDashboard,
+  FolderKanban,
+  Settings,
+  ScrollText,
+  Palette,
+  Globe,
+  CalendarCheck,
+} from 'lucide-react';
 
 export function AppShell({
   children,
@@ -19,10 +27,16 @@ export function AppShell({
         </div>
         <nav className="flex flex-col gap-1 text-sm">
           <SidebarLink href="/dashboard" icon={LayoutDashboard} label="Dashboard" />
-          <SidebarLink href="/engagements" icon={FolderKanban} label="Engagements" />
+          <SidebarLink href="/dashboard" icon={FolderKanban} label="Engagements" />
+          <SidebarLink href="/admin/compliance" icon={CalendarCheck} label="Compliance" />
           <SidebarLink href="/admin/audit" icon={ScrollText} label="Audit log" />
-          <SidebarLink href="/admin" icon={Settings} label="Tenant admin" />
+          <SidebarLink href="/admin" icon={Settings} label="Members" />
+          <SidebarLink href="/admin/branding" icon={Palette} label="Branding" />
+          <SidebarLink href="/admin/ip-allowlist" icon={Globe} label="IP allowlist" />
         </nav>
+        <p className="mt-6 text-[10px] uppercase tracking-wider text-slate-400">
+          ⌘K to search engagements
+        </p>
         <div className="mt-auto pt-6 text-xs text-slate-500">
           Signed in as <span className="font-medium text-slate-700">{userName}</span>
         </div>

@@ -1,7 +1,13 @@
-import { eq } from 'drizzle-orm';
+import { and, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
-import { engagementControls } from '@/db/schema/ism';
+import { systemBoundaries } from '@/db/schema/boundaries';
+import { engagementControls, ismControls } from '@/db/schema/ism';
+import { engagements } from '@/db/schema/engagements';
+import { engagementMembers } from '@/db/schema/tenants';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { BoundaryEditor } from '@/components/engagement/BoundaryEditor';
+import { ApplicabilityWorksheet } from '@/components/engagement/ApplicabilityWorksheet';
+import { getSession } from '@/lib/auth/session';
 
 export default async function ScopePage({
   params,
@@ -9,59 +15,105 @@ export default async function ScopePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const rows = await db
+  const session = (await getSession())!;
+
+  const [engagement] = await db
+    .select()
+    .from(engagements)
+    .where(eq(engagements.id, id))
+    .limit(1);
+
+  const [boundary] = await db
+    .select()
+    .from(systemBoundaries)
+    .where(
+      and(eq(systemBoundaries.engagementId, id), isNull(systemBoundaries.supersededAt)),
+    )
+    .orderBy(desc(systemBoundaries.version))
+    .limit(1);
+
+  const controlRows = await db
     .select({
+      id: engagementControls.id,
       controlId: engagementControls.controlId,
-      revision: engagementControls.revision,
+      description: ismControls.description,
+      minClassification: ismControls.minClassification,
       status: engagementControls.status,
       applicable: engagementControls.applicable,
       justification: engagementControls.applicabilityJustification,
+      implementationStatement: engagementControls.implementationStatement,
     })
     .from(engagementControls)
+    .innerJoin(ismControls, eq(ismControls.id, engagementControls.ismControlId))
     .where(eq(engagementControls.engagementId, id))
     .orderBy(engagementControls.controlId);
 
+  const userRoles = await db
+    .select({ role: engagementMembers.role })
+    .from(engagementMembers)
+    .where(
+      and(
+        eq(engagementMembers.engagementId, id),
+        eq(engagementMembers.userId, session.user.id),
+      ),
+    );
+  const roles = userRoles.map((r) => r.role);
+  const isAssessor = roles.some((r) => r === 'lead_assessor' || r === 'assessor');
+  const isClient = roles.some((r) => r === 'client_admin' || r === 'client_contributor');
+  const canLock = roles.includes('lead_assessor');
+
+  const initialNodes = (boundary?.graph?.nodes ?? []).map((n) => ({
+    id: n.id,
+    type: n.type,
+    position: n.position,
+    data: n.data as never,
+  }));
+  const initialEdges = (boundary?.graph?.edges ?? []).map((e) => ({
+    id: e.id,
+    source: e.source,
+    target: e.target,
+    label: e.label,
+  })) as never;
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>System boundary</CardTitle>
+          <CardDescription>
+            Drag components onto the canvas and connect them to define the system under
+            assessment. The lead assessor locks the boundary once it is agreed; subsequent
+            changes need a change request.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <BoundaryEditor
+            engagementId={id}
+            initialNodes={initialNodes}
+            initialEdges={initialEdges}
+            locked={Boolean(boundary?.locked || engagement.boundaryLockedAt)}
+            canLock={canLock}
+            canEdit={isClient || isAssessor}
+          />
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Applicability worksheet</CardTitle>
           <CardDescription>
-            All ISM controls auto-selected for this engagement by the cumulative classification
-            rule. Inline applicability decisions and implementation statements land in milestone 2.
+            {controlRows.length} controls auto-selected by the cumulative classification rule.
+            The lead assessor records applicability and justification; the client authors the
+            implementation statement that lands in the SSP.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {rows.length === 0 ? (
-            <p className="text-sm text-slate-500">
-              No controls populated yet. If you just created this engagement, run{' '}
-              <code className="rounded bg-slate-100 px-1 py-0.5">npm run ism:import</code> to load
-              the ISM revision pinned for this engagement, then re-create.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wider text-slate-500">
-                    <th className="px-3 py-2">Control</th>
-                    <th className="px-3 py-2">Status</th>
-                    <th className="px-3 py-2">Applicable</th>
-                    <th className="px-3 py-2">Justification</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r) => (
-                    <tr key={r.controlId} className="border-b border-slate-100">
-                      <td className="px-3 py-2 font-mono text-xs">{r.controlId}</td>
-                      <td className="px-3 py-2">{r.status}</td>
-                      <td className="px-3 py-2">{r.applicable ?? '—'}</td>
-                      <td className="px-3 py-2 text-slate-600">{r.justification ?? '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <ApplicabilityWorksheet
+            engagementId={id}
+            controls={controlRows}
+            canDecide={isAssessor}
+            canWriteStatement={isClient}
+          />
         </CardContent>
       </Card>
     </div>

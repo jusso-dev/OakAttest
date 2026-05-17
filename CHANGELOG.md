@@ -2,91 +2,127 @@
 
 ## Unreleased
 
-### Added — milestone 1
+### Milestone 2 — full platform build
 
-**Foundation**
+**Schema completions** (`db/migrations/0001_milestone2.sql`)
 
-- Next.js 16 canary scaffold (Tailwind v4, App Router, ESLint) with the
-  directory layout from spec §14.
-- Drizzle schema for the milestone-1 domain: auth (BetterAuth core + two
-  factor + passkey + trusted devices + IP allowlist), tenants and members,
-  engagements + client_organisations + systems, ISM controls catalogue with
-  engagement controls, append-only audit log.
-- Initial migration generated (`db/migrations/0000_initial.sql`).
-- Post-migration SQL hook enforces audit-log invariant via DB role
-  separation + trigger blocking UPDATE/DELETE.
-- Architecture, RBAC, ISM mapping, and infrastructure docs.
+- Boundaries: `system_boundaries` (versioned graph), `boundary_change_requests`.
+- Evidence: `evidence_requests` + control join, `evidence_items` (versioned,
+  SHA-256), `evidence_item_controls`.
+- Findings: `findings` (auto-numbered FND-### per engagement),
+  `finding_controls`, `finding_evidence`, `remediation_actions`.
+- Essential Eight: `essential_eight_assessments`, `essential_eight_history`.
+- SSP: `ssp_sections`, `ssp_exports` (PDF, versioned, hash-pinned).
+- Interviews: `interviews`, `interview_controls`.
+- Certification: `certification_reports`, `residual_risks`,
+  `tenant_signing_keys`.
+- CVE: `cve_scans`, `cve_scan_findings`.
+- Invitations: `engagement_invitations`.
 
-**Auth (item 1)**
+**Boundary builder** (§9.3)
 
-- BetterAuth with twoFactor (TOTP + backup codes), magicLink (72h, single
-  use, used for client invites), haveIBeenPwned (14-char minimum + breach
-  check), oAuthProxy (SSO scaffolding), and admin plugins.
-- `lib/auth/auth.ts` server config, `lib/auth/client.ts` React client,
-  `lib/auth/session.ts` server-side session resolver, `lib/auth/active-tenant.ts`
-  for the per-session active tenant cookie.
-- Routes: `/sign-in`, `/sign-up`, `/mfa` (TOTP enrolment with backup codes).
-- `/api/auth/[...all]` catch-all route handler.
-- `proxy.ts` (Next.js 16 renamed middleware) enforces session presence and
-  the MFA-required gate; full DB-driven enforcement happens in the app
-  layout where DB queries are available.
-- Passkey deferred: better-auth 1.6 ships passkey as a separate package
-  that is not in milestone-1 scope per §13. Tracked in CHANGELOG.
+- React Flow visual editor with component types, environment, owner, notes.
+- Versioning: each save increments the version and supersedes the previous.
+- Lock workflow: lead assessor locks; later edits go through a Boundary
+  Change Request which a reviewer signs off.
 
-**Tenants + RBAC (item 2)**
+**Applicability worksheet** (§9.4)
 
-- `lib/rbac/matrix.ts` is the single source of truth for permission rules:
-  every action is keyed against the roles allowed to perform it, including
-  the IRAP independence guard which bars assessor-side roles from any
-  `remediation_guidance:*` action.
-- `lib/rbac/require.ts` exposes `requirePermission(action, ctx)` used in
-  every Server Action and layout. Throws `PermissionDeniedError` /
-  `AuthRequiredError` on denial.
-- `lib/audit/log.ts` writes append-only audit rows.
-- `app/actions/tenants.ts` — `createTenant`, `inviteTenantMember`.
-- `app/actions/engagements.ts` — `createEngagement` (auto-populates
-  `engagement_controls` by the cumulative classification rule).
+- Per-control table with assessor applicability decision + required
+  justification, and client-authored implementation statement.
 
-**ISM ingestion (item 3)**
+**Evidence workflow** (§9.7)
 
-- `lib/ism/oscal.ts` — Zod-validated OSCAL 1.1 parser; preserves the raw
-  control as `oscal_raw` JSONB; classification extracted from props with
-  fallbacks; statement and guidance extracted from parts; Essential Eight
-  mappings extracted from props where present.
-- `lib/ism/import.ts` — idempotent upsert keyed on `(control_id, revision)`.
-- `scripts/ism-import.ts` — CLI (`npm run ism:import`) supporting
-  `--file`/`--url` and `ISM_OSCAL_URL` for pinned releases.
-- `db/seed/index.ts` + `db/seed/ism-sample.json` — bundled subset for
-  offline seeding (`npm run db:seed`).
+- Evidence requests tied to one or more controls, with artifact type and due
+  date.
+- Presigned S3 uploads (`lib/storage/s3.ts`) with SSE-KMS support; client
+  computes SHA-256 in the browser, server verifies and finalises.
+- Versioning: re-uploading the same filename chains via `supersedes_id`.
+- Review actions: accepted / insufficient / rejected, audit-logged.
+- Short-lived presigned download URLs, audit-logged.
+- Virus scanning intentionally omitted — left to COTS at the bucket layer.
 
-**App shell (items 4, 8, 9, 10)**
+**Findings register** (§9.10)
 
-- Sidebar shell (`components/AppShell.tsx`) with dashboard / engagements /
-  audit / admin nav.
-- `/dashboard` lists tenant engagements.
-- `/engagements/[id]/{overview,scope,evidence,fieldwork,findings,certification}`
-  sub-routes with the five-phase stepper at the top.
-- `/admin` (members + data residency, billing stub).
-- `/admin/audit` audit-log viewer with action/actor filters.
-- Coming-soon scaffolds for the milestone-2/3 sub-routes per §13.
+- CRUD with severity, type, status, and recommendation (informational only;
+  remediation guidance is gated client-side by the independence guard).
+- Remediation actions are client-owned with owner, due date, and
+  proof-of-fix evidence linking.
+- Sign-off restricted to `lead_assessor`.
+
+**Essential Eight** (§9.6)
+
+- One row per strategy with current vs target maturity, remediation plan,
+  and history. Recharts trend chart over time.
+
+**SSP generation** (§9.5)
+
+- `@react-pdf/renderer` produces a versioned, classification-banner-styled
+  PDF with all eight sections drawn from boundary, applicability,
+  implementation statements, Essential Eight, and residual risks.
+- Upload to S3 with SHA-256, presigned download.
+
+**Certification package** (§9.11)
+
+- Draft → sign workflow. The signed bundle is a zip containing the
+  certification PDF, findings register CSV, evidence index CSV, audit log
+  CSV, and a manifest with the bundle SHA-256.
+- HMAC-SHA-256 signature in dev; KMS-backed signing wired (uses
+  `tenantSigningKeys.kmsKeyArn` when present).
+- Public verification page at `/verify/[token]` exposes only safe fields.
+
+**Interviews + fieldwork** (§9.8)
+
+- Schedule interviews with attendees, purpose, duration; record notes and
+  observations; export to `.ics` via `/api/interviews/[id]/ics`.
+
+**CVE scan as evidence** (§9.9)
+
+- Manifest parsers for npm, Python (`requirements.txt`, `Pipfile.lock`),
+  Ruby (`Gemfile.lock`), Go (`go.sum`/`go.mod`), Rust (`Cargo.lock`), PHP
+  (`composer.lock`), Java (`pom.xml`), Dockerfile base images, CycloneDX
+  and SPDX SBOM JSON.
+- Queries OSV.dev `querybatch`; fetches per-advisory detail for severity,
+  CVSS, fix versions, and references.
+- Auto-drafts an observation linked to patching controls when there are
+  high/critical findings; the assessor promotes to non-conformance.
+- Signed point-in-time hash recorded on the scan; before/after scan pairs
+  prove remediation.
+
+**Invitations**
+
+- `engagement_invitations` flow with magic-link-style accept page at
+  `/invite/[token]`; tenant invitations also accepted via the same page.
+
+**Onboarding**
+
+- `/onboarding` lets a brand-new user create a tenant; the `(app)` layout
+  redirects users with no tenant membership.
+
+**Tenant admin** (§10, §12)
+
+- `/admin/branding` for product name, primary/accent colours, logo URL.
+- `/admin/ip-allowlist` for per-tenant assessor IP CIDRs.
+- `/admin/compliance` lists certified engagements with re-assessment
+  countdowns derived from classification.
+
+**Command palette** (§10)
+
+- `⌘K` / `Ctrl+K` opens a fuzzy switcher across engagements, admin, and
+  audit.
 
 **Tests**
 
-- `__tests__/rbac/matrix.test.ts` — 6 tests including the independence-guard
-  programmatic check.
-- `__tests__/ism/oscal.test.ts` — 6 tests covering parser, iterator,
-  classification extraction, statement/guidance, E8 mapping, and the
-  conservative OFFICIAL default.
-- `__tests__/db/classification-rank.test.ts` — 2 tests pinning the
-  cumulative-inclusion rule.
-- `vitest.config.ts` wired with the `@/` alias.
+- New: `__tests__/cve/manifest.test.ts` (5 manifest parsers covered).
+- New: `__tests__/boundary/schema.test.ts` (Zod boundary validation).
+- All 23 tests passing.
 
-### Deferred from milestone 1
+**Build**
 
-- Passkey enrolment UI (better-auth 1.6 passkey plugin ships separately).
-- React Flow system-boundary editor (§9.3) — milestone-1 boundary lock
-  events table is in place but the visual editor lands in milestone 2.
-- SSP PDF generator (§9.5) — milestone 2.
-- Evidence upload with presigned URLs + virus scan (§9.7) — milestone 2.
-- Findings register manual entry UI — schema landed in milestone 1; UI in
-  milestone 2.
+- 26 routes; `tsc --noEmit` clean; `next build` succeeds with the proxy
+  middleware (renamed from middleware.ts per Next.js 16 deprecation).
+
+## Milestone 1 — see prior commits
+
+(Auth, RBAC, tenants, engagements, ISM ingestion, append-only audit log,
+five-phase stepper, evidence request scaffold, findings scaffold.)

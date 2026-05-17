@@ -1,8 +1,14 @@
-import { and, eq, count } from 'drizzle-orm';
+import { and, eq, count, desc } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { engagements, clientOrganisations, systems } from '@/db/schema/engagements';
 import { engagementControls } from '@/db/schema/ism';
+import { engagementMembers } from '@/db/schema/tenants';
+import { users } from '@/db/schema/auth';
+import { sspExports } from '@/db/schema/ssp';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { getSession } from '@/lib/auth/session';
+import { InviteMemberForm } from '@/components/engagement/InviteMemberForm';
+import { SspExportPanel } from '@/components/engagement/SspExportPanel';
 
 export default async function OverviewPage({
   params,
@@ -10,6 +16,7 @@ export default async function OverviewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const session = (await getSession())!;
 
   const [engagement] = await db
     .select()
@@ -34,6 +41,28 @@ export default async function OverviewPage({
     .from(engagementControls)
     .where(eq(engagementControls.engagementId, id));
 
+  const members = await db
+    .select({
+      userId: engagementMembers.userId,
+      role: engagementMembers.role,
+      name: users.name,
+      email: users.email,
+    })
+    .from(engagementMembers)
+    .innerJoin(users, eq(users.id, engagementMembers.userId))
+    .where(eq(engagementMembers.engagementId, id));
+
+  const sspList = await db
+    .select()
+    .from(sspExports)
+    .where(eq(sspExports.engagementId, id))
+    .orderBy(desc(sspExports.version))
+    .limit(5);
+
+  const myRole = members.find((m) => m.userId === session.user.id)?.role;
+  const canInvite =
+    myRole === 'lead_assessor' || myRole === 'client_admin' || !myRole;
+
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <Card>
@@ -47,6 +76,7 @@ export default async function OverviewPage({
           <Row label="Classification">{engagement.classification.replace('_', ':')}</Row>
           <Row label="ISM revision">{engagement.ismRevision}</Row>
           <Row label="Applicable controls">{controlCount}</Row>
+          <Row label="Boundary">{engagement.boundaryLockedAt ? 'Locked' : 'Draft'}</Row>
         </CardContent>
       </Card>
 
@@ -65,14 +95,48 @@ export default async function OverviewPage({
 
       <Card className="md:col-span-2">
         <CardHeader>
-          <CardTitle>Phase</CardTitle>
-          <CardDescription>Current position in the five-phase IRAP lifecycle.</CardDescription>
+          <CardTitle>Members</CardTitle>
+          <CardDescription>{members.length} members on this engagement.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <ul className="divide-y divide-slate-100 text-sm">
+            {members.map((m) => (
+              <li key={m.userId} className="flex items-center justify-between py-2">
+                <span>
+                  <span className="font-medium text-slate-900">
+                    {m.name ?? m.email}
+                  </span>{' '}
+                  <span className="text-slate-500">— {m.email}</span>
+                </span>
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
+                  {m.role}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {canInvite && <InviteMemberForm engagementId={id} />}
+        </CardContent>
+      </Card>
+
+      <Card className="md:col-span-2">
+        <CardHeader>
+          <CardTitle>System Security Plan</CardTitle>
+          <CardDescription>
+            Generate a versioned SSP from the boundary, applicability worksheet,
+            implementation statements, and residual risks.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-slate-700">
-            This engagement is in the <strong>{engagement.phase}</strong> phase. Status:{' '}
-            <strong>{engagement.status}</strong>.
-          </p>
+          <SspExportPanel
+            engagementId={id}
+            exports={sspList.map((e) => ({
+              id: e.id,
+              version: e.version,
+              sha256: e.sha256,
+              format: e.format,
+              generatedAt: e.generatedAt.toISOString(),
+            }))}
+          />
         </CardContent>
       </Card>
     </div>
