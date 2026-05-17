@@ -122,6 +122,37 @@
 - 26 routes; `tsc --noEmit` clean; `next build` succeeds with the proxy
   middleware (renamed from middleware.ts per Next.js 16 deprecation).
 
+### Milestone 3 polish
+
+- Vulnerability scan import (Nessus `.nessus`, Rapid7 CSV, Qualys CSV,
+  generic CSV) — `lib/scans/parse.ts` + `importVulnScan` server action +
+  fieldwork upload widget. Drafts an observation per critical/high entry,
+  linked to patching controls.
+- Findings register CSV export at `/api/engagements/[id]/findings/csv`.
+- Data handling and chain-of-custody acknowledgement at `/terms`; the
+  `(app)` layout redirects to it on first sign-in (§5, §9.2).
+- New tests: `__tests__/scans/parse.test.ts` (Nessus XML, Qualys CSV,
+  generic CSV). 27/27 passing.
+
+### Known follow-ups (out of scope)
+
+- **Passkey enrolment UI.** The better-auth 1.6 distribution does not bundle
+  a passkey plugin and there is no separate `@better-auth/passkey` package
+  installed. The `passkeys` table is in place. Re-enable when the upstream
+  plugin lands.
+- **DOCX SSP export.** Only PDF is generated. Word output requires either a
+  templating engine (docxtemplater) or a wrapper around LibreOffice headless
+  — left as a follow-up.
+- **Inline SSP commenting.** The `ssp_sections` table supports per-section
+  content; threaded comments on a section are not yet implemented.
+- **Failed-login lockout enforcement.** BetterAuth's built-in rate limiter
+  (configured `max: 30/min`) covers the practical case. The dedicated
+  `login_attempts` table is in place; explicit 5-attempt enforcement that
+  populates it is a separate wiring step.
+- **Per-role session length override.** BetterAuth is configured with an 8h
+  default. The shorter 4h client cap requires a `customSession` plugin
+  override at sign-in time; not yet wired.
+
 ## Milestone 1 — see prior commits
 
 (Auth, RBAC, tenants, engagements, ISM ingestion, append-only audit log,

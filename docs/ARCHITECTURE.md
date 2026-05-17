@@ -69,4 +69,30 @@ revision; new revisions surface a `Compare and migrate` banner.
 
 ## Status
 
-- Milestone 1 complete in scope: see `CHANGELOG.md`.
+The platform is feature-complete across the five IRAP phases and the §13
+milestone roadmap with the noted follow-ups. See `CHANGELOG.md` for the
+exhaustive list.
+
+### Route map
+
+- `/` — public landing
+- `/sign-in`, `/sign-up`, `/mfa`, `/invite/[token]` — auth flows
+- `/terms` — data handling acknowledgement (first-login gate)
+- `/onboarding` — create a tenant
+- `/dashboard` — engagements list
+- `/engagements/new` — scoping form
+- `/engagements/[id]/overview` — at-a-glance + members + SSP export
+- `/engagements/[id]/scope` — boundary builder + applicability worksheet
+- `/engagements/[id]/evidence` — requests, uploads, review
+- `/engagements/[id]/evidence/cve` — OSV.dev supply-chain scan
+- `/engagements/[id]/fieldwork` — interviews + Nessus/Rapid7/Qualys import
+- `/engagements/[id]/findings` — register, sign-off, remediation actions
+- `/engagements/[id]/essential-eight` — maturity scorecard + trend chart
+- `/engagements/[id]/certification` — draft, sign, public verify URL
+- `/admin` — members, residency, billing stub
+- `/admin/audit` — append-only viewer
+- `/admin/branding`, `/admin/ip-allowlist`, `/admin/compliance`
+- `/verify/[token]` — public certification verification
+- `/api/auth/[...all]` — BetterAuth handler
+- `/api/interviews/[id]/ics` — calendar export
+- `/api/engagements/[id]/findings/csv` — findings register CSV

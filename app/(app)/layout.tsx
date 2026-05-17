@@ -6,10 +6,18 @@ import { AppShell } from '@/components/AppShell';
 import { CommandPalette } from '@/components/CommandPalette';
 import { db } from '@/lib/db/client';
 import { engagements } from '@/db/schema/engagements';
+import { users } from '@/db/schema/auth';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
   if (!session) redirect('/sign-in');
+
+  const [profile] = await db
+    .select({ accepted: users.dataHandlingAcceptedAt })
+    .from(users)
+    .where(eq(users.id, session.user.id))
+    .limit(1);
+  if (!profile?.accepted) redirect('/terms');
 
   const tenant = await resolveActiveTenant(session.user.id);
   if (!tenant) redirect('/onboarding');

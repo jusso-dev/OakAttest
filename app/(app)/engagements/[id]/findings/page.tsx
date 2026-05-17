@@ -60,11 +60,21 @@ export default async function FindingsPage({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Findings register</CardTitle>
-          <CardDescription>
-            {counts.total} total · {counts.nonConformance} non-conformance · {counts.observation}{' '}
-            observation · {counts.open} open.
-          </CardDescription>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle>Findings register</CardTitle>
+              <CardDescription>
+                {counts.total} total · {counts.nonConformance} non-conformance ·{' '}
+                {counts.observation} observation · {counts.open} open.
+              </CardDescription>
+            </div>
+            <a
+              href={`/api/engagements/${id}/findings/csv`}
+              className="inline-flex h-9 items-center justify-center rounded-md border border-slate-200 bg-white px-4 text-sm font-medium text-slate-900 hover:bg-slate-50"
+            >
+              Export CSV
+            </a>
+          </div>
         </CardHeader>
       </Card>
 

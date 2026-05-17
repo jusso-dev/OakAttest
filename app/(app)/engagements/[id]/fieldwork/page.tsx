@@ -6,6 +6,7 @@ import { engagementMembers } from '@/db/schema/tenants';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { InterviewForm } from '@/components/fieldwork/InterviewForm';
 import { InterviewRow } from '@/components/fieldwork/InterviewRow';
+import { VulnScanUpload } from '@/components/fieldwork/VulnScanUpload';
 import { getSession } from '@/lib/auth/session';
 
 export default async function FieldworkPage({
@@ -63,12 +64,28 @@ export default async function FieldworkPage({
         </CardContent>
       </Card>
 
+      {isAssessor && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Import vulnerability scan</CardTitle>
+            <CardDescription>
+              Drafts an observation per critical or high severity entry and links it to any
+              patching controls in scope. Promote to non-conformance from the findings register
+              once you have reviewed.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <VulnScanUpload engagementId={id} />
+          </CardContent>
+        </Card>
+      )}
+
       <p className="text-xs text-slate-500">
-        Vulnerability scan imports also produce fieldwork artifacts. See{' '}
+        See{' '}
         <Link href={`/engagements/${id}/evidence/cve`} className="underline">
           CVE scan
         </Link>{' '}
-        for supply-chain snapshots.
+        for supply-chain (dependency) snapshots.
       </p>
     </div>
   );
