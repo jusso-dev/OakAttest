@@ -1,0 +1,38 @@
+# OakAttest
+
+> Open-source IRAP assessment software for Australian assessor firms and client organisations.
+
+OakAttest is a self-hostable workspace for running IRAP assessment work against the Australian Government Information Security Manual (ISM). It supports scoping, assessment boundaries, ISM applicability, evidence collection, fieldwork, findings, residual risk, certification records, SSP bundle exports and ongoing compliance maintenance.
+
+## Core Topics
+
+- IRAP assessment software for Australia
+- Open-source IRAP and ISM assessment workspace
+- Australian Information Security Manual (ISM) control assessment
+- IRAP assessor collaboration with client organisations
+- Assessment boundary diagrams and Cloud IRAP context
+- System Security Plan (SSP) artefacts and SSP Annex data
+- Evidence collection, review, findings and residual risk
+- OFFICIAL: Sensitive and PROTECTED assessment workflows
+- Essential Eight visibility and Australian Government cyber security evidence
+- Self-hosted assessment tooling with audit history
+
+## Primary Users
+
+- ASD-registered IRAP assessor firms
+- Lead assessors and assessors
+- Assessor administrators
+- Client administrators and contributors
+- Read-only observers, peer reviewers and ASD liaison stakeholders
+
+## Useful Links
+
+- [OakAttest showcase](https://jusso-dev.github.io/OakAttest/): Product overview, screenshots and deployment posture.
+- [GitHub repository](https://github.com/jusso-dev/OakAttest): Source code, README, local development instructions and licence.
+- [README](https://github.com/jusso-dev/OakAttest#readme): Detailed capabilities, screenshots, roles and local setup.
+
+## Positioning Notes
+
+OakAttest is not an ASD certification, endorsement or approval system. It helps assessor firms and client organisations collect, structure and export evidence and assessment artefacts that can support the relevant authorisation decision.
+
+OakAttest is AGPL-3.0-or-later licensed and designed for self-hosted or controlled deployments where evidence, audit history and assessment material need clear ownership.

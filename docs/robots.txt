@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://jusso-dev.github.io/OakAttest/sitemap.xml
