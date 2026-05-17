@@ -55,6 +55,18 @@ preserves the original OSCAL control verbatim (`oscal_raw` JSONB) so
 re-rendering, params, and props are lossless. Engagements pin to a specific
 revision; new revisions surface a `Compare and migrate` banner.
 
+## Authorisation flow
+
+1. `proxy.ts` (Next.js 16 renamed middleware) blocks unauthenticated requests
+   at the edge using the BetterAuth session cookie.
+2. The `(app)` layout calls `getSession()`, resolves the active tenant via
+   `resolveActiveTenant`, and redirects unauthenticated or tenantless users.
+3. Each engagement layout calls `requirePermission(ACTIONS.engagementView,
+   ...)` and short-circuits to 404 on denial so the tenant boundary cannot
+   be probed.
+4. Every Server Action calls `requirePermission` with its own action key
+   before any mutation. Audit rows are written in the same transaction.
+
 ## Status
 
-- Milestone 1 in progress: see `CHANGELOG.md` for current scope.
+- Milestone 1 complete in scope: see `CHANGELOG.md`.

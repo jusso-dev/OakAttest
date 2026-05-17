@@ -1,0 +1,155 @@
+{
+  "catalog": {
+    "uuid": "00000000-0000-4000-8000-000000000001",
+    "metadata": {
+      "title": "OakAttest ISM sample (development fixture)",
+      "version": "2025.03",
+      "last-modified": "2025-03-01",
+      "oscal-version": "1.1.2"
+    },
+    "groups": [
+      {
+        "id": "ism-personnel-security",
+        "title": "Personnel security",
+        "controls": [
+          {
+            "id": "ISM-0001",
+            "title": "Cyber security awareness training",
+            "props": [
+              { "name": "classification", "value": "OFFICIAL" }
+            ],
+            "parts": [
+              { "name": "statement", "prose": "Personnel are provided with cyber security awareness training annually." },
+              { "name": "guidance", "prose": "Training should cover phishing, social engineering, and data handling obligations." }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ism-identification-authentication",
+        "title": "Identification and authentication",
+        "controls": [
+          {
+            "id": "ISM-0974",
+            "title": "Multi-factor authentication",
+            "props": [
+              { "name": "classification", "value": "OFFICIAL_SENSITIVE" },
+              { "name": "essential-eight", "value": "multi-factor-authentication:ml1" }
+            ],
+            "parts": [
+              { "name": "statement", "prose": "Multi-factor authentication is used to authenticate privileged users." },
+              { "name": "guidance", "prose": "Use phishing-resistant factors where available, e.g. WebAuthn." }
+            ]
+          },
+          {
+            "id": "ISM-1546",
+            "title": "Multi-factor authentication for remote access",
+            "props": [
+              { "name": "classification", "value": "PROTECTED" },
+              { "name": "essential-eight", "value": "multi-factor-authentication:ml2" }
+            ],
+            "parts": [
+              { "name": "statement", "prose": "Multi-factor authentication is used to authenticate remote access to systems." }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ism-patching",
+        "title": "System patching",
+        "controls": [
+          {
+            "id": "ISM-1690",
+            "title": "Patch operating systems",
+            "props": [
+              { "name": "classification", "value": "OFFICIAL" },
+              { "name": "essential-eight", "value": "patch-operating-systems:ml1" }
+            ],
+            "parts": [
+              { "name": "statement", "prose": "Operating systems are patched within an appropriate timeframe based on severity." }
+            ]
+          },
+          {
+            "id": "ISM-1691",
+            "title": "Patch applications",
+            "props": [
+              { "name": "classification", "value": "OFFICIAL" },
+              { "name": "essential-eight", "value": "patch-applications:ml1" }
+            ],
+            "parts": [
+              { "name": "statement", "prose": "Applications are patched within an appropriate timeframe based on severity." }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ism-data-encryption",
+        "title": "Data encryption",
+        "controls": [
+          {
+            "id": "ISM-0457",
+            "title": "Encryption of data at rest",
+            "props": [
+              { "name": "classification", "value": "OFFICIAL_SENSITIVE" }
+            ],
+            "parts": [
+              { "name": "statement", "prose": "Sensitive data at rest is encrypted using approved cryptographic algorithms." }
+            ]
+          },
+          {
+            "id": "ISM-0467",
+            "title": "Cryptographic key management",
+            "props": [
+              { "name": "classification", "value": "PROTECTED" }
+            ],
+            "parts": [
+              { "name": "statement", "prose": "Cryptographic keys are managed throughout their lifecycle using approved practices." }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ism-event-logging",
+        "title": "Event logging and auditing",
+        "controls": [
+          {
+            "id": "ISM-0580",
+            "title": "Event logging",
+            "props": [
+              { "name": "classification", "value": "OFFICIAL" }
+            ],
+            "parts": [
+              { "name": "statement", "prose": "Events of security interest are logged centrally and retained for a defined period." }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ism-classified-systems",
+        "title": "Classified systems",
+        "controls": [
+          {
+            "id": "ISM-1525",
+            "title": "Air-gapped network for SECRET systems",
+            "props": [
+              { "name": "classification", "value": "SECRET" }
+            ],
+            "parts": [
+              { "name": "statement", "prose": "SECRET systems are operated on an air-gapped network unless an exemption applies." }
+            ]
+          },
+          {
+            "id": "ISM-1526",
+            "title": "Physical security for TOP SECRET facilities",
+            "props": [
+              { "name": "classification", "value": "TOP_SECRET" }
+            ],
+            "parts": [
+              { "name": "statement", "prose": "TOP SECRET facilities meet ASIO T4 physical security requirements." }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
