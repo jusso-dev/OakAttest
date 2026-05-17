@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { SignUpForm } from './SignUpForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -14,7 +15,9 @@ export default function SignUpPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <SignUpForm />
+        <Suspense fallback={<p className="text-sm text-slate-700">Loading account setup…</p>}>
+          <SignUpForm />
+        </Suspense>
       </CardContent>
     </Card>
   );

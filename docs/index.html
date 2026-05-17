@@ -25,7 +25,7 @@
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://jusso-dev.github.io/OakAttest/" />
-    <meta property="og:image" content="https://jusso-dev.github.io/OakAttest/screenshots/08-engagement-overview.png" />
+    <meta property="og:image" content="https://jusso-dev.github.io/OakAttest/screenshots/09-engagement-overview.png" />
     <meta property="og:image:alt" content="OakAttest IRAP engagement overview screen" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="OakAttest | Open-source IRAP assessment software" />
@@ -33,7 +33,7 @@
       name="twitter:description"
       content="Self-hostable IRAP and ISM assessment workspace for Australian assessor firms and client organisations."
     />
-    <meta name="twitter:image" content="https://jusso-dev.github.io/OakAttest/screenshots/08-engagement-overview.png" />
+    <meta name="twitter:image" content="https://jusso-dev.github.io/OakAttest/screenshots/09-engagement-overview.png" />
     <link rel="icon" href="assets/oak-attest-mark.png" />
     <link rel="stylesheet" href="styles.css" />
     <script type="application/ld+json">
@@ -120,7 +120,7 @@
         </div>
         <figure class="hero-frame" aria-label="OakAttest engagement overview screenshot">
           <img
-            src="screenshots/08-engagement-overview.png"
+            src="screenshots/09-engagement-overview.png"
             alt="OakAttest engagement overview showing assessment progress, status and artefact panels."
             width="1440"
             height="1100"
@@ -235,7 +235,8 @@
           <p>
             These captures come from the app's disposable Playwright data set:
             organisation onboarding, administration, ISM imports, engagement
-            scope, dashboard, findings and certification.
+            scope, task ownership, dashboard notifications, findings and
+            certification.
           </p>
         </div>
 
@@ -244,8 +245,8 @@
             <img
               src="screenshots/07-scope-boundary-applicability.png"
               alt="Scope, boundary and applicability workspace"
-              width="2488"
-              height="1438"
+              width="1440"
+              height="1100"
               data-gallery-image
             />
             <figcaption data-gallery-caption>Scope, boundary and applicability</figcaption>
@@ -264,41 +265,51 @@
             <button
               class="thumb"
               type="button"
-              data-src="screenshots/08-engagement-overview.png"
+              data-src="screenshots/08-task-board.png"
+              data-alt="Engagement task board with owners, due dates and Kanban lanes"
+              data-caption="Task board"
+            >
+              <img src="screenshots/08-task-board.png" alt="" />
+              <span>Tasks</span>
+            </button>
+            <button
+              class="thumb"
+              type="button"
+              data-src="screenshots/09-engagement-overview.png"
               data-alt="Engagement overview with progress panels"
               data-caption="Engagement overview"
             >
-              <img src="screenshots/08-engagement-overview.png" alt="" />
+              <img src="screenshots/09-engagement-overview.png" alt="" />
               <span>Overview</span>
             </button>
             <button
               class="thumb"
               type="button"
-              data-src="screenshots/09-dashboard.png"
+              data-src="screenshots/10-dashboard.png"
               data-alt="OakAttest dashboard"
               data-caption="Dashboard"
             >
-              <img src="screenshots/09-dashboard.png" alt="" />
+              <img src="screenshots/10-dashboard.png" alt="" />
               <span>Dashboard</span>
             </button>
             <button
               class="thumb"
               type="button"
-              data-src="screenshots/10-findings.png"
+              data-src="screenshots/11-findings.png"
               data-alt="Findings register with linked ISM controls"
               data-caption="Findings register"
             >
-              <img src="screenshots/10-findings.png" alt="" />
+              <img src="screenshots/11-findings.png" alt="" />
               <span>Findings</span>
             </button>
             <button
               class="thumb"
               type="button"
-              data-src="screenshots/11-certification.png"
+              data-src="screenshots/12-certification.png"
               data-alt="Certification artefact screen"
               data-caption="Certification"
             >
-              <img src="screenshots/11-certification.png" alt="" />
+              <img src="screenshots/12-certification.png" alt="" />
               <span>Certification</span>
             </button>
             <button
@@ -328,6 +339,10 @@
           <div role="row">
             <strong role="cell">Evidence lifecycle</strong>
             <span role="cell">Requests, uploads, review decisions, generated artefact storage and append-only audit logs.</span>
+          </div>
+          <div role="row">
+            <strong role="cell">Task coordination</strong>
+            <span role="cell">Kanban-style engagement tasks with owners, due dates, overdue and due-today signals, dashboard notifications and collapsible engagement summaries.</span>
           </div>
           <div role="row">
             <strong role="cell">Control assessment</strong>

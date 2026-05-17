@@ -7,6 +7,7 @@ export * from './audit';
 export * from './boundaries';
 export * from './evidence';
 export * from './findings';
+export * from './tasks';
 export * from './essential-eight';
 export * from './ssp';
 export * from './interviews';

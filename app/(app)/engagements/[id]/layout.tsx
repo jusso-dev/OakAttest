@@ -1,7 +1,8 @@
 import { notFound, redirect } from 'next/navigation';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, asc, eq, isNull, ne } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { engagements } from '@/db/schema/engagements';
+import { engagementTasks } from '@/db/schema/tasks';
 import { getSession } from '@/lib/auth/session';
 import { resolveActiveTenant } from '@/lib/auth/active-tenant';
 import { requirePermission, PermissionDeniedError, rolesForUser } from '@/lib/rbac/require';
@@ -9,6 +10,7 @@ import { ACTIONS, isPermitted } from '@/lib/rbac/matrix';
 import { PhaseStepper, type Phase } from '@/components/engagement/PhaseStepper';
 import { UnsavedChangesProvider } from '@/components/engagement/UnsavedChangesGuard';
 import { EngagementStateControl } from '@/components/engagement/EngagementStateControl';
+import { EngagementTaskStrip } from '@/components/engagement/EngagementTaskStrip';
 
 export default async function EngagementLayout({
   children,
@@ -61,10 +63,34 @@ export default async function EngagementLayout({
     engagementId: id,
   });
   const canUpdateState = roles.some((role) => isPermitted(ACTIONS.engagementUpdate, role));
+  const canViewTasks = roles.some((role) => isPermitted(ACTIONS.taskView, role));
+  const openTasks = canViewTasks
+    ? await db
+        .select({
+          id: engagementTasks.id,
+          title: engagementTasks.title,
+          status: engagementTasks.status,
+          dueAt: engagementTasks.dueAt,
+          ownerUserId: engagementTasks.ownerUserId,
+        })
+        .from(engagementTasks)
+        .where(
+          and(
+            eq(engagementTasks.engagementId, id),
+            ne(engagementTasks.status, 'done'),
+            ne(engagementTasks.status, 'cancelled'),
+          ),
+        )
+        .orderBy(asc(engagementTasks.dueAt), asc(engagementTasks.createdAt))
+    : [];
+  const clientTasks = openTasks.map((task) => ({
+    ...task,
+    dueAt: task.dueAt?.toISOString() ?? null,
+  }));
 
   return (
     <UnsavedChangesProvider>
-      <div className="mx-auto max-w-6xl space-y-6">
+      <div className="mx-auto w-full max-w-[96rem] space-y-6">
         <header className="space-y-2">
           <p className="text-xs uppercase text-slate-600">
             {row.reference ?? 'Engagement'} ·{' '}
@@ -79,6 +105,13 @@ export default async function EngagementLayout({
           canEdit={canUpdateState}
         />
         <PhaseStepper engagementId={row.id} currentPhase={row.phase as Phase} />
+        {canViewTasks ? (
+          <EngagementTaskStrip
+            engagementId={row.id}
+            tasks={clientTasks}
+            currentUserId={session.user.id}
+          />
+        ) : null}
         {children}
       </div>
     </UnsavedChangesProvider>

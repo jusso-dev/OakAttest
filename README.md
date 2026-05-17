@@ -64,27 +64,33 @@ viewport captures so the README remains readable.
 </details>
 
 <details>
+  <summary><strong>Task board</strong></summary>
+  <br />
+  <img src="docs/screenshots/08-task-board.png" alt="Task board" width="900" />
+</details>
+
+<details>
   <summary><strong>Engagement overview</strong></summary>
   <br />
-  <img src="docs/screenshots/08-engagement-overview.png" alt="Engagement overview" width="900" />
+  <img src="docs/screenshots/09-engagement-overview.png" alt="Engagement overview" width="900" />
 </details>
 
 <details>
   <summary><strong>Dashboard</strong></summary>
   <br />
-  <img src="docs/screenshots/09-dashboard.png" alt="Dashboard" width="900" />
+  <img src="docs/screenshots/10-dashboard.png" alt="Dashboard" width="900" />
 </details>
 
 <details>
   <summary><strong>Findings</strong></summary>
   <br />
-  <img src="docs/screenshots/10-findings.png" alt="Findings" width="900" />
+  <img src="docs/screenshots/11-findings.png" alt="Findings" width="900" />
 </details>
 
 <details>
   <summary><strong>Certification</strong></summary>
   <br />
-  <img src="docs/screenshots/11-certification.png" alt="Certification" width="900" />
+  <img src="docs/screenshots/12-certification.png" alt="Certification" width="900" />
 </details>
 
 ## Core Capabilities
@@ -93,6 +99,8 @@ viewport captures so the README remains readable.
   engagement-scoped client access.
 - IRAP engagement workflow covering scoping, evidence, fieldwork, findings,
   certification, and maintenance.
+- Engagement task board with owners, due dates, overdue/due-today signals,
+  dashboard notifications, and collapsible engagement task summaries.
 - ACSC ISM OSCAL import panel for current releases, selected releases, bundled
   local seed data, and unused revision removal.
 - Applicability worksheet with ISM chapter, sub-chapter, status, and search
@@ -225,8 +233,8 @@ The script writes PNGs to `docs/screenshots/` and creates:
 - a fake client organisation
 - a Cloud IRAP engagement
 - screenshots of signup, terms, onboarding, tenant admin, ISM import, new
-  engagement, scope/applicability, overview, dashboard, findings, and
-  certification
+  engagement, scope/applicability, task board, overview, dashboard, findings,
+  and certification
 
 ## Project Layout
 

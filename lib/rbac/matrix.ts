@@ -63,6 +63,10 @@ export const ACTIONS = {
   findingSignOff: 'finding:sign_off',
   findingView: 'finding:view',
 
+  // engagement tasks
+  taskView: 'task:view',
+  taskManage: 'task:manage',
+
   // certification
   certificationGenerate: 'certification:generate',
   certificationSign: 'certification:sign',
@@ -150,6 +154,25 @@ export const PERMISSIONS: Record<Action, Allow> = {
     'client_admin',
     'client_contributor',
     'read_only_observer',
+  ],
+
+  // Tasks
+  [ACTIONS.taskView]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
+    'read_only_observer',
+  ],
+  [ACTIONS.taskManage]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
   ],
 
   // Certification

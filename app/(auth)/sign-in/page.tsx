@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { SignInForm } from './SignInForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +16,9 @@ export default function SignInPage() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <SignInForm />
+        <Suspense fallback={<p className="text-sm text-slate-700">Loading sign in…</p>}>
+          <SignInForm />
+        </Suspense>
         <p className="text-sm text-slate-600">
           New to OakAttest?{' '}
           <Link href="/sign-up" className="font-medium text-[var(--oak-shield)] hover:underline">

@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { MfaEnrolPanel } from './MfaEnrolPanel';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -15,7 +16,9 @@ export default function MfaPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <MfaEnrolPanel />
+        <Suspense fallback={<p className="text-sm text-slate-700">Loading MFA setup…</p>}>
+          <MfaEnrolPanel />
+        </Suspense>
       </CardContent>
     </Card>
   );

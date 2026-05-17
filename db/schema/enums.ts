@@ -116,6 +116,23 @@ export const remediationActionStatusEnum = pgEnum('remediation_action_status', [
   'closed',
 ]);
 
+// ---- Tasks ---------------------------------------------------------------
+
+export const taskStatusEnum = pgEnum('task_status', [
+  'todo',
+  'in_progress',
+  'blocked',
+  'done',
+  'cancelled',
+]);
+
+export const taskPriorityEnum = pgEnum('task_priority', [
+  'low',
+  'medium',
+  'high',
+  'critical',
+]);
+
 // ---- Essential Eight ----------------------------------------------------
 
 export const essentialEightStrategyEnum = pgEnum('essential_eight_strategy', [

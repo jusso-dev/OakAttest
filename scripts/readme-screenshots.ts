@@ -1,6 +1,12 @@
+import 'dotenv/config';
 import { chromium, type Page } from '@playwright/test';
+import { eq } from 'drizzle-orm';
 import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { users } from '@/db/schema/auth';
+import { engagements } from '@/db/schema/engagements';
+import { engagementTasks } from '@/db/schema/tasks';
+import { db } from '@/lib/db/client';
 
 const baseUrl = process.env.OAKATTEST_BASE_URL ?? 'http://localhost:3000';
 const outputDir = resolve(process.cwd(), 'docs/screenshots');
@@ -22,6 +28,20 @@ const persona = {
 };
 
 async function screenshot(page: Page, name: string) {
+  await page
+    .addStyleTag({
+      content: `
+        nextjs-portal,
+        [data-nextjs-toast],
+        [data-nextjs-dialog-overlay],
+        [data-nextjs-dev-tools-button],
+        [data-nextjs-dev-tools-indicator] {
+          display: none !important;
+          visibility: hidden !important;
+        }
+      `,
+    })
+    .catch(() => undefined);
   await page.screenshot({
     path: resolve(outputDir, `${name}.png`),
     fullPage: false,
@@ -96,6 +116,71 @@ async function createOrganisationIfNeeded(page: Page) {
   return true;
 }
 
+function daysFromNow(days: number) {
+  const date = new Date();
+  date.setHours(9, 0, 0, 0);
+  date.setDate(date.getDate() + days);
+  return date;
+}
+
+async function seedEngagementTasks(engagementId: string) {
+  const [engagement] = await db
+    .select({
+      tenantId: engagements.tenantId,
+    })
+    .from(engagements)
+    .where(eq(engagements.id, engagementId))
+    .limit(1);
+
+  const [owner] = await db
+    .select({
+      id: users.id,
+    })
+    .from(users)
+    .where(eq(users.email, persona.email))
+    .limit(1);
+
+  if (!engagement || !owner) {
+    throw new Error('Unable to seed screenshot task data');
+  }
+
+  await db.insert(engagementTasks).values([
+    {
+      engagementId,
+      tenantId: engagement.tenantId,
+      title: 'Confirm production boundary evidence',
+      description: 'Attach the final architecture diagram and validate inherited AWS controls before fieldwork.',
+      status: 'in_progress',
+      priority: 'high',
+      ownerUserId: owner.id,
+      dueAt: daysFromNow(0),
+      createdBy: owner.id,
+    },
+    {
+      engagementId,
+      tenantId: engagement.tenantId,
+      title: 'Provide database backup retention evidence',
+      description: 'Client needs to upload backup policy, restore test records, and storage configuration screenshots.',
+      status: 'todo',
+      priority: 'critical',
+      ownerUserId: owner.id,
+      dueAt: daysFromNow(-2),
+      createdBy: owner.id,
+    },
+    {
+      engagementId,
+      tenantId: engagement.tenantId,
+      title: 'Resolve vulnerability scan exception',
+      description: 'Assess whether the scanner exclusion is justified and document residual risk if accepted.',
+      status: 'blocked',
+      priority: 'medium',
+      ownerUserId: owner.id,
+      dueAt: daysFromNow(3),
+      createdBy: owner.id,
+    },
+  ]);
+}
+
 async function main() {
   await mkdir(outputDir, { recursive: true });
 
@@ -153,22 +238,36 @@ async function main() {
   await page.getByRole('button', { name: /create engagement/i }).click();
   await page.waitForURL(/\/engagements\/[^/]+\/scope/, { timeout: 30_000 });
   const scopeUrl = page.url();
+  const engagementId = new URL(scopeUrl).pathname.match(/\/engagements\/([^/]+)/)?.[1];
+  if (!engagementId) throw new Error(`Unable to parse engagement id from ${scopeUrl}`);
+  await seedEngagementTasks(engagementId);
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('button', { name: /collapse task summary/i }).click();
   const overviewUrl = scopeUrl.replace(/\/scope$/, '/overview');
 
   await page.waitForLoadState('networkidle');
   await screenshot(page, '07-scope-boundary-applicability');
 
+  await goto(page, overviewUrl.replace('/overview', '/tasks').replace(baseUrl, ''));
+  await page
+    .getByRole('heading', { name: 'Board view' })
+    .evaluate((element) => element.scrollIntoView({ block: 'start' }));
+  await page.waitForTimeout(300);
+  await screenshot(page, '08-task-board');
+
   await goto(page, overviewUrl.replace(baseUrl, ''));
-  await screenshot(page, '08-engagement-overview');
+  await page.getByRole('button', { name: /expand task summary/i }).click().catch(() => undefined);
+  await screenshot(page, '09-engagement-overview');
 
   await goto(page, '/dashboard');
-  await screenshot(page, '09-dashboard');
+  await screenshot(page, '10-dashboard');
 
   await goto(page, overviewUrl.replace('/overview', '/findings').replace(baseUrl, ''));
-  await screenshot(page, '10-findings');
+  await screenshot(page, '11-findings');
 
   await goto(page, overviewUrl.replace('/overview', '/certification').replace(baseUrl, ''));
-  await screenshot(page, '11-certification');
+  await screenshot(page, '12-certification');
 
   await browser.close();
 }
