@@ -1,0 +1,66 @@
+# OakAttest: Open-source IRAP Assessment Workspace
+
+OakAttest is an open-source IRAP assessment workspace for ASD-registered assessor firms and the client organisations they assess. It is designed for Australian cyber security assessment work and supports the assessment lifecycle from organisation setup through scoping, evidence collection, fieldwork, findings, certification and ongoing compliance maintenance.
+
+## What OakAttest Does
+
+OakAttest helps teams manage practical IRAP assessment work:
+
+- Organisation-first onboarding for assessor firms.
+- Tenant roles and engagement-scoped client access.
+- IRAP engagement workflow covering scoping, evidence, fieldwork, findings, certification and maintenance.
+- ACSC ISM OSCAL import support for current releases, selected releases, bundled local seed data and unused revision removal.
+- ISM control applicability worksheet with chapter, sub-chapter, status and search filters.
+- Per-control CAF assessment record fields for assessment methods, assessment objects, evidence quality and evidence limitations.
+- React Flow system boundary drawer with typed components, boundary boxes, edge persistence and exported boundary PNGs.
+- Cloud IRAP engagement mode for AWS, Azure and Google Cloud workloads up to PROTECTED.
+- Evidence request, upload, review and CVE/SBOM import workflows.
+- Vulnerability scan import for Nessus, Rapid7, Qualys and generic CSV.
+- Findings register linked to ISM controls, with chapter/sub-chapter filters, status filters, severity and remediation actions.
+- Residual risk capture using a likelihood and impact matrix.
+- SSP bundle export as a zip containing PDF, Excel workbook and boundary diagram image.
+- Versioned generated files with R2/S3 storage support and admin delete flow.
+- Append-only audit log with search, filters, sorting and pagination.
+
+## IRAP and ISM Search Context
+
+Useful terms for understanding OakAttest:
+
+- IRAP assessment
+- IRAP assessor
+- open-source IRAP assessment software
+- ISM compliance tool
+- Australian Information Security Manual
+- ACSC ISM controls
+- System Security Plan
+- SSP Annex
+- Cloud controls matrix
+- Essential Eight
+- assessment boundary
+- evidence collection
+- security assessment report
+- authorisation package
+- OFFICIAL: Sensitive
+- PROTECTED
+- Australian Government cyber security
+
+## Intended Audience
+
+OakAttest is intended for:
+
+- ASD-registered IRAP assessor firms.
+- Lead assessors who manage engagements and certification artefacts.
+- Assessors who perform fieldwork, control review and evidence assessment.
+- Client administrators who coordinate participation for a specific engagement.
+- Client contributors who upload evidence and write implementation statements.
+- Read-only observers, peer reviewers and liaison stakeholders.
+
+## Important Qualification
+
+OakAttest does not claim that ASD certifies, endorses or approves a system. It helps assessor firms and clients collect and structure the artefacts that inform the relevant authorisation decision.
+
+## Repository
+
+Source code: https://github.com/jusso-dev/OakAttest
+
+Showcase site: https://jusso-dev.github.io/OakAttest/

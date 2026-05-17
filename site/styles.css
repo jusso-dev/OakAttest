@@ -244,6 +244,7 @@ h3 {
 
 .market-strip,
 .split-section,
+.search-fit,
 .screenshots,
 .capabilities,
 .deployment {
@@ -327,6 +328,10 @@ h3 {
 
 .workflow-list article:nth-child(3) {
   transform: translateX(-10px);
+}
+
+.search-fit {
+  padding: 42px 0 24px;
 }
 
 .screenshots {
@@ -466,6 +471,11 @@ h3 {
 
 .site-footer span:first-child {
   color: var(--ink);
+  font-weight: 800;
+}
+
+.site-footer a {
+  color: var(--oak);
   font-weight: 800;
 }
 
