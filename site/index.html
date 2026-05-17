@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OakAttest | Open-source IRAP assessment workspace</title>
+    <meta
+      name="description"
+      content="OakAttest is an open-source IRAP assessment workspace for Australian assessor firms and client organisations."
+    />
+    <meta name="color-scheme" content="light" />
+    <meta property="og:title" content="OakAttest" />
+    <meta
+      property="og:description"
+      content="A self-hostable IRAP assessment workspace for scoping, evidence, fieldwork, findings, certification and compliance maintenance."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="assets/screenshots/08-engagement-overview.png" />
+    <link rel="icon" href="assets/oak-attest-mark.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="OakAttest home">
+        <img src="assets/oak-attest-mark.png" alt="" width="44" height="50" />
+        <span>OakAttest</span>
+      </a>
+      <nav class="top-nav" aria-label="Primary navigation">
+        <a href="#workflow">Workflow</a>
+        <a href="#screenshots">Screenshots</a>
+        <a href="#deployment">Deployment</a>
+        <a href="https://github.com/jusso-dev/OakAttest">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Built for Australian IRAP assessment work</p>
+          <h1>Evidence, scope, findings and artefacts in one defensible workspace.</h1>
+          <p class="hero-lede">
+            OakAttest is an open-source assessment workspace for ASD-registered
+            assessor firms and the client organisations they assess. It keeps
+            the IRAP lifecycle structured from organisation setup through
+            scoping, evidence, fieldwork, findings, certification and ongoing
+            compliance maintenance.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#screenshots">View the product</a>
+            <a class="button secondary" href="#deployment">See deployment model</a>
+          </div>
+        </div>
+        <figure class="hero-frame" aria-label="OakAttest engagement overview screenshot">
+          <img
+            src="assets/screenshots/08-engagement-overview.png"
+            alt="OakAttest engagement overview showing assessment progress, status and artefact panels."
+            width="1440"
+            height="1100"
+          />
+        </figure>
+      </section>
+
+      <section class="market-strip" aria-labelledby="market-title">
+        <div>
+          <p class="eyebrow">Why this matters</p>
+          <h2 id="market-title">The Australian market does not need another generic compliance tracker.</h2>
+        </div>
+        <p>
+          IRAP work depends on boundaries, ISM applicability, evidence quality,
+          client collaboration, residual risk, auditability and exportable
+          records that can support an authorisation decision. OakAttest is
+          shaped around those practical tasks, with self-hosted deployment as a
+          first-class option.
+        </p>
+      </section>
+
+      <section class="proof-grid" aria-label="Product proof points">
+        <article>
+          <span class="proof-number">01</span>
+          <h3>Assessment boundary first</h3>
+          <p>
+            Capture system metadata, environments, service components and
+            boundary diagrams before the engagement drifts into loose evidence
+            collection.
+          </p>
+        </article>
+        <article>
+          <span class="proof-number">02</span>
+          <h3>ISM work stays current</h3>
+          <p>
+            Import ACSC ISM OSCAL releases, manage revisions and record
+            applicability decisions with chapter and sub-chapter filtering.
+          </p>
+        </article>
+        <article>
+          <span class="proof-number">03</span>
+          <h3>Artefacts are exportable</h3>
+          <p>
+            Generate SSP material, certification records, Excel workbooks and
+            boundary imagery from the same controlled engagement data.
+          </p>
+        </article>
+      </section>
+
+      <section class="split-section" id="workflow">
+        <div class="section-heading">
+          <p class="eyebrow">IRAP lifecycle coverage</p>
+          <h2>Built around the work assessors already have to perform.</h2>
+        </div>
+        <div class="workflow-list">
+          <article>
+            <span>Plan</span>
+            <h3>Organisation and engagement setup</h3>
+            <p>
+              Create the assessor organisation, invite colleagues, define
+              client contacts, assign roles and establish engagement scope.
+            </p>
+          </article>
+          <article>
+            <span>Scope</span>
+            <h3>Boundary and Cloud IRAP context</h3>
+            <p>
+              Model environments, data centres, services, inherited provider
+              controls and system boundaries for AWS, Azure or Google Cloud
+              workloads up to PROTECTED.
+            </p>
+          </article>
+          <article>
+            <span>Assess</span>
+            <h3>Control decisions and fieldwork</h3>
+            <p>
+              Record implementation statements, assessment methods, evidence
+              quality, limitations, vulnerability imports and CVE or SBOM data.
+            </p>
+          </article>
+          <article>
+            <span>Report</span>
+            <h3>Findings, risk and certification</h3>
+            <p>
+              Link findings to ISM controls, record residual risk and prepare
+              authorisation package material without losing the audit trail.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="screenshots" id="screenshots">
+        <div class="section-heading wide">
+          <p class="eyebrow">Product screenshots</p>
+          <h2>Real application screens, not concept art.</h2>
+          <p>
+            These captures come from the app's disposable Playwright data set:
+            organisation onboarding, administration, ISM imports, engagement
+            scope, dashboard, findings and certification.
+          </p>
+        </div>
+
+        <div class="showcase" data-gallery>
+          <figure class="showcase-image">
+            <img
+              src="assets/screenshots/07-scope-boundary-applicability.png"
+              alt="Scope, boundary and applicability workspace"
+              width="2488"
+              height="1438"
+              data-gallery-image
+            />
+            <figcaption data-gallery-caption>Scope, boundary and applicability</figcaption>
+          </figure>
+          <div class="thumb-grid" aria-label="Screenshot selector">
+            <button
+              class="thumb is-active"
+              type="button"
+              data-src="assets/screenshots/07-scope-boundary-applicability.png"
+              data-alt="Scope, boundary and applicability workspace"
+              data-caption="Scope, boundary and applicability"
+            >
+              <img src="assets/screenshots/07-scope-boundary-applicability.png" alt="" />
+              <span>Scope</span>
+            </button>
+            <button
+              class="thumb"
+              type="button"
+              data-src="assets/screenshots/08-engagement-overview.png"
+              data-alt="Engagement overview with progress panels"
+              data-caption="Engagement overview"
+            >
+              <img src="assets/screenshots/08-engagement-overview.png" alt="" />
+              <span>Overview</span>
+            </button>
+            <button
+              class="thumb"
+              type="button"
+              data-src="assets/screenshots/09-dashboard.png"
+              data-alt="OakAttest dashboard"
+              data-caption="Dashboard"
+            >
+              <img src="assets/screenshots/09-dashboard.png" alt="" />
+              <span>Dashboard</span>
+            </button>
+            <button
+              class="thumb"
+              type="button"
+              data-src="assets/screenshots/10-findings.png"
+              data-alt="Findings register with linked ISM controls"
+              data-caption="Findings register"
+            >
+              <img src="assets/screenshots/10-findings.png" alt="" />
+              <span>Findings</span>
+            </button>
+            <button
+              class="thumb"
+              type="button"
+              data-src="assets/screenshots/11-certification.png"
+              data-alt="Certification artefact screen"
+              data-caption="Certification"
+            >
+              <img src="assets/screenshots/11-certification.png" alt="" />
+              <span>Certification</span>
+            </button>
+            <button
+              class="thumb"
+              type="button"
+              data-src="assets/screenshots/04-tenant-admin.png"
+              data-alt="Tenant administration screen"
+              data-caption="Tenant administration"
+            >
+              <img src="assets/screenshots/04-tenant-admin.png" alt="" />
+              <span>Admin</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="capabilities" aria-labelledby="capabilities-title">
+        <div class="section-heading">
+          <p class="eyebrow">What it handles</p>
+          <h2 id="capabilities-title">A workspace for repeatable assessment operations.</h2>
+        </div>
+        <div class="capability-table" role="table" aria-label="OakAttest capability summary">
+          <div role="row">
+            <strong role="cell">Organisation controls</strong>
+            <span role="cell">Tenant roles, engagement-scoped client access, invitations, branding and IP allowlist administration.</span>
+          </div>
+          <div role="row">
+            <strong role="cell">Evidence lifecycle</strong>
+            <span role="cell">Requests, uploads, review decisions, generated artefact storage and append-only audit logs.</span>
+          </div>
+          <div role="row">
+            <strong role="cell">Control assessment</strong>
+            <span role="cell">ISM applicability, CAF record fields, evidence limitations and assessor decision history.</span>
+          </div>
+          <div role="row">
+            <strong role="cell">Security inputs</strong>
+            <span role="cell">Nessus, Rapid7, Qualys and generic CSV vulnerability scans, plus CVE and SBOM workflows.</span>
+          </div>
+          <div role="row">
+            <strong role="cell">Outputs</strong>
+            <span role="cell">SSP zip bundle, PDF material, Excel workbook, boundary image and certification records.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="deployment" id="deployment">
+        <div class="deployment-copy">
+          <p class="eyebrow">Deployment posture</p>
+          <h2>Open source, self-hostable and careful about responsibility.</h2>
+          <p>
+            OakAttest is designed for deployments where assessment material,
+            evidence and audit history need clear ownership. It does not claim
+            that ASD certifies, endorses or approves a system. It helps assessor
+            firms and clients collect and structure the artefacts that inform
+            the relevant authorisation decision.
+          </p>
+        </div>
+        <div class="deployment-steps">
+          <article>
+            <span>Stack</span>
+            <p>Next.js, PostgreSQL, Drizzle, Better Auth, S3-compatible storage and React Email.</p>
+          </article>
+          <article>
+            <span>Install</span>
+            <p>Run locally with Docker, migrate and seed the database, then start the app with npm.</p>
+          </article>
+          <article>
+            <span>Licence</span>
+            <p>AGPL-3.0-or-later, suitable for open collaboration and transparent assessment tooling.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>OakAttest</span>
+      <span>
+        Open-source IRAP assessment workspace for Australia.
+        <a href="https://github.com/jusso-dev/OakAttest">View the repository</a>
+      </span>
+    </footer>
+
+    <script src="site.js"></script>
+  </body>
+</html>
