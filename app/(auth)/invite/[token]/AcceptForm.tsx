@@ -43,14 +43,14 @@ export function AcceptForm({ token, kind }: { token: string; kind: 'tenant' | 'e
         </p>
         <div className="flex gap-2">
           <Link
-            href={`/sign-in?next=/invite/${token}`}
-            className="inline-flex h-9 items-center justify-center rounded-md bg-teal-900 px-4 text-sm font-medium text-white hover:bg-teal-800"
+            href={`/signin?next=/invite/${token}`}
+            className="inline-flex h-9 items-center justify-center rounded-md bg-[var(--oak-shield)] px-4 text-sm font-medium text-white hover:bg-[var(--oak-shield-hover)]"
           >
             Sign in
           </Link>
           <Link
             href={`/sign-up?next=/invite/${token}`}
-            className="inline-flex h-9 items-center justify-center rounded-md border border-slate-200 bg-white px-4 text-sm font-medium text-slate-900 hover:bg-slate-50"
+            className="inline-flex h-9 items-center justify-center rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-4 text-sm font-medium text-slate-900 hover:bg-[var(--oak-mist)]"
           >
             Create account
           </Link>

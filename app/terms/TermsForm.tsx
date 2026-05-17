@@ -23,7 +23,7 @@ export function TermsForm() {
 
   return (
     <div className="space-y-3">
-      <label className="flex items-start gap-2 text-sm text-slate-700">
+      <label className="flex items-start gap-2 text-sm font-medium text-slate-800">
         <input
           type="checkbox"
           checked={agreed}

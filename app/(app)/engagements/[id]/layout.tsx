@@ -4,9 +4,11 @@ import { db } from '@/lib/db/client';
 import { engagements } from '@/db/schema/engagements';
 import { getSession } from '@/lib/auth/session';
 import { resolveActiveTenant } from '@/lib/auth/active-tenant';
-import { requirePermission, PermissionDeniedError } from '@/lib/rbac/require';
-import { ACTIONS } from '@/lib/rbac/matrix';
+import { requirePermission, PermissionDeniedError, rolesForUser } from '@/lib/rbac/require';
+import { ACTIONS, isPermitted } from '@/lib/rbac/matrix';
 import { PhaseStepper, type Phase } from '@/components/engagement/PhaseStepper';
+import { UnsavedChangesProvider } from '@/components/engagement/UnsavedChangesGuard';
+import { EngagementStateControl } from '@/components/engagement/EngagementStateControl';
 
 export default async function EngagementLayout({
   children,
@@ -16,7 +18,7 @@ export default async function EngagementLayout({
   params: Promise<{ id: string }>;
 }) {
   const session = await getSession();
-  if (!session) redirect('/sign-in');
+  if (!session) redirect('/signin');
 
   const { id } = await params;
   const tenant = await resolveActiveTenant(session.user.id);
@@ -53,17 +55,32 @@ export default async function EngagementLayout({
     throw err;
   }
 
+  const roles = await rolesForUser({
+    userId: session.user.id,
+    tenantId: tenant.tenantId,
+    engagementId: id,
+  });
+  const canUpdateState = roles.some((role) => isPermitted(ACTIONS.engagementUpdate, role));
+
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <header className="space-y-2">
-        <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
-          {row.reference ?? 'Engagement'} ·{' '}
-          <span className="text-slate-700">{row.classification.replace('_', ':')}</span>
-        </p>
-        <h1 className="text-2xl font-semibold text-slate-900">{row.name}</h1>
-      </header>
-      <PhaseStepper engagementId={row.id} currentPhase={row.phase as Phase} />
-      {children}
-    </div>
+    <UnsavedChangesProvider>
+      <div className="mx-auto max-w-6xl space-y-6">
+        <header className="space-y-2">
+          <p className="text-xs uppercase text-slate-600">
+            {row.reference ?? 'Engagement'} ·{' '}
+            <span className="text-slate-700">{row.classification.replace('_', ':')}</span>
+          </p>
+          <h1 className="text-2xl font-semibold text-slate-900">{row.name}</h1>
+        </header>
+        <EngagementStateControl
+          engagementId={row.id}
+          currentPhase={row.phase as Phase}
+          currentStatus={row.status}
+          canEdit={canUpdateState}
+        />
+        <PhaseStepper engagementId={row.id} currentPhase={row.phase as Phase} />
+        {children}
+      </div>
+    </UnsavedChangesProvider>
   );
 }

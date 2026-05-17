@@ -14,6 +14,7 @@ import { requireSession } from '@/lib/auth/session';
 import { requirePermission } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
 import { sendEngagementInviteEmail } from '@/emails/send';
+import { writeActiveTenantCookie } from '@/lib/auth/active-tenant';
 
 const inviteSchema = z.object({
   engagementId: z.string().uuid(),
@@ -40,11 +41,23 @@ export async function inviteToEngagement(input: z.infer<typeof inviteSchema>) {
     .limit(1);
   if (!engagement) throw new Error('Engagement not found');
 
-  await requirePermission(ACTIONS.engagementInvite, {
+  const inviterRoles = await requirePermission(ACTIONS.engagementInvite, {
     userId: session.user.id,
     tenantId: engagement.tenantId,
     engagementId: data.engagementId,
   });
+
+  const canInviteAssessor =
+    inviterRoles.includes('tenant_owner') ||
+    inviterRoles.includes('assessor_admin') ||
+    inviterRoles.includes('lead_assessor');
+  const isClientRole =
+    data.role === 'client_admin' ||
+    data.role === 'client_contributor' ||
+    data.role === 'read_only_observer';
+  if (!canInviteAssessor && !isClientRole) {
+    throw new Error('Client admins can only invite client-side or read-only users');
+  }
 
   const token = crypto.randomBytes(32).toString('base64url');
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 72);
@@ -135,6 +148,7 @@ export async function acceptEngagementInvitation(input: z.infer<typeof acceptSch
     });
   });
 
+  await writeActiveTenantCookie(invitation.tenantId);
   return { engagementId: invitation.engagementId };
 }
 
@@ -179,6 +193,7 @@ export async function acceptTenantInvitation(input: z.infer<typeof acceptTenantS
     });
   });
 
+  await writeActiveTenantCookie(invitation.tenantId);
   return { tenantId: invitation.tenantId };
 }
 

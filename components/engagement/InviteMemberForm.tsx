@@ -8,7 +8,9 @@ import { inviteToEngagement } from '@/app/actions/invitations';
 
 export function InviteMemberForm({ engagementId }: { engagementId: string }) {
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<'lead_assessor' | 'assessor' | 'client_admin' | 'client_contributor' | 'read_only_observer'>('client_admin');
+  const [role, setRole] = useState<
+    'client_admin' | 'client_contributor' | 'read_only_observer'
+  >('client_contributor');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +21,9 @@ export function InviteMemberForm({ engagementId }: { engagementId: string }) {
     setError(null);
     try {
       const result = await inviteToEngagement({ engagementId, email, role });
-      setMessage(`Invitation sent — expires ${new Date(result.expiresAt).toLocaleString('en-AU')}.`);
+      setMessage(
+        `Client invitation sent. Access is limited to this engagement and expires ${new Date(result.expiresAt).toLocaleString('en-AU')}.`,
+      );
       setEmail('');
     } catch (err) {
       setError((err as Error).message);
@@ -29,8 +33,11 @@ export function InviteMemberForm({ engagementId }: { engagementId: string }) {
   }
 
   return (
-    <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
-      <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Invite member</p>
+    <div className="rounded-md border border-[var(--field-border)] bg-[var(--oak-mist)] p-3">
+      <p className="text-xs font-medium uppercase text-slate-600">Invite client</p>
+      <p className="mt-1 text-xs text-slate-700">
+        Invited users can only access this engagement unless they are separately added elsewhere.
+      </p>
       <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_200px_auto]">
         <div className="space-y-1.5">
           <Label htmlFor="invEmail">Email</Label>
@@ -47,10 +54,8 @@ export function InviteMemberForm({ engagementId }: { engagementId: string }) {
             id="invRole"
             value={role}
             onChange={(e) => setRole(e.target.value as never)}
-            className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+            className="flex h-9 w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3 text-sm"
           >
-            <option value="lead_assessor">Lead assessor</option>
-            <option value="assessor">Assessor</option>
             <option value="client_admin">Client admin</option>
             <option value="client_contributor">Client contributor</option>
             <option value="read_only_observer">Read-only observer</option>

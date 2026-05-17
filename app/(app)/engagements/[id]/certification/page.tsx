@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { CertificationDraftForm } from '@/components/engagement/CertificationDraftForm';
 import { CertificationRow } from '@/components/engagement/CertificationRow';
 import { ResidualRiskForm } from '@/components/engagement/ResidualRiskForm';
+import { AuthorisationPackagePanel } from '@/components/engagement/AuthorisationPackagePanel';
 import { getSession } from '@/lib/auth/session';
 
 export default async function CertificationPage({
@@ -37,6 +38,8 @@ export default async function CertificationPage({
 
   return (
     <div className="space-y-6">
+      <AuthorisationPackagePanel />
+
       <Card>
         <CardHeader>
           <CardTitle>Residual risks</CardTitle>
@@ -46,15 +49,23 @@ export default async function CertificationPage({
         </CardHeader>
         <CardContent className="space-y-3">
           {risks.length === 0 ? (
-            <p className="text-sm text-slate-500">No residual risks recorded.</p>
+            <p className="text-sm text-slate-600">No residual risks recorded.</p>
           ) : (
             <ul className="space-y-2 text-sm">
               {risks.map((r) => (
-                <li key={r.id} className="rounded-md border border-slate-200 bg-white p-3">
-                  <p className="font-medium text-slate-900">{r.title}</p>
+                <li key={r.id} className="rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-3">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <p className="font-medium text-slate-900">{r.title}</p>
+                    <RiskBadge likelihood={r.likelihood} impact={r.impact} />
+                  </div>
                   <p className="mt-1 text-slate-700">{r.description}</p>
+                  {(r.likelihood || r.impact) && (
+                    <p className="mt-1 text-xs text-slate-600">
+                      Likelihood: {r.likelihood ?? 'Not set'} · Impact: {r.impact ?? 'Not set'}
+                    </p>
+                  )}
                   {r.mitigation && (
-                    <p className="mt-1 text-xs text-slate-500">Mitigation: {r.mitigation}</p>
+                    <p className="mt-1 text-xs text-slate-600">Mitigation: {r.mitigation}</p>
                   )}
                 </li>
               ))}
@@ -91,5 +102,36 @@ export default async function CertificationPage({
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function RiskBadge({
+  likelihood,
+  impact,
+}: {
+  likelihood: string | null;
+  impact: string | null;
+}) {
+  const score = Number(likelihood?.split(' ')[0]) * Number(impact?.split(' ')[0]);
+  if (!Number.isFinite(score) || score <= 0) {
+    return (
+      <span className="rounded-full bg-[var(--oak-mist-strong)] px-2 py-0.5 text-xs font-medium text-slate-700">
+        unrated
+      </span>
+    );
+  }
+  const rating = score >= 20 ? 'Extreme' : score >= 12 ? 'High' : score >= 6 ? 'Medium' : 'Low';
+  const tone =
+    rating === 'Extreme'
+      ? 'bg-red-100 text-red-900'
+      : rating === 'High'
+        ? 'bg-orange-100 text-orange-900'
+        : rating === 'Medium'
+          ? 'bg-amber-100 text-amber-900'
+          : 'bg-[var(--oak-mist-strong)] text-[var(--oak-shield)]';
+  return (
+    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${tone}`}>
+      {score} {rating}
+    </span>
   );
 }

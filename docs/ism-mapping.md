@@ -16,7 +16,7 @@ controls the platform itself meets and where evidence lives.
 | Event logging            | In progress    | Append-only `audit_log` with DB role separation.                                |
 | Patching                 | Planned        | Dependabot, base-image scanning, CVE evidence module (§9.9).                    |
 | Personnel security       | Out of scope   | Tenant responsibility; OakAttest does not enforce.                              |
-| Backup & restore         | Planned        | Daily snapshots, 35d retention, Melbourne replication.                          |
-| Data residency           | Implemented    | ap-southeast-2 default; per-tenant declaration page.                            |
+| Backup & restore         | Planned        | Operator-configured snapshots, retention, and replication.                      |
+| Data residency           | Implemented    | Self-hosted deployment declaration; residency depends on infrastructure config.  |
 
 Source revision tracked in `db/schema/ism.ts` via `ism_imports.revision`.

@@ -43,7 +43,7 @@ export function CommandPalette({ items }: { items: Item[] }) {
       onClick={() => setOpen(false)}
     >
       <div
-        className="mt-24 w-full max-w-xl overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl"
+        className="mt-24 w-full max-w-xl overflow-hidden rounded-lg border border-[var(--field-border)] bg-[var(--panel-surface)] shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <input
@@ -51,17 +51,17 @@ export function CommandPalette({ items }: { items: Item[] }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Jump to engagement, admin, or audit log…"
-          className="w-full border-b border-slate-100 px-4 py-3 text-sm outline-none"
+          className="w-full border-b border-[var(--field-border)] bg-[var(--panel-surface)] px-4 py-3 text-sm text-slate-950 outline-none placeholder:text-slate-600 focus-visible:ring-2 focus-visible:ring-[var(--oak-shield)]"
         />
         <ul className="max-h-80 overflow-y-auto">
           {filtered.length === 0 ? (
-            <li className="px-4 py-3 text-sm text-slate-500">No matches.</li>
+            <li className="px-4 py-3 text-sm text-slate-600">No matches.</li>
           ) : (
             filtered.slice(0, 30).map((item) => (
               <li key={item.id}>
                 <button
                   type="button"
-                  className="flex w-full flex-col items-start gap-0.5 border-b border-slate-50 px-4 py-3 text-left hover:bg-slate-50"
+                  className="flex w-full flex-col items-start gap-0.5 border-b border-[var(--field-border)] px-4 py-3 text-left hover:bg-[var(--oak-mist)]"
                   onClick={() => {
                     setOpen(false);
                     router.push(item.href);
@@ -69,14 +69,14 @@ export function CommandPalette({ items }: { items: Item[] }) {
                 >
                   <span className="text-sm font-medium text-slate-900">{item.label}</span>
                   {item.description && (
-                    <span className="text-xs text-slate-500">{item.description}</span>
+                    <span className="text-xs text-slate-600">{item.description}</span>
                   )}
                 </button>
               </li>
             ))
           )}
         </ul>
-        <p className="border-t border-slate-100 px-4 py-2 text-[10px] uppercase tracking-wider text-slate-400">
+        <p className="border-t border-[var(--field-border)] px-4 py-2 text-xs text-slate-600">
           Esc to close · ⌘K to toggle
         </p>
       </div>

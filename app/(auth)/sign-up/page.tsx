@@ -9,8 +9,8 @@ export default function SignUpPage() {
       <CardHeader>
         <CardTitle>Create your account</CardTitle>
         <CardDescription>
-          Passwords must be at least 14 characters and are checked against known breaches.
-          You will enrol a second factor immediately after creating the account.
+          Create your user account and organisation workspace. You will enrol a second
+          factor from account settings when you are ready.
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -9,6 +9,7 @@ import {
   index,
   jsonb,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 // BetterAuth core tables. Column names match BetterAuth defaults so the
 // adapter does not need a custom mapping. UUID v7 is generated in the
@@ -22,6 +23,11 @@ export const users = pgTable(
     id: uuidv7(),
     email: text('email').notNull(),
     emailVerified: boolean('email_verified').notNull().default(false),
+    twoFactorEnabled: boolean('two_factor_enabled').notNull().default(false),
+    role: text('role'),
+    banned: boolean('banned').notNull().default(false),
+    banReason: text('ban_reason'),
+    banExpires: timestamp('ban_expires', { withTimezone: true }),
     name: text('name'),
     image: text('image'),
     // Australian English: title fields are user-set, so no language enforcement.
@@ -72,15 +78,19 @@ export const sessions = pgTable(
     // Session length enforced in BetterAuth config: 8h assessor, 4h client,
     // 12h absolute. Stored here so middleware can short-circuit.
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-    absoluteExpiresAt: timestamp('absolute_expires_at', { withTimezone: true }).notNull(),
+    absoluteExpiresAt: timestamp('absolute_expires_at', { withTimezone: true })
+      .notNull()
+      .default(sql`now() + interval '12 hours'`),
     ipAddress: text('ip_address'),
     userAgent: text('user_agent'),
+    impersonatedBy: text('impersonated_by'),
     // Device trust (section 5): remember device for 30d after MFA.
     trustedDeviceId: uuid('trusted_device_id'),
     // Active tenant for this session. Set when the user picks a tenant via the
     // command palette; RBAC lookups derive from this.
     activeTenantId: uuid('active_tenant_id'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex('sessions_token_uq').on(t.token),
@@ -118,6 +128,7 @@ export const twoFactor = pgTable(
     userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     secret: text('secret').notNull(),
     backupCodes: text('backup_codes').notNull(),
+    verified: boolean('verified').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex('two_factor_user_uq').on(t.userId)],

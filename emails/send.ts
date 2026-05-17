@@ -4,6 +4,7 @@
 import { Resend } from 'resend';
 import { MagicLinkEmail } from './templates/MagicLink';
 import { EngagementInviteEmail } from './templates/EngagementInvite';
+import { TenantInviteEmail } from './templates/TenantInvite';
 
 const apiKey = process.env.RESEND_API_KEY;
 const from = process.env.EMAIL_FROM ?? 'OakAttest <no-reply@oakattest.example>';
@@ -42,5 +43,23 @@ export async function sendEngagementInviteEmail({
     to,
     subject: `${inviterName} has invited you to ${engagementName} on OakAttest`,
     react: EngagementInviteEmail({ url, engagementName, inviterName }),
+  });
+}
+
+export async function sendTenantInviteEmail({
+  to,
+  url,
+  tenantName,
+  inviterName,
+}: {
+  to: string;
+  url: string;
+  tenantName: string;
+  inviterName: string;
+}) {
+  await send({
+    to,
+    subject: `${inviterName} has invited you to ${tenantName} on OakAttest`,
+    react: TenantInviteEmail({ url, tenantName, inviterName }),
   });
 }

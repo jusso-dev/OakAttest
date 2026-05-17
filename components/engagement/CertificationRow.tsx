@@ -70,24 +70,24 @@ export function CertificationRow({
   }
 
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-4 text-sm">
+    <div className="rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-4 text-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-medium text-slate-900">Version {report.version}</p>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-600">
             {report.status}
             {report.signedAt
               ? ` · signed ${new Date(report.signedAt).toLocaleString('en-AU')}`
               : ` · created ${new Date(report.createdAt).toLocaleString('en-AU')}`}
           </p>
           {report.bundleSha256 && (
-            <p className="mt-1 font-mono text-xs text-slate-500">
+            <p className="mt-1 font-mono text-xs text-slate-600">
               SHA-256 {report.bundleSha256.slice(0, 24)}…
             </p>
           )}
           {report.publicVerificationToken && (
             <a
-              className="mt-1 inline-block text-xs text-teal-900 underline"
+              className="mt-1 inline-block text-xs text-[var(--oak-shield)] underline"
               href={`/verify/${report.publicVerificationToken}`}
               target="_blank"
               rel="noreferrer"

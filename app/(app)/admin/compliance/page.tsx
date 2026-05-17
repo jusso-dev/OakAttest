@@ -63,7 +63,7 @@ export default async function CompliancePage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <header>
-        <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Tenant admin</p>
+        <p className="text-xs uppercase text-slate-600">Tenant admin</p>
         <h1 className="mt-1 text-2xl font-semibold text-slate-900">Ongoing compliance</h1>
       </header>
       <Card>
@@ -76,11 +76,11 @@ export default async function CompliancePage() {
         </CardHeader>
         <CardContent>
           {rows.length === 0 ? (
-            <p className="text-sm text-slate-500">No certified engagements yet.</p>
+            <p className="text-sm text-slate-600">No certified engagements yet.</p>
           ) : (
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wider text-slate-500">
+                <tr className="border-b border-[var(--field-border)] text-left text-xs uppercase text-slate-600">
                   <th className="py-2 pr-3">Engagement</th>
                   <th className="py-2 pr-3">Classification</th>
                   <th className="py-2 pr-3">Certified</th>
@@ -90,17 +90,17 @@ export default async function CompliancePage() {
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.id} className="border-b border-slate-100">
+                  <tr key={r.id} className="border-b border-[var(--field-border)]">
                     <td className="py-2 pr-3">
-                      <a href={`/engagements/${r.id}/overview`} className="text-teal-900 underline">
+                      <a href={`/engagements/${r.id}/overview`} className="text-[var(--oak-shield)] underline">
                         {r.name}
                       </a>
                     </td>
                     <td className="py-2 pr-3">{r.classification.replace('_', ':')}</td>
-                    <td className="py-2 pr-3 text-slate-500">
+                    <td className="py-2 pr-3 text-slate-600">
                       {r.certifiedAt ? new Date(r.certifiedAt).toLocaleDateString('en-AU') : '—'}
                     </td>
-                    <td className="py-2 pr-3 text-slate-500">
+                    <td className="py-2 pr-3 text-slate-600">
                       {r.due ? r.due.toLocaleDateString('en-AU') : '—'}
                     </td>
                     <td className="py-2 pr-3">
@@ -111,7 +111,7 @@ export default async function CompliancePage() {
                       ) : r.days < 60 ? (
                         <span className="font-medium text-amber-700">{r.days} days</span>
                       ) : (
-                        <span className="text-slate-500">{r.days} days</span>
+                        <span className="text-slate-600">{r.days} days</span>
                       )}
                     </td>
                   </tr>

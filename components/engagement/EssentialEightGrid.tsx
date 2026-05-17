@@ -61,15 +61,15 @@ function StrategyCard({
   }
 
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-4">
+    <div className="rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-4">
       <p className="font-medium text-slate-900">{strategy.label}</p>
       <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
         <label className="space-y-1">
-          <span className="text-xs text-slate-500">Current</span>
+          <span className="text-xs text-slate-600">Current</span>
           <select
             value={current}
             onChange={(e) => setCurrent(e.target.value)}
-            className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3"
+            className="flex h-9 w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3"
           >
             {LEVELS.map((l) => (
               <option key={l} value={l}>
@@ -79,11 +79,11 @@ function StrategyCard({
           </select>
         </label>
         <label className="space-y-1">
-          <span className="text-xs text-slate-500">Target</span>
+          <span className="text-xs text-slate-600">Target</span>
           <select
             value={target}
             onChange={(e) => setTarget(e.target.value)}
-            className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3"
+            className="flex h-9 w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3"
           >
             {LEVELS.map((l) => (
               <option key={l} value={l}>
@@ -98,7 +98,7 @@ function StrategyCard({
         placeholder="Remediation plan"
         value={plan}
         onChange={(e) => setPlan(e.target.value)}
-        className="mt-3 w-full rounded-md border border-slate-200 bg-white p-2 text-sm"
+        className="mt-3 w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm"
       />
       <div className="mt-3 flex justify-end">
         <Button size="sm" variant="primary" disabled={busy} onClick={save}>

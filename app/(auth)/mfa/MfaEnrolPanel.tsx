@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,8 @@ type EnrolState =
 
 export function MfaEnrolPanel() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next');
   const [state, setState] = useState<EnrolState>({ step: 'start' });
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
@@ -43,7 +45,7 @@ export function MfaEnrolPanel() {
       return;
     }
     setState({ step: 'done' });
-    router.push('/dashboard');
+    router.push(next?.startsWith('/') ? next : '/dashboard');
   }
 
   if (state.step === 'start') {
@@ -74,7 +76,7 @@ export function MfaEnrolPanel() {
           Add this account to your authenticator app. The setup URI is below; most apps will
           accept it directly, or you can paste the secret from inside the URI.
         </p>
-        <pre className="overflow-x-auto rounded bg-slate-100 p-3 text-xs">{state.uri}</pre>
+        <pre className="overflow-x-auto rounded bg-[var(--oak-mist-strong)] p-3 text-xs">{state.uri}</pre>
         <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
           <p className="font-medium">Backup codes — save these now.</p>
           <ul className="mt-2 grid grid-cols-2 gap-1 font-mono text-xs">

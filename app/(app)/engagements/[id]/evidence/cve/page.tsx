@@ -81,8 +81,8 @@ async function ScanCard({ scan }: { scan: typeof cveScans.$inferSelect }) {
             {findings.length > 0 && (
               <div className="mt-4 overflow-x-auto">
                 <table className="min-w-full text-sm">
-                  <thead className="text-left text-xs uppercase tracking-wider text-slate-500">
-                    <tr className="border-b border-slate-200">
+                  <thead className="text-left text-xs uppercase text-slate-600">
+                    <tr className="border-b border-[var(--field-border)]">
                       <th className="py-2 pr-3">Package</th>
                       <th className="py-2 pr-3">Version</th>
                       <th className="py-2 pr-3">Advisory</th>
@@ -92,7 +92,7 @@ async function ScanCard({ scan }: { scan: typeof cveScans.$inferSelect }) {
                   </thead>
                   <tbody>
                     {findings.map((f) => (
-                      <tr key={f.id} className="border-b border-slate-100">
+                      <tr key={f.id} className="border-b border-[var(--field-border)]">
                         <td className="py-2 pr-3 font-mono text-xs">
                           {f.packageEcosystem}: {f.packageName}
                         </td>
@@ -101,7 +101,7 @@ async function ScanCard({ scan }: { scan: typeof cveScans.$inferSelect }) {
                           {f.advisoryId}
                         </td>
                         <td className="py-2 pr-3">{f.severity}</td>
-                        <td className="py-2 pr-3 text-slate-500">
+                        <td className="py-2 pr-3 text-slate-600">
                           {(f.fixedVersions ?? []).join(', ') || '—'}
                         </td>
                       </tr>
@@ -130,12 +130,12 @@ function Counter({
     critical: 'bg-red-100 text-red-900',
     high: 'bg-amber-100 text-amber-900',
     medium: 'bg-sky-100 text-sky-900',
-    low: 'bg-slate-100 text-slate-700',
+    low: 'bg-[var(--oak-mist-strong)] text-slate-700',
   }[tone];
   return (
     <div className={`rounded-md ${colour} p-3`}>
       <p className="text-2xl font-semibold">{value}</p>
-      <p className="text-xs uppercase tracking-wider">{label}</p>
+      <p className="text-xs uppercase">{label}</p>
     </div>
   );
 }

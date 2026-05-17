@@ -20,4 +20,13 @@ describe('classification rank ordering', () => {
     expect(CLASSIFICATION_RANK.SECRET).toBeGreaterThan(protectedRank);
     expect(CLASSIFICATION_RANK.TOP_SECRET).toBeGreaterThan(protectedRank);
   });
+
+  it('filters PROTECTED engagement controls without SECRET or TOP_SECRET', () => {
+    const protectedRank = CLASSIFICATION_RANK.PROTECTED;
+    const seeded = Object.entries(CLASSIFICATION_RANK)
+      .filter(([, rank]) => rank <= protectedRank)
+      .map(([classification]) => classification);
+
+    expect(seeded).toEqual(['OFFICIAL', 'OFFICIAL_SENSITIVE', 'PROTECTED']);
+  });
 });

@@ -64,6 +64,52 @@ describe('OSCAL parser', () => {
     expect(extractMinClassification(controls[1].control)).toBe('OFFICIAL');
   });
 
+  it('extracts ACSC OSCAL applicability codes', () => {
+    expect(
+      extractMinClassification({
+        id: 'ISM-P',
+        props: [
+          { name: 'applicability', value: 'P' },
+          { name: 'applicability', value: 'S' },
+          { name: 'applicability', value: 'TS' },
+        ],
+      }),
+    ).toBe('PROTECTED');
+
+    expect(
+      extractMinClassification({
+        id: 'ISM-S',
+        props: [
+          { name: 'applicability', value: 'S' },
+          { name: 'applicability', value: 'TS' },
+        ],
+      }),
+    ).toBe('SECRET');
+
+    expect(
+      extractMinClassification({
+        id: 'ISM-TS',
+        props: [{ name: 'applicability', value: 'TS' }],
+      }),
+    ).toBe('TOP_SECRET');
+  });
+
+  it('normalises common classification labels', () => {
+    expect(
+      extractMinClassification({
+        id: 'ISM-OS',
+        props: [{ name: 'security-classification', value: 'OFFICIAL: Sensitive' }],
+      }),
+    ).toBe('OFFICIAL_SENSITIVE');
+
+    expect(
+      extractMinClassification({
+        id: 'ISM-TS',
+        props: [{ name: 'protective-marking', value: 'top-secret' }],
+      }),
+    ).toBe('TOP_SECRET');
+  });
+
   it('extracts statement and guidance from parts', () => {
     const cat = parseOscalCatalogue(sample);
     const [{ control }] = iterateControls(cat);

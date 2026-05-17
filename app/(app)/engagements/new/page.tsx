@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { desc } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db/client';
 import { ismImports } from '@/db/schema/ism';
@@ -33,15 +33,17 @@ export default async function NewEngagementPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <header>
-        <p className="text-xs uppercase tracking-[0.22em] text-slate-500">New engagement</p>
+        <p className="text-xs uppercase text-slate-600">New engagement</p>
         <h1 className="mt-1 text-2xl font-semibold text-slate-900">Scope a new IRAP assessment</h1>
       </header>
       {revisions.length === 0 ? (
         <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          No ISM catalogue revisions have been imported. Run{' '}
-          <code className="rounded bg-white px-1 py-0.5">npm run db:seed</code> for the bundled
-          sample, or <code className="rounded bg-white px-1 py-0.5">npm run ism:import</code>{' '}
-          against a live OSCAL release.
+          No ISM catalogue revisions have been imported. Open{' '}
+          <a className="font-medium underline" href="/admin/ism">
+            ISM imports
+          </a>{' '}
+          to import the current ACSC release, pin a specific release, or seed the bundled
+          sample for local testing.
         </div>
       ) : (
         <NewEngagementForm tenantId={tenant.tenantId} revisions={revisions} />

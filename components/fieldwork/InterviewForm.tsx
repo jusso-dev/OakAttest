@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createInterview } from '@/app/actions/interviews';
+import { useUnsavedChanges } from '@/components/engagement/UnsavedChangesGuard';
 
 const schema = z.object({
   title: z.string().min(2).max(200),
@@ -26,8 +27,9 @@ export function InterviewForm({ engagementId }: { engagementId: string }) {
     register,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<Values>({ resolver: zodResolver(schema) });
+  useUnsavedChanges(isDirty, 'Interview');
 
   async function onSubmit(v: Values) {
     setServerError(null);
@@ -87,7 +89,7 @@ export function InterviewForm({ engagementId }: { engagementId: string }) {
           <textarea
             id="purpose"
             rows={2}
-            className="flex w-full rounded-md border border-slate-200 bg-white p-2 text-sm"
+            className="flex w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm"
             {...register('purpose')}
           />
         </div>
@@ -96,7 +98,7 @@ export function InterviewForm({ engagementId }: { engagementId: string }) {
           <textarea
             id="attendees"
             rows={3}
-            className="flex w-full rounded-md border border-slate-200 bg-white p-2 text-sm font-mono text-xs"
+            className="flex w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm font-mono text-xs"
             placeholder="Jane Smith | CISO | jane@client.example"
             {...register('attendees')}
           />

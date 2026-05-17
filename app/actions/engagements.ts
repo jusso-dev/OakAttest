@@ -14,16 +14,33 @@ import { CLASSIFICATION_RANK, type Classification } from '@/db/schema/enums';
 import { requireSession } from '@/lib/auth/session';
 import { ACTIONS } from '@/lib/rbac/matrix';
 import { requirePermission } from '@/lib/rbac/require';
+import { isValidAbn, normalizeAbn } from '@/lib/abn';
+import {
+  CLOUD_PROVIDERS,
+  ASSESSMENT_TYPES,
+  canUseProtectedCloudInheritance,
+  cloudProviderLabel,
+  isCloudProviderInheritedControl,
+} from '@/lib/irap/cloud-scope';
 
 const createSchema = z.object({
   tenantId: z.string().uuid(),
   name: z.string().min(2).max(200),
   reference: z.string().max(60).optional(),
   classification: z.enum(['OFFICIAL', 'OFFICIAL_SENSITIVE', 'PROTECTED', 'SECRET', 'TOP_SECRET']),
+  assessmentType: z.enum(ASSESSMENT_TYPES).default('standard'),
+  cloudProvider: z.enum(CLOUD_PROVIDERS).default('none'),
   ismRevision: z.string().min(1),
   clientOrganisation: z.object({
     name: z.string().min(2),
-    abn: z.string().regex(/^\d{11}$/).optional().or(z.literal('').transform(() => undefined)),
+    abn: z.preprocess(
+      (value) => (typeof value === 'string' ? value : ''),
+      z
+        .string()
+        .transform(normalizeAbn)
+        .refine((value) => value === '' || isValidAbn(value), 'Enter a valid ABN')
+        .transform((value) => value || undefined),
+    ),
     primaryContactName: z.string().optional(),
     primaryContactEmail: z.string().email().optional(),
   }),
@@ -32,6 +49,19 @@ const createSchema = z.object({
     description: z.string().optional(),
     environment: z.string().optional(),
   }),
+});
+
+const stateSchema = z.object({
+  engagementId: z.string().uuid(),
+  phase: z.enum([
+    'scoping',
+    'evidence',
+    'fieldwork',
+    'findings',
+    'certification',
+    'maintenance',
+  ]),
+  status: z.enum(['draft', 'active', 'on_hold', 'completed', 'archived']),
 });
 
 export async function createEngagement(input: z.infer<typeof createSchema>) {
@@ -59,6 +89,8 @@ export async function createEngagement(input: z.infer<typeof createSchema>) {
       ismRevision: data.ismRevision,
       status: 'draft',
       phase: 'scoping',
+      assessmentType: data.assessmentType,
+      cloudProvider: data.assessmentType === 'cloud_irap' ? data.cloudProvider : 'none',
     });
 
     await tx.insert(clientOrganisations).values({
@@ -92,6 +124,17 @@ export async function createEngagement(input: z.infer<typeof createSchema>) {
         ),
       );
 
+    const cloudInheritanceEnabled = canUseProtectedCloudInheritance(
+      data.assessmentType,
+      data.cloudProvider,
+      classification,
+    );
+    const providerInherited = cloudInheritanceEnabled
+      ? applicable.filter(isCloudProviderInheritedControl)
+      : [];
+    const providerInheritedIds = new Set(providerInherited.map((control) => control.id));
+    const providerName = cloudProviderLabel(data.cloudProvider);
+
     if (applicable.length > 0) {
       await tx.insert(engagementControls).values(
         applicable.map((c) => ({
@@ -100,7 +143,11 @@ export async function createEngagement(input: z.infer<typeof createSchema>) {
           ismControlId: c.id,
           controlId: c.controlId,
           revision: c.revision,
-          status: 'not_started' as const,
+          status: providerInheritedIds.has(c.id) ? ('not_applicable' as const) : ('not_started' as const),
+          applicable: providerInheritedIds.has(c.id) ? 'no' : null,
+          applicabilityJustification: providerInheritedIds.has(c.id)
+            ? `Marked not applicable for a Cloud IRAP engagement because this control appears to be inherited from the ${providerName} provider layer for PROTECTED-and-below public cloud workloads. Verify against the provider IRAP package, Cloud Controls Matrix guidance, selected services, and the assessed system boundary.`
+            : null,
         })),
       );
     }
@@ -129,10 +176,61 @@ export async function createEngagement(input: z.infer<typeof createSchema>) {
         classification,
         ismRevision: data.ismRevision,
         controlCount: applicable.length,
+        assessmentType: data.assessmentType,
+        cloudProvider: data.cloudProvider,
+        providerInheritedControls: providerInherited.length,
       } as never,
     });
   });
 
   revalidatePath('/dashboard');
   return { id: engagementId };
+}
+
+export async function updateEngagementState(input: z.infer<typeof stateSchema>) {
+  const session = await requireSession();
+  const data = stateSchema.parse(input);
+  const [engagement] = await db
+    .select({ tenantId: engagements.tenantId, phase: engagements.phase, status: engagements.status })
+    .from(engagements)
+    .where(eq(engagements.id, data.engagementId))
+    .limit(1);
+  if (!engagement) throw new Error('Engagement not found');
+
+  await requirePermission(ACTIONS.engagementUpdate, {
+    userId: session.user.id,
+    tenantId: engagement.tenantId,
+    engagementId: data.engagementId,
+  });
+
+  const hdrs = await headers();
+  await db.transaction(async (tx) => {
+    await tx
+      .update(engagements)
+      .set({
+        phase: data.phase,
+        status: data.status,
+        updatedAt: new Date(),
+      })
+      .where(eq(engagements.id, data.engagementId));
+
+    await tx.insert(auditLog).values({
+      tenantId: engagement.tenantId,
+      engagementId: data.engagementId,
+      actorType: 'user',
+      actorUserId: session.user.id,
+      actorIp: hdrs.get('x-forwarded-for'),
+      actorUserAgent: hdrs.get('user-agent'),
+      action: 'engagement.state.update',
+      resourceType: 'engagement',
+      resourceId: data.engagementId,
+      beforeJson: { phase: engagement.phase, status: engagement.status } as never,
+      afterJson: { phase: data.phase, status: data.status } as never,
+    });
+  });
+
+  revalidatePath('/dashboard');
+  revalidatePath(`/engagements/${data.engagementId}`);
+  revalidatePath(`/engagements/${data.engagementId}/overview`);
+  return { ok: true };
 }

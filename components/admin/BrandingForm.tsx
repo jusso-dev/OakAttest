@@ -70,10 +70,10 @@ export function BrandingForm({
           <Input id="logoUrl" placeholder="https://…/logo.svg" {...register('logoUrl')} />
         </div>
       </div>
-      <div className="flex gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+      <div className="flex gap-3 rounded-md border border-[var(--field-border)] bg-[var(--oak-mist)] p-3">
         <div className="h-8 w-8 rounded" style={{ backgroundColor: primary }} />
         <div className="h-8 w-8 rounded" style={{ backgroundColor: accent }} />
-        <p className="text-xs text-slate-500">Preview</p>
+        <p className="text-xs text-slate-600">Preview</p>
       </div>
       {serverError && <p className="text-sm text-red-700">{serverError}</p>}
       <Button type="submit" variant="primary" disabled={isSubmitting}>

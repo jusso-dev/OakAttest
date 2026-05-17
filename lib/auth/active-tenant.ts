@@ -1,7 +1,8 @@
 import { cookies } from 'next/headers';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, sql } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
-import { tenantMembers, tenants } from '@/db/schema/tenants';
+import { tenantMembers, engagementMembers, tenants } from '@/db/schema/tenants';
+import { engagements } from '@/db/schema/engagements';
 
 // Active tenant is stored in a cookie set after the user picks one via the
 // command palette. We re-validate every request that the user is still a
@@ -33,6 +34,7 @@ export async function resolveActiveTenant(userId: string): Promise<{
   tenantId: string;
   tenantSlug: string;
   tenantName: string;
+  access: 'tenant' | 'engagement';
 } | null> {
   const cookieTenantId = await readActiveTenantCookie();
   if (cookieTenantId) {
@@ -41,6 +43,7 @@ export async function resolveActiveTenant(userId: string): Promise<{
         tenantId: tenants.id,
         tenantSlug: tenants.slug,
         tenantName: tenants.name,
+        access: sql<'tenant'>`'tenant'`,
       })
       .from(tenantMembers)
       .innerJoin(tenants, eq(tenants.id, tenantMembers.tenantId))
@@ -54,6 +57,28 @@ export async function resolveActiveTenant(userId: string): Promise<{
       )
       .limit(1);
     if (row[0]) return row[0];
+
+    const engagementScoped = await db
+      .select({
+        tenantId: tenants.id,
+        tenantSlug: tenants.slug,
+        tenantName: tenants.name,
+        access: sql<'engagement'>`'engagement'`,
+      })
+      .from(engagementMembers)
+      .innerJoin(tenants, eq(tenants.id, engagementMembers.tenantId))
+      .innerJoin(engagements, eq(engagements.id, engagementMembers.engagementId))
+      .where(
+        and(
+          eq(engagementMembers.userId, userId),
+          eq(engagementMembers.tenantId, cookieTenantId),
+          isNull(engagementMembers.deletedAt),
+          isNull(engagements.deletedAt),
+          isNull(tenants.deletedAt),
+        ),
+      )
+      .limit(1);
+    if (engagementScoped[0]) return engagementScoped[0];
   }
 
   const fallback = await db
@@ -61,6 +86,7 @@ export async function resolveActiveTenant(userId: string): Promise<{
       tenantId: tenants.id,
       tenantSlug: tenants.slug,
       tenantName: tenants.name,
+      access: sql<'tenant'>`'tenant'`,
     })
     .from(tenantMembers)
     .innerJoin(tenants, eq(tenants.id, tenantMembers.tenantId))
@@ -72,5 +98,27 @@ export async function resolveActiveTenant(userId: string): Promise<{
       ),
     )
     .limit(1);
-  return fallback[0] ?? null;
+  if (fallback[0]) return fallback[0];
+
+  const engagementFallback = await db
+    .select({
+      tenantId: tenants.id,
+      tenantSlug: tenants.slug,
+      tenantName: tenants.name,
+      access: sql<'engagement'>`'engagement'`,
+    })
+    .from(engagementMembers)
+    .innerJoin(tenants, eq(tenants.id, engagementMembers.tenantId))
+    .innerJoin(engagements, eq(engagements.id, engagementMembers.engagementId))
+    .where(
+      and(
+        eq(engagementMembers.userId, userId),
+        isNull(engagementMembers.deletedAt),
+        isNull(engagements.deletedAt),
+        isNull(tenants.deletedAt),
+      ),
+    )
+    .limit(1);
+
+  return engagementFallback[0] ?? null;
 }

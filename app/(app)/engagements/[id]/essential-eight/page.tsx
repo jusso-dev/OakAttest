@@ -70,7 +70,7 @@ export default async function EssentialEightPage({
         </CardHeader>
         <CardContent>
           {history.length === 0 ? (
-            <p className="text-sm text-slate-500">No history recorded.</p>
+            <p className="text-sm text-slate-600">No history recorded.</p>
           ) : (
             <EssentialEightChart
               data={history.map((h) => ({

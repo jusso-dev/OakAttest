@@ -6,16 +6,16 @@ import { sendMagicLinkEmail } from '@/emails/send';
 
 // BetterAuth configuration per spec §5.
 //
-// MFA: TOTP + backup codes (twoFactor plugin). Enforcement that an assessor
-//   user has registered a second factor lives in `middleware.ts` because
-//   BetterAuth only configures availability, not policy.
+// MFA: TOTP + backup codes (twoFactor plugin). It is optional for now and
+//   encouraged in the first-run/admin flow.
 // Magic link: used for client invites (§9.2). 72h expiry, single-use.
 // HaveIBeenPwned: 14-char password minimum + k-anonymity check (§5).
 // oAuthProxy: scaffolded for future SSO.
 // admin: tenant-level admin actions (suspend, impersonate audit, etc.).
 //
 // Sessions:
-//   Default 8h (assessor). Client users are 4h; that override is applied at
+//   Default 8h. Client users can be shortened later after role-aware session
+//   creation lands.
 //   sign-in time by reading the user's tenant memberships and setting the
 //   session expiry accordingly via `customSession` (added in milestone 2).
 //   Absolute cap 12h enforced by the middleware against
@@ -37,8 +37,8 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 14,
     maxPasswordLength: 256,
-    autoSignIn: false,
-    requireEmailVerification: true,
+    autoSignIn: true,
+    requireEmailVerification: false,
   },
 
   session: {
@@ -54,6 +54,7 @@ export const auth = betterAuth({
   },
 
   advanced: {
+    database: { generateId: 'uuid' },
     cookies: { session_token: { attributes: { sameSite: 'lax' } } },
   },
 

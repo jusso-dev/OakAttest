@@ -37,6 +37,7 @@ export const ACTIONS = {
   tenantViewMembers: 'tenant:view_members',
   tenantManageBranding: 'tenant:manage_branding',
   tenantManageIpAllowlist: 'tenant:manage_ip_allowlist',
+  tenantManageIsm: 'tenant:manage_ism',
 
   // engagements
   engagementCreate: 'engagement:create',
@@ -66,6 +67,9 @@ export const ACTIONS = {
   certificationGenerate: 'certification:generate',
   certificationSign: 'certification:sign',
 
+  // exports
+  sspExportDelete: 'ssp_export:delete',
+
   // audit
   auditView: 'audit:view',
 
@@ -86,6 +90,7 @@ export const PERMISSIONS: Record<Action, Allow> = {
   [ACTIONS.tenantViewMembers]: ['tenant_owner', 'assessor_admin'],
   [ACTIONS.tenantManageBranding]: ['tenant_owner'],
   [ACTIONS.tenantManageIpAllowlist]: ['tenant_owner'],
+  [ACTIONS.tenantManageIsm]: ['tenant_owner', 'assessor_admin'],
 
   // Engagements
   [ACTIONS.engagementCreate]: ['tenant_owner', 'assessor_admin'],
@@ -105,10 +110,17 @@ export const PERMISSIONS: Record<Action, Allow> = {
     'lead_assessor',
     'client_admin',
   ],
-  [ACTIONS.engagementLockBoundary]: ['lead_assessor', 'assessor_admin'],
+  [ACTIONS.engagementLockBoundary]: ['tenant_owner', 'assessor_admin', 'lead_assessor'],
 
   // Scope & applicability
-  [ACTIONS.scopeUpdate]: ['client_admin', 'client_contributor'],
+  [ACTIONS.scopeUpdate]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
+  ],
   [ACTIONS.applicabilityDecide]: ['lead_assessor', 'assessor'],
   [ACTIONS.implementationStatementWrite]: ['client_admin', 'client_contributor'],
 
@@ -143,6 +155,14 @@ export const PERMISSIONS: Record<Action, Allow> = {
   // Certification
   [ACTIONS.certificationGenerate]: ['lead_assessor'],
   [ACTIONS.certificationSign]: ['lead_assessor'],
+
+  // Exports
+  [ACTIONS.sspExportDelete]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'client_admin',
+  ],
 
   // Audit
   [ACTIONS.auditView]: ['tenant_owner', 'assessor_admin'],

@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import { submitCveScan } from '@/app/actions/cve';
 
 export function CveSubmitForm({ engagementId }: { engagementId: string }) {
@@ -38,7 +37,7 @@ export function CveSubmitForm({ engagementId }: { engagementId: string }) {
 
   return (
     <div className="space-y-3">
-      <label className="inline-flex h-9 cursor-pointer items-center justify-center rounded-md bg-teal-900 px-4 text-sm font-medium text-white hover:bg-teal-800">
+      <label className="inline-flex h-9 cursor-pointer items-center justify-center rounded-md bg-[var(--oak-shield)] px-4 text-sm font-medium text-white hover:bg-[var(--oak-shield-hover)]">
         {busy ? 'Scanning…' : 'Submit manifest or SBOM'}
         <input
           type="file"
@@ -51,7 +50,7 @@ export function CveSubmitForm({ engagementId }: { engagementId: string }) {
           }}
         />
       </label>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-slate-600">
         Supported: package-lock.json, requirements.txt, Pipfile.lock, Gemfile.lock, go.sum,
         Cargo.lock, composer.lock, pom.xml, Dockerfile, CycloneDX/SPDX SBOM JSON.
       </p>

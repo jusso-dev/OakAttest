@@ -29,6 +29,8 @@ export const engagements = pgTable(
     classificationRank: integer('classification_rank').notNull(),
     status: engagementStatusEnum('status').notNull().default('draft'),
     phase: engagementPhaseEnum('phase').notNull().default('scoping'),
+    assessmentType: text('assessment_type').notNull().default('standard'),
+    cloudProvider: text('cloud_provider').notNull().default('none'),
     // ISM revision the engagement is pinned to. New revisions surface a
     // banner with a compare/migrate action (section 8).
     ismRevision: text('ism_revision').notNull(),

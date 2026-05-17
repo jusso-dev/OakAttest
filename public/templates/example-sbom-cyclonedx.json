@@ -1,0 +1,26 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "Example customer portal",
+      "version": "2026.05"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "express",
+      "version": "4.18.2",
+      "purl": "pkg:npm/express@4.18.2"
+    },
+    {
+      "type": "library",
+      "name": "django",
+      "version": "4.2.10",
+      "purl": "pkg:pypi/django@4.2.10"
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-17T05:50:00.000Z",
+  "title": "Design System: OakAttest",
+  "extensions": {
+    "colorMeta": {
+      "oak-shield": {
+        "role": "primary",
+        "displayName": "Oak Shield",
+        "canonical": "#0f3f2c",
+        "tonalRamp": ["#ecfdf3", "#d2f4df", "#86cfa4", "#0f3f2c", "#09291c"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Assessment Ink",
+        "canonical": "#0f172a",
+        "tonalRamp": ["#f8fafc", "#e2e8f0", "#64748b", "#334155", "#0f172a"]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles and primary screen landmarks."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Card and panel headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Dense operational copy, form descriptions, and table text."
+      }
+    },
+    "elevation": {
+      "cardRest": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+      "overlay": "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)"
+    },
+    "motion": {
+      "durationFast": "150ms",
+      "durationBase": "200ms",
+      "easing": "cubic-bezier(0.25, 1, 0.5, 1)"
+    },
+    "rules": [
+      "Use Oak Shield as the only saturated brand colour.",
+      "Keep product UI light and operational.",
+      "Avoid decorative gradients, glass, and neon security motifs.",
+      "Preserve form readability and keyboard focus visibility."
+    ]
+  }
+}

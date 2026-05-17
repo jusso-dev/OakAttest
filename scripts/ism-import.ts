@@ -10,6 +10,7 @@
 import 'dotenv/config';
 import { readFile } from 'node:fs/promises';
 import { importIsmCatalogue } from '@/lib/ism/import';
+import { fetchIsmCatalog, latestIsmCatalogUrl } from '@/lib/ism/sources';
 
 function arg(name: string): string | undefined {
   const i = process.argv.findIndex((a) => a === `--${name}`);
@@ -17,8 +18,7 @@ function arg(name: string): string | undefined {
 }
 
 async function resolveLatestUrl(): Promise<string> {
-  const release = 'https://www.cyber.gov.au/ism/oscal/latest/ism-oscal.json';
-  return process.env.ISM_OSCAL_URL ?? release;
+  return latestIsmCatalogUrl();
 }
 
 async function load(): Promise<{ data: unknown; sourceUrl: string }> {
@@ -28,11 +28,7 @@ async function load(): Promise<{ data: unknown; sourceUrl: string }> {
     return { data: JSON.parse(text), sourceUrl: `file://${filePath}` };
   }
   const url = arg('url') ?? (await resolveLatestUrl());
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`Failed to fetch OSCAL catalogue from ${url}: ${res.status}`);
-  }
-  return { data: await res.json(), sourceUrl: url };
+  return { data: await fetchIsmCatalog(url), sourceUrl: url };
 }
 
 async function main() {

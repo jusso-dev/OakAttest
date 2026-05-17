@@ -40,6 +40,12 @@ const styles = StyleSheet.create({
   cell: { flexGrow: 1 },
   label: { color: '#64748b' },
   small: { fontSize: 8, color: '#64748b' },
+  tableHeader: {
+    flexDirection: 'row',
+    borderBottom: '1pt solid #94a3b8',
+    paddingVertical: 3,
+    fontWeight: 700,
+  },
   footer: {
     position: 'absolute',
     bottom: 20,
@@ -60,11 +66,38 @@ export type SspData = {
     ismRevision: string;
     phase: string;
     status: string;
+    createdAt: string;
+    updatedAt: string;
+    startedAt: string | null;
+    targetCertificationAt: string | null;
+    certifiedAt: string | null;
+    boundaryLockedAt: string | null;
   };
   tenant: { name: string; productName: string };
   client: { name: string; abn: string | null };
   system: { name: string; description: string | null; environment: string | null };
   boundary: { version: number; nodes: number; edges: number } | null;
+  members: Array<{
+    name: string | null;
+    email: string;
+    role: string;
+    joinedAt: string | null;
+  }>;
+  summary: {
+    totalControls: number;
+    notStarted: number;
+    inProgress: number;
+    evidencePending: number;
+    implemented: number;
+    notApplicable: number;
+    compensating: number;
+    notImplemented: number;
+    remainingControls: number;
+    undecidedApplicability: number;
+    missingImplementationStatements: number;
+    residualRiskCount: number;
+    essentialEightCount: number;
+  };
   controls: Array<{
     controlId: string;
     description: string;
@@ -72,6 +105,10 @@ export type SspData = {
     justification: string | null;
     implementationStatement: string | null;
     status: string;
+    assessmentMethods: string | null;
+    assessmentObjects: string | null;
+    evidenceQuality: string | null;
+    evidenceLimitations: string | null;
   }>;
   essentialEight: Array<{ strategy: string; currentMaturity: string; targetMaturity: string }>;
   residualRisks: Array<{ title: string; description: string; mitigation: string | null }>;
@@ -102,7 +139,33 @@ export function SspDocument({ data }: { data: SspData }) {
         </View>
         <Text style={styles.classificationBanner}>{banner}</Text>
 
-        <Text style={styles.sectionTitle}>1. System Overview</Text>
+        <Text style={styles.sectionTitle}>1. Export and Engagement Metadata</Text>
+        <View style={styles.row}>
+          <View style={styles.cell}><Text style={styles.label}>Export version</Text></View>
+          <View style={styles.cell}><Text>{data.exportVersion}</Text></View>
+        </View>
+        <View style={styles.row}>
+          <View style={styles.cell}><Text style={styles.label}>Exported at</Text></View>
+          <View style={styles.cell}><Text>{formatDateTime(data.exportedAt)}</Text></View>
+        </View>
+        <View style={styles.row}>
+          <View style={styles.cell}><Text style={styles.label}>Engagement last updated</Text></View>
+          <View style={styles.cell}><Text>{formatDateTime(data.engagement.updatedAt)}</Text></View>
+        </View>
+        <View style={styles.row}>
+          <View style={styles.cell}><Text style={styles.label}>Status</Text></View>
+          <View style={styles.cell}><Text>{data.engagement.status} · {data.engagement.phase}</Text></View>
+        </View>
+        <View style={styles.row}>
+          <View style={styles.cell}><Text style={styles.label}>Target certification</Text></View>
+          <View style={styles.cell}><Text>{formatOptionalDate(data.engagement.targetCertificationAt)}</Text></View>
+        </View>
+        <View style={styles.row}>
+          <View style={styles.cell}><Text style={styles.label}>Certified at</Text></View>
+          <View style={styles.cell}><Text>{formatOptionalDate(data.engagement.certifiedAt)}</Text></View>
+        </View>
+
+        <Text style={styles.sectionTitle}>2. System Overview</Text>
         <View style={styles.row}>
           <View style={styles.cell}><Text style={styles.label}>System</Text></View>
           <View style={styles.cell}><Text>{data.system.name}</Text></View>
@@ -124,7 +187,27 @@ export function SspDocument({ data }: { data: SspData }) {
           <Text style={styles.body}>{data.system.description}</Text>
         )}
 
-        <Text style={styles.sectionTitle}>2. Classification and Data Handling</Text>
+        <Text style={styles.sectionTitle}>3. People and Roles</Text>
+        {data.members.length === 0 ? (
+          <Text style={styles.body}>No engagement members recorded.</Text>
+        ) : (
+          <>
+            <View style={styles.tableHeader}>
+              <View style={styles.cell}><Text>Name</Text></View>
+              <View style={styles.cell}><Text>Email</Text></View>
+              <View style={styles.cell}><Text>Role</Text></View>
+            </View>
+            {data.members.map((member) => (
+              <View key={`${member.email}-${member.role}`} style={styles.row}>
+                <View style={styles.cell}><Text>{member.name ?? '—'}</Text></View>
+                <View style={styles.cell}><Text>{member.email}</Text></View>
+                <View style={styles.cell}><Text>{member.role}</Text></View>
+              </View>
+            ))}
+          </>
+        )}
+
+        <Text style={styles.sectionTitle}>4. Classification and Data Handling</Text>
         <Text style={styles.body}>
           This system is assessed at the {banner} level. Information handled at this level is
           subject to the relevant Protective Security Policy Framework controls and any client
@@ -136,7 +219,7 @@ export function SspDocument({ data }: { data: SspData }) {
           <View style={styles.cell}><Text>{data.engagement.ismRevision}</Text></View>
         </View>
 
-        <Text style={styles.sectionTitle}>3. Boundary and Component Inventory</Text>
+        <Text style={styles.sectionTitle}>5. Boundary and Component Inventory</Text>
         {data.boundary ? (
           <Text style={styles.body}>
             Boundary version {data.boundary.version} comprises {data.boundary.nodes} components
@@ -149,15 +232,34 @@ export function SspDocument({ data }: { data: SspData }) {
           </Text>
         )}
 
-        <Text style={styles.sectionTitle}>4. Applicable ISM Controls</Text>
+        <Text style={styles.sectionTitle}>6. Control Progress Summary</Text>
         <Text style={styles.body}>
           {data.controls.length} controls are in scope under the cumulative classification rule.
+          {` ${data.summary.remainingControls} controls remain to be fully actioned.`}
         </Text>
+        <View style={styles.row}>
+          <View style={styles.cell}><Text style={styles.label}>Not started</Text></View>
+          <View style={styles.cell}><Text>{data.summary.notStarted}</Text></View>
+          <View style={styles.cell}><Text style={styles.label}>In progress</Text></View>
+          <View style={styles.cell}><Text>{data.summary.inProgress}</Text></View>
+        </View>
+        <View style={styles.row}>
+          <View style={styles.cell}><Text style={styles.label}>Evidence pending</Text></View>
+          <View style={styles.cell}><Text>{data.summary.evidencePending}</Text></View>
+          <View style={styles.cell}><Text style={styles.label}>Implemented</Text></View>
+          <View style={styles.cell}><Text>{data.summary.implemented}</Text></View>
+        </View>
+        <View style={styles.row}>
+          <View style={styles.cell}><Text style={styles.label}>Undecided applicability</Text></View>
+          <View style={styles.cell}><Text>{data.summary.undecidedApplicability}</Text></View>
+          <View style={styles.cell}><Text style={styles.label}>Missing statements</Text></View>
+          <View style={styles.cell}><Text>{data.summary.missingImplementationStatements}</Text></View>
+        </View>
       </Page>
 
       <Page size="A4" style={styles.page} wrap>
         <Text style={styles.classificationBanner}>{banner}</Text>
-        <Text style={styles.sectionTitle}>5. Control Implementation Statements</Text>
+        <Text style={styles.sectionTitle}>7. Control Implementation Statements</Text>
         {data.controls.map((c) => (
           <View key={c.controlId} style={{ marginBottom: 10 }} wrap={false}>
             <Text style={{ fontWeight: 700 }}>{c.controlId}</Text>
@@ -169,6 +271,14 @@ export function SspDocument({ data }: { data: SspData }) {
             {c.justification && (
               <Text style={styles.small}>Justification: {c.justification}</Text>
             )}
+            {(c.assessmentMethods || c.assessmentObjects || c.evidenceQuality || c.evidenceLimitations) && (
+              <View style={{ marginTop: 4 }}>
+                <Text style={styles.small}>Assessment methods: {c.assessmentMethods ?? 'not recorded'}</Text>
+                <Text style={styles.small}>Assessment objects: {c.assessmentObjects ?? 'not recorded'}</Text>
+                <Text style={styles.small}>Evidence quality: {c.evidenceQuality ?? 'not recorded'}</Text>
+                <Text style={styles.small}>Evidence limitations: {c.evidenceLimitations ?? 'none recorded'}</Text>
+              </View>
+            )}
             <Text style={{ marginTop: 4 }}>
               {c.implementationStatement?.trim() || 'No implementation statement supplied.'}
             </Text>
@@ -178,7 +288,7 @@ export function SspDocument({ data }: { data: SspData }) {
 
       <Page size="A4" style={styles.page}>
         <Text style={styles.classificationBanner}>{banner}</Text>
-        <Text style={styles.sectionTitle}>6. Essential Eight Posture</Text>
+        <Text style={styles.sectionTitle}>8. Essential Eight Posture</Text>
         {data.essentialEight.length === 0 ? (
           <Text style={styles.body}>Essential Eight assessment not yet recorded.</Text>
         ) : (
@@ -192,7 +302,7 @@ export function SspDocument({ data }: { data: SspData }) {
           ))
         )}
 
-        <Text style={styles.sectionTitle}>7. Residual Risks</Text>
+        <Text style={styles.sectionTitle}>9. Residual Risks</Text>
         {data.residualRisks.length === 0 ? (
           <Text style={styles.body}>No residual risks recorded.</Text>
         ) : (
@@ -205,7 +315,7 @@ export function SspDocument({ data }: { data: SspData }) {
           ))
         )}
 
-        <Text style={styles.sectionTitle}>8. Annexes</Text>
+        <Text style={styles.sectionTitle}>10. Annexes</Text>
         <Text style={styles.body}>
           Annex A — Boundary diagram (exported separately).{'\n'}
           Annex B — Evidence index (see Certification Package CSV).
@@ -220,6 +330,14 @@ export function SspDocument({ data }: { data: SspData }) {
       </Page>
     </Document>
   );
+}
+
+function formatDateTime(value: string) {
+  return new Date(value).toLocaleString('en-AU');
+}
+
+function formatOptionalDate(value: string | null) {
+  return value ? formatDateTime(value) : '—';
 }
 
 export async function renderSspPdf(data: SspData): Promise<Buffer> {

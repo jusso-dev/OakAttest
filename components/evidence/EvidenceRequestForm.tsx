@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createEvidenceRequest } from '@/app/actions/evidence';
+import { useUnsavedChanges } from '@/components/engagement/UnsavedChangesGuard';
 
 const schema = z.object({
   title: z.string().min(2).max(200),
@@ -31,8 +32,9 @@ export function EvidenceRequestForm({
     register,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<Values>({ resolver: zodResolver(schema) });
+  useUnsavedChanges(isDirty || selectedControls.length > 0, 'Evidence request');
 
   async function onSubmit(values: Values) {
     if (selectedControls.length === 0) {
@@ -77,7 +79,7 @@ export function EvidenceRequestForm({
           <textarea
             id="description"
             rows={3}
-            className="flex w-full rounded-md border border-slate-200 bg-white p-2 text-sm"
+            className="flex w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm"
             {...register('description')}
           />
         </div>
@@ -88,9 +90,9 @@ export function EvidenceRequestForm({
       </div>
       <div>
         <Label>Controls covered ({selectedControls.length} selected)</Label>
-        <div className="mt-2 max-h-44 overflow-y-auto rounded-md border border-slate-200 bg-white p-2 text-sm">
+        <div className="mt-2 max-h-44 overflow-y-auto rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm">
           {controls.map((c) => (
-            <label key={c.id} className="flex items-start gap-2 px-1 py-0.5 hover:bg-slate-50">
+            <label key={c.id} className="flex items-start gap-2 px-1 py-0.5 hover:bg-[var(--oak-mist)]">
               <input
                 type="checkbox"
                 checked={selectedControls.includes(c.id)}
@@ -102,7 +104,7 @@ export function EvidenceRequestForm({
               />
               <span>
                 <span className="font-mono text-xs text-slate-700">{c.controlId}</span>{' '}
-                <span className="text-slate-500">— {c.description.slice(0, 80)}</span>
+                <span className="text-slate-600">— {c.description.slice(0, 80)}</span>
               </span>
             </label>
           ))}

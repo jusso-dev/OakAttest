@@ -63,7 +63,7 @@ export function EvidenceUploader({
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <label className="inline-flex h-9 cursor-pointer items-center justify-center rounded-md bg-teal-900 px-4 text-sm font-medium text-white hover:bg-teal-800">
+      <label className="inline-flex h-9 cursor-pointer items-center justify-center rounded-md bg-[var(--oak-shield)] px-4 text-sm font-medium text-white hover:bg-[var(--oak-shield-hover)]">
         {busy ? 'Uploading…' : 'Upload evidence'}
         <input
           type="file"

@@ -24,13 +24,13 @@ export function EssentialEightChart({ data }: { data: Point[] }) {
     return row;
   });
 
-  const colours = ['#0f4c4a', '#1e293b', '#475569', '#0e7490', '#9333ea', '#c2410c', '#15803d', '#a16207'];
+  const colours = ['#0f3f2c', '#1e293b', '#475569', '#0e7490', '#b91c1c', '#a16207', '#14543b', '#64748b'];
 
   return (
     <div className="h-72 w-full">
       <ResponsiveContainer>
         <LineChart data={rows}>
-          <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" />
+          <CartesianGrid stroke="#cbd5e1" strokeDasharray="3 3" />
           <XAxis dataKey="date" stroke="#64748b" fontSize={11} />
           <YAxis domain={[0, 3]} ticks={[0, 1, 2, 3]} stroke="#64748b" fontSize={11} />
           <Tooltip />

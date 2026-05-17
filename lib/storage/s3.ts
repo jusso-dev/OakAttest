@@ -1,33 +1,77 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-// S3 client + presigned-URL helpers. The default region is Sydney
-// (ap-southeast-2) per §11. KMS encryption is enforced by the bucket policy
-// (SSE-KMS), with the per-tenant key alias set in `S3_KMS_KEY_ID`.
+// S3-compatible client + presigned-URL helpers. The default region is suitable
+// for local Australian examples; production residency depends on the operator's
+// database, bucket, backup, and logging configuration.
 
-const region = process.env.S3_REGION ?? 'ap-southeast-2';
-const bucket = process.env.S3_BUCKET ?? 'oakattest-evidence-dev';
-const kmsKeyId = process.env.S3_KMS_KEY_ID || undefined;
+type StorageConfig = {
+  region: string;
+  bucket: string;
+  endpoint?: string;
+  accessKeyId?: string;
+  secretAccessKey?: string;
+  kmsKeyId?: string;
+  useDefaultCredentialChain: boolean;
+};
+
+function readStorageConfig(): StorageConfig {
+  const endpoint = process.env.R2_ENDPOINT ?? process.env.S3_ENDPOINT;
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID ?? process.env.S3_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY ?? process.env.S3_SECRET_ACCESS_KEY;
+  const useDefaultCredentialChain = process.env.S3_USE_DEFAULT_CREDENTIAL_CHAIN === 'true';
+
+  return {
+    region: process.env.R2_REGION ?? process.env.S3_REGION ?? 'ap-southeast-2',
+    bucket: process.env.R2_BUCKET ?? process.env.S3_BUCKET ?? 'oakattest-evidence-dev',
+    endpoint,
+    accessKeyId,
+    secretAccessKey,
+    kmsKeyId: process.env.S3_KMS_KEY_ID || undefined,
+    useDefaultCredentialChain,
+  };
+}
 
 let cached: S3Client | null = null;
+let cachedKey: string | null = null;
 
 function client(): S3Client {
-  if (!cached) {
+  const config = readStorageConfig();
+  const configKey = [
+    config.region,
+    config.bucket,
+    config.endpoint,
+    Boolean(config.accessKeyId),
+    Boolean(config.secretAccessKey),
+    config.useDefaultCredentialChain,
+  ].join('|');
+
+  if (!cached || cachedKey !== configKey) {
+    if (!config.accessKeyId || !config.secretAccessKey) {
+      if (config.endpoint || !config.useDefaultCredentialChain) {
+        throw new Error(
+          'Evidence storage is not configured. Set R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_ENDPOINT, and R2_REGION=auto for Cloudflare R2. For AWS IAM role/profile auth, set S3_USE_DEFAULT_CREDENTIAL_CHAIN=true.',
+        );
+      }
+    }
     cached = new S3Client({
-      region,
+      region: config.region,
+      endpoint: config.endpoint,
+      forcePathStyle: Boolean(config.endpoint),
       credentials:
-        process.env.S3_ACCESS_KEY_ID && process.env.S3_SECRET_ACCESS_KEY
+        config.accessKeyId && config.secretAccessKey
           ? {
-              accessKeyId: process.env.S3_ACCESS_KEY_ID,
-              secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
+              accessKeyId: config.accessKeyId,
+              secretAccessKey: config.secretAccessKey,
             }
           : undefined,
     });
+    cachedKey = configKey;
   }
   return cached;
 }
 
-export const STORAGE_BUCKET = bucket;
+export const STORAGE_BUCKET = readStorageConfig().bucket;
 
 // Build a deterministic storage key for an evidence upload.
 export function buildEvidenceKey(opts: {
@@ -44,7 +88,7 @@ export function buildSspKey(opts: {
   tenantId: string;
   engagementId: string;
   version: number;
-  format: 'pdf' | 'docx';
+  format: 'pdf' | 'docx' | 'xlsx' | 'zip';
 }): string {
   return `tenants/${opts.tenantId}/engagements/${opts.engagementId}/ssp/v${opts.version}.${opts.format}`;
 }
@@ -65,25 +109,26 @@ export async function presignUpload(opts: {
   contentLength?: number;
   expiresIn?: number;
 }): Promise<{ url: string; bucket: string; key: string; headers: Record<string, string> }> {
+  const config = readStorageConfig();
   const cmd = new PutObjectCommand({
-    Bucket: bucket,
+    Bucket: config.bucket,
     Key: opts.key,
     ContentType: opts.contentType,
     ContentLength: opts.contentLength,
-    ServerSideEncryption: kmsKeyId ? 'aws:kms' : undefined,
-    SSEKMSKeyId: kmsKeyId,
+    ServerSideEncryption: config.kmsKeyId ? 'aws:kms' : undefined,
+    SSEKMSKeyId: config.kmsKeyId,
   });
   const url = await getSignedUrl(client(), cmd, { expiresIn: opts.expiresIn ?? 600 });
   return {
     url,
-    bucket,
+    bucket: config.bucket,
     key: opts.key,
     headers: {
       ...(opts.contentType ? { 'Content-Type': opts.contentType } : {}),
-      ...(kmsKeyId
+      ...(config.kmsKeyId
         ? {
             'x-amz-server-side-encryption': 'aws:kms',
-            'x-amz-server-side-encryption-aws-kms-key-id': kmsKeyId,
+            'x-amz-server-side-encryption-aws-kms-key-id': config.kmsKeyId,
           }
         : {}),
     },
@@ -94,7 +139,8 @@ export async function presignDownload(opts: {
   key: string;
   expiresIn?: number;
 }): Promise<string> {
-  const cmd = new GetObjectCommand({ Bucket: bucket, Key: opts.key });
+  const config = readStorageConfig();
+  const cmd = new GetObjectCommand({ Bucket: config.bucket, Key: opts.key });
   return getSignedUrl(client(), cmd, { expiresIn: opts.expiresIn ?? 300 });
 }
 
@@ -105,19 +151,21 @@ export async function putBuffer(opts: {
   body: Buffer;
   contentType: string;
 }): Promise<{ bucket: string; key: string }> {
+  const config = readStorageConfig();
   await client().send(
     new PutObjectCommand({
-      Bucket: bucket,
+      Bucket: config.bucket,
       Key: opts.key,
       Body: opts.body,
       ContentType: opts.contentType,
-      ServerSideEncryption: kmsKeyId ? 'aws:kms' : undefined,
-      SSEKMSKeyId: kmsKeyId,
+      ServerSideEncryption: config.kmsKeyId ? 'aws:kms' : undefined,
+      SSEKMSKeyId: config.kmsKeyId,
     }),
   );
-  return { bucket, key: opts.key };
+  return { bucket: config.bucket, key: opts.key };
 }
 
 export async function deleteObject(key: string): Promise<void> {
-  await client().send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+  const config = readStorageConfig();
+  await client().send(new DeleteObjectCommand({ Bucket: config.bucket, Key: key }));
 }

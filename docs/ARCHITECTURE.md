@@ -1,8 +1,9 @@
 # OakAttest Architecture
 
-OakAttest is a multi-tenant SaaS for ASD-registered IRAP assessor firms. It
-runs the full five-phase IRAP assessment lifecycle: scoping, evidence,
-fieldwork, findings, and certification, plus ongoing compliance.
+OakAttest is an open-source, self-hostable multi-tenant product for
+ASD-registered IRAP assessor firms. It runs the full five-phase IRAP assessment
+lifecycle: scoping, evidence, fieldwork, findings, and certification, plus
+ongoing compliance.
 
 ## Tech stack
 
@@ -11,7 +12,7 @@ fieldwork, findings, and certification, plus ongoing compliance.
 - BetterAuth with `twoFactor`, `passkey`, `organization`, `admin`, `magicLink`,
   `oAuthProxy` plugins
 - PostgreSQL 16 via Drizzle ORM, migrations via `drizzle-kit`
-- S3-compatible storage (AWS S3 ap-southeast-2), presigned URLs, KMS at rest
+- S3-compatible storage, presigned URLs, encryption at rest
 - Zod for shared validation, React Hook Form, TanStack Table v8, Recharts
 - `@react-pdf/renderer` for SSP, findings, and certification reports
 - Resend + React Email for transactional mail
@@ -89,7 +90,8 @@ exhaustive list.
 - `/engagements/[id]/findings` — register, sign-off, remediation actions
 - `/engagements/[id]/essential-eight` — maturity scorecard + trend chart
 - `/engagements/[id]/certification` — draft, sign, public verify URL
-- `/admin` — members, residency, billing stub
+- `/admin` — members, deployment data location, billing stub
+- `/admin/ism` — ISM OSCAL import, seed, and revision removal panel
 - `/admin/audit` — append-only viewer
 - `/admin/branding`, `/admin/ip-allowlist`, `/admin/compliance`
 - `/verify/[token]` — public certification verification

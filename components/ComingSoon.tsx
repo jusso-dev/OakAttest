@@ -8,7 +8,7 @@ export function ComingSoon({ title, description }: { title: string; description:
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-600">
           Coming soon. This route is scaffolded for milestone 1; the implementation lands in a
           later milestone per the build plan.
         </p>

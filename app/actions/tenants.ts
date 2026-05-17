@@ -1,6 +1,7 @@
 'use server';
 
 import { z } from 'zod';
+import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import crypto from 'node:crypto';
@@ -15,6 +16,9 @@ import { requireSession } from '@/lib/auth/session';
 import { ACTIONS, isPermitted, type Role } from '@/lib/rbac/matrix';
 import { PermissionDeniedError, requirePermission } from '@/lib/rbac/require';
 import { recordAudit } from '@/lib/audit/log';
+import { sendTenantInviteEmail } from '@/emails/send';
+import { writeActiveTenantCookie } from '@/lib/auth/active-tenant';
+import { isValidAbn, normalizeAbn } from '@/lib/abn';
 
 // Slugify a tenant name for the URL. Strict: only ASCII lowercase + dashes.
 function slugify(name: string): string {
@@ -29,14 +33,21 @@ function slugify(name: string): string {
 
 const createSchema = z.object({
   name: z.string().min(2).max(120),
-  abn: z.string().regex(/^\d{11}$/).optional().or(z.literal('').transform(() => undefined)),
+  abn: z.preprocess(
+    (value) => (typeof value === 'string' ? value : ''),
+    z
+      .string()
+      .transform(normalizeAbn)
+      .refine((value) => value === '' || isValidAbn(value), 'Enter a valid ABN')
+      .transform((value) => value || undefined),
+  ),
 });
 
 export async function createTenant(input: z.infer<typeof createSchema>) {
   const session = await requireSession();
   const data = createSchema.parse(input);
 
-  // Anyone with a verified session can found a new tenant (becomes the
+  // Anyone with an authenticated session can found a new tenant (becomes the
   // tenant_owner). RBAC kicks in for subsequent actions.
   const slug = slugify(data.name) || crypto.randomBytes(4).toString('hex');
 
@@ -69,6 +80,7 @@ export async function createTenant(input: z.infer<typeof createSchema>) {
     });
   });
 
+  await writeActiveTenantCookie(tenantId);
   revalidatePath('/dashboard');
   return { id: tenantId, slug };
 }
@@ -82,6 +94,7 @@ const inviteSchema = z.object({
 export async function inviteTenantMember(input: z.infer<typeof inviteSchema>) {
   const session = await requireSession();
   const data = inviteSchema.parse(input);
+  const email = data.email.toLowerCase();
 
   await requirePermission(ACTIONS.tenantInvite, {
     userId: session.user.id,
@@ -99,14 +112,23 @@ export async function inviteTenantMember(input: z.infer<typeof inviteSchema>) {
     }
   }
 
+  const [tenant] = await db
+    .select({ name: tenants.name })
+    .from(tenants)
+    .where(eq(tenants.id, data.tenantId))
+    .limit(1);
+  if (!tenant) throw new Error('Tenant not found');
+
   const token = crypto.randomBytes(32).toString('base64url');
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 72);
   const hdrs = await headers();
+  const baseUrl = process.env.BETTER_AUTH_URL ?? 'http://localhost:3000';
+  const url = `${baseUrl}/invite/${token}`;
 
   await db.transaction(async (tx) => {
     await tx.insert(tenantInvitations).values({
       tenantId: data.tenantId,
-      email: data.email.toLowerCase(),
+      email,
       role: data.role,
       token,
       invitedBy: session.user.id,
@@ -120,8 +142,15 @@ export async function inviteTenantMember(input: z.infer<typeof inviteSchema>) {
       actorUserAgent: hdrs.get('user-agent'),
       action: 'tenant.invite',
       resourceType: 'tenant_invitation',
-      afterJson: { email: data.email, role: data.role } as never,
+      afterJson: { email, role: data.role } as never,
     });
+  });
+
+  await sendTenantInviteEmail({
+    to: email,
+    url,
+    tenantName: tenant.name,
+    inviterName: session.user.name ?? session.user.email,
   });
 
   await recordAudit({
@@ -131,7 +160,7 @@ export async function inviteTenantMember(input: z.infer<typeof inviteSchema>) {
     resourceType: 'tenant_invitation',
   });
 
-  return { token, expiresAt: expiresAt.toISOString() };
+  return { token, url, expiresAt: expiresAt.toISOString() };
 }
 
 async function rolesForTenant(userId: string, tenantId: string): Promise<Role[]> {

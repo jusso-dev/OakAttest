@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -19,6 +19,8 @@ type FormValues = z.infer<typeof schema>;
 
 export function SignInForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next');
   const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
@@ -36,7 +38,7 @@ export function SignInForm() {
       setServerError(result.error.message ?? 'Unable to sign in');
       return;
     }
-    router.push('/dashboard');
+    router.push(next?.startsWith('/') ? next : '/dashboard');
   }
 
   return (

@@ -30,7 +30,7 @@ export async function importIsmCatalogue(opts: IsmImportOptions) {
   let count = 0;
 
   await db.transaction(async (tx) => {
-    for (const { topic, control } of iterateControls(catalogue)) {
+    for (const { topic, subtopic, control } of iterateControls(catalogue)) {
       const { description, guidance } = extractStatementAndGuidance(control);
       const minClassification = extractMinClassification(control);
       const ee = extractEssentialEight(control);
@@ -41,7 +41,7 @@ export async function importIsmCatalogue(opts: IsmImportOptions) {
           controlId: control.id,
           revision,
           topic: topic ?? null,
-          section: control.class ?? null,
+          section: subtopic ?? control.class ?? control.title ?? null,
           description,
           guidance: guidance ?? null,
           minClassification,
@@ -53,7 +53,7 @@ export async function importIsmCatalogue(opts: IsmImportOptions) {
           target: [ismControls.controlId, ismControls.revision],
           set: {
             topic: topic ?? null,
-            section: control.class ?? null,
+            section: subtopic ?? control.class ?? control.title ?? null,
             description,
             guidance: guidance ?? null,
             minClassification,

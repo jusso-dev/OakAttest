@@ -55,7 +55,7 @@ export default async function FieldworkPage({
         </CardHeader>
         <CardContent className="space-y-3">
           {all.length === 0 ? (
-            <p className="text-sm text-slate-500">No interviews scheduled.</p>
+            <p className="text-sm text-slate-600">No interviews scheduled.</p>
           ) : (
             all.map((i) => (
               <InterviewRow key={i.id} engagementId={id} interview={i} canEdit={isAssessor} />
@@ -80,7 +80,7 @@ export default async function FieldworkPage({
         </Card>
       )}
 
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-slate-600">
         See{' '}
         <Link href={`/engagements/${id}/evidence/cve`} className="underline">
           CVE scan

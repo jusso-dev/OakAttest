@@ -4,12 +4,13 @@ import { db } from '@/lib/db/client';
 import { users } from '@/db/schema/auth';
 import { getSession } from '@/lib/auth/session';
 import { TermsForm } from './TermsForm';
+import { BrandLogo } from '@/components/BrandLogo';
 
 export const metadata = { title: 'Data handling terms · OakAttest' };
 
 export default async function TermsPage() {
   const session = await getSession();
-  if (!session) redirect('/sign-in');
+  if (!session) redirect('/signin');
 
   const [u] = await db
     .select({ accepted: users.dataHandlingAcceptedAt })
@@ -20,18 +21,19 @@ export default async function TermsPage() {
   if (u?.accepted) redirect('/dashboard');
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-2xl flex-col justify-center px-6 py-16">
-      <p className="text-xs uppercase tracking-[0.22em] text-slate-500">OakAttest</p>
+    <main className="mx-auto flex min-h-dvh max-w-2xl flex-col justify-center px-6 py-16 text-slate-950">
+      <BrandLogo imageClassName="h-10" priority />
       <h1 className="mt-1 text-2xl font-semibold text-slate-900">Data handling and chain of custody</h1>
-      <div className="prose prose-sm mt-6 max-w-none text-slate-700">
+      <div className="mt-6 max-w-none space-y-4 rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-5 text-sm leading-6 text-slate-800">
         <p>
           Before you can access engagements you need to acknowledge how the platform handles
-          IRAP assessment material.
+          IRAP assessment material in this deployment.
         </p>
-        <ul>
+        <ul className="list-disc space-y-2 pl-5">
           <li>
-            All persistent data stays onshore (AWS ap-southeast-2 Sydney by default, replicated
-            to Melbourne). The data residency declaration is visible on the tenant admin page.
+            OakAttest is open-source software that your organisation or provider hosts. Data
+            residency depends on your deployment, database, object storage, backups, and log
+            retention settings.
           </li>
           <li>
             Evidence is encrypted at rest with KMS-managed keys and in transit over TLS 1.3.
@@ -45,7 +47,8 @@ export default async function TermsPage() {
           </li>
           <li>
             Sessions for assessor users are 8 hours rolling with a 12-hour absolute cap; client
-            sessions are 4 hours. Multi-factor authentication is mandatory for assessor users.
+            sessions are 4 hours. Multi-factor authentication is optional for self-installed
+            instances and strongly recommended for assessor users.
           </li>
           <li>
             You must not upload material you are not authorised to share. The assessor firm

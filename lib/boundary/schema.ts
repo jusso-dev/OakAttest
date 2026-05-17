@@ -17,7 +17,10 @@ export const boundaryNodeSchema = z.object({
       'integration',
       'user_group',
       'external',
+      'boundary_box',
     ]),
+    width: z.number().min(160).max(2000).optional(),
+    height: z.number().min(120).max(1600).optional(),
     environment: z.string().optional(),
     classification: z
       .enum(['OFFICIAL', 'OFFICIAL_SENSITIVE', 'PROTECTED', 'SECRET', 'TOP_SECRET'])
@@ -31,6 +34,9 @@ export const boundaryEdgeSchema = z.object({
   id: z.string().min(1),
   source: z.string().min(1),
   target: z.string().min(1),
+  sourceHandle: z.string().optional(),
+  targetHandle: z.string().optional(),
+  type: z.string().optional(),
   label: z.string().optional(),
   data: z
     .object({

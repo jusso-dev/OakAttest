@@ -15,6 +15,34 @@
       "when": 1778984630388,
       "tag": "0001_milestone2",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778996229721,
+      "tag": "0002_optional_mfa",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1778996291819,
+      "tag": "0003_better_auth_admin_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778996654419,
+      "tag": "0004_better_auth_session_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778997600000,
+      "tag": "0005_engagement_irap_scope",
+      "breakpoints": true
     }
   ]
 }

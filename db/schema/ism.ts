@@ -25,6 +25,8 @@ export const ismControls = pgTable(
     controlId: text('control_id').notNull(),
     revision: text('revision').notNull(),
     topic: text('topic'),
+    // Sub-chapter / nested group path when present in OSCAL. Older imports may
+    // contain the control class or title here.
     section: text('section'),
     description: text('description').notNull(),
     guidance: text('guidance'),
@@ -71,6 +73,10 @@ export const engagementControls = pgTable(
     // Client-authored implementation statement that becomes the SSP body.
     implementationStatement: text('implementation_statement'),
     assessorNotes: text('assessor_notes'),
+    assessmentMethods: text('assessment_methods'),
+    assessmentObjects: text('assessment_objects'),
+    evidenceQuality: text('evidence_quality'),
+    evidenceLimitations: text('evidence_limitations'),
     lastReviewedAt: timestamp('last_reviewed_at', { withTimezone: true }),
     lastReviewedBy: uuid('last_reviewed_by').references(() => users.id),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

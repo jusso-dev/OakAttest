@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db/client';

@@ -34,6 +34,13 @@ type Remediation = {
   notes: string | null;
 };
 
+type LinkedControl = {
+  controlId: string;
+  chapter: string | null;
+  subChapter: string | null;
+  description: string;
+};
+
 export function FindingRow({
   engagementId,
   finding,
@@ -41,6 +48,7 @@ export function FindingRow({
   canSignOff,
   canUpdate,
   canRemediate,
+  controls,
 }: {
   engagementId: string;
   finding: Finding;
@@ -48,6 +56,7 @@ export function FindingRow({
   canSignOff: boolean;
   canUpdate: boolean;
   canRemediate: boolean;
+  controls: LinkedControl[];
 }) {
   return (
     <Card>
@@ -55,7 +64,7 @@ export function FindingRow({
         <div className="flex items-start justify-between">
           <div>
             <CardTitle>
-              <span className="font-mono text-sm text-slate-500">{finding.code}</span>{' '}
+              <span className="font-mono text-sm text-slate-600">{finding.code}</span>{' '}
               {finding.title}
             </CardTitle>
             <div className="mt-1 flex items-center gap-2 text-xs">
@@ -71,6 +80,23 @@ export function FindingRow({
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-slate-700 whitespace-pre-wrap">{finding.description}</p>
+        {controls.length > 0 && (
+          <div className="rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-3">
+            <p className="text-xs font-medium uppercase text-slate-600">Linked ISM controls</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {controls.map((control) => (
+                <span
+                  key={`${finding.id}-${control.controlId}`}
+                  className="inline-flex max-w-full flex-col rounded-md bg-[var(--oak-mist-strong)] px-2 py-1 text-xs text-slate-800"
+                  title={control.description}
+                >
+                  <span className="font-mono font-medium text-slate-950">{control.controlId}</span>
+                  <span>{[control.chapter, control.subChapter].filter(Boolean).join(' / ')}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
         {canUpdate && (
           <FindingActions
             engagementId={engagementId}
@@ -78,8 +104,8 @@ export function FindingRow({
             canSignOff={canSignOff}
           />
         )}
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+        <div className="rounded-md border border-[var(--field-border)] bg-[var(--oak-mist)] p-3">
+          <p className="text-xs font-medium uppercase text-slate-600">
             Remediation actions ({remediations.length})
           </p>
           {remediations.map((r) => (
@@ -103,8 +129,8 @@ function Tag({ tone, children }: { tone: 'red' | 'amber' | 'slate' | 'teal'; chi
   const colour = {
     red: 'bg-red-100 text-red-900',
     amber: 'bg-amber-100 text-amber-900',
-    slate: 'bg-slate-100 text-slate-700',
-    teal: 'bg-teal-100 text-teal-900',
+    slate: 'bg-[var(--oak-mist-strong)] text-slate-700',
+    teal: 'bg-[var(--oak-mist-strong)] text-[var(--oak-shield)]',
   }[tone];
   return (
     <span className={`inline-flex rounded-full px-2 py-0.5 font-medium ${colour}`}>{children}</span>
@@ -176,9 +202,9 @@ function RemediationView({
     router.refresh();
   }
   return (
-    <div className="mt-2 rounded border border-slate-200 bg-white p-3 text-sm">
+    <div className="mt-2 rounded border border-[var(--field-border)] bg-[var(--panel-surface)] p-3 text-sm">
       <p className="text-slate-900">{remediation.description}</p>
-      <p className="mt-1 text-xs text-slate-500">
+      <p className="mt-1 text-xs text-slate-600">
         {remediation.ownerName ?? 'Unassigned'}
         {remediation.dueDate
           ? ` · due ${new Date(remediation.dueDate).toLocaleDateString('en-AU')}`
@@ -240,20 +266,20 @@ function NewRemediationForm({
         placeholder="Describe the remediation step…"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
-        className="w-full rounded-md border border-slate-200 bg-white p-2 text-sm"
+        className="w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm"
       />
       <div className="grid gap-2 sm:grid-cols-[1fr_180px_auto]">
         <input
           value={owner}
           onChange={(e) => setOwner(e.target.value)}
           placeholder="Owner name"
-          className="flex h-9 rounded-md border border-slate-200 bg-white px-3 text-sm"
+          className="flex h-9 rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3 text-sm"
         />
         <input
           type="date"
           value={due}
           onChange={(e) => setDue(e.target.value)}
-          className="flex h-9 rounded-md border border-slate-200 bg-white px-3 text-sm"
+          className="flex h-9 rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3 text-sm"
         />
         <Button size="sm" variant="primary" disabled={busy} onClick={submit}>
           Add action

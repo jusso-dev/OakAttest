@@ -37,7 +37,7 @@ export default async function BrandingPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <header>
-        <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Tenant admin</p>
+        <p className="text-xs uppercase text-slate-600">Tenant admin</p>
         <h1 className="mt-1 text-2xl font-semibold text-slate-900">Branding</h1>
       </header>
       <Card>

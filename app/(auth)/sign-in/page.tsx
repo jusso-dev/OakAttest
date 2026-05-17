@@ -10,14 +10,15 @@ export default function SignInPage() {
       <CardHeader>
         <CardTitle>Sign in</CardTitle>
         <CardDescription>
-          Multi-factor authentication is mandatory for assessor-side users.
+          Multi-factor authentication is optional for self-installed instances and strongly
+          recommended for assessor-side users.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <SignInForm />
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-600">
           New to OakAttest?{' '}
-          <Link href="/sign-up" className="font-medium text-teal-900 hover:underline">
+          <Link href="/sign-up" className="font-medium text-[var(--oak-shield)] hover:underline">
             Create an account
           </Link>
           .

@@ -9,7 +9,7 @@ export default function MfaPage() {
       <CardHeader>
         <CardTitle>Set up multi-factor authentication</CardTitle>
         <CardDescription>
-          MFA is mandatory for assessor-side users. Scan the QR code with an authenticator app
+          MFA is strongly recommended for assessor-side users. Scan the QR code with an authenticator app
           (Authy, 1Password, Google Authenticator), enter a six-digit code, and store the
           backup codes somewhere safe.
         </CardDescription>

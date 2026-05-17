@@ -14,7 +14,7 @@ import type { NextRequest } from 'next/server';
 // authoritative check via `requireSession()` + `requirePermission()`.
 
 const PUBLIC_PATHS = [
-  '/',
+  '/signin',
   '/sign-in',
   '/sign-up',
   '/mfa',
@@ -40,7 +40,7 @@ export default function proxy(req: NextRequest) {
   const sessionCookie = req.cookies.get('better-auth.session_token')?.value;
   if (!sessionCookie) {
     const url = req.nextUrl.clone();
-    url.pathname = '/sign-in';
+    url.pathname = '/signin';
     url.searchParams.set('next', pathname);
     return NextResponse.redirect(url);
   }

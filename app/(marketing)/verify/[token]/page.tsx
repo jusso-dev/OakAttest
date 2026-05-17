@@ -5,6 +5,7 @@ import { certificationReports } from '@/db/schema/certification';
 import { engagements } from '@/db/schema/engagements';
 import { tenants } from '@/db/schema/tenants';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { BrandLogo } from '@/components/BrandLogo';
 
 export const metadata = { title: 'Verify · OakAttest' };
 
@@ -53,8 +54,8 @@ export default async function VerifyPage({
     .limit(1);
 
   return (
-    <main className="mx-auto min-h-dvh max-w-2xl px-6 py-16">
-      <p className="text-xs uppercase tracking-[0.22em] text-slate-500">OakAttest</p>
+    <main className="mx-auto min-h-dvh max-w-2xl px-6 py-16 text-slate-950">
+      <BrandLogo imageClassName="h-10" priority />
       <h1 className="mt-1 text-2xl font-semibold text-slate-900">Certification verification</h1>
       <p className="mt-2 text-sm text-slate-600">
         This page presents the public verification details for an OakAttest-issued IRAP
@@ -82,13 +83,13 @@ export default async function VerifyPage({
           </Row>
           <Row label="Signature algorithm">{report.signatureAlgorithm ?? '—'}</Row>
           <div>
-            <p className="text-slate-500">Bundle SHA-256</p>
+            <p className="text-slate-600">Bundle SHA-256</p>
             <p className="break-all font-mono text-xs">{report.bundleSha256}</p>
           </div>
         </CardContent>
       </Card>
 
-      <p className="mt-6 text-xs text-slate-500">
+      <p className="mt-6 text-xs text-slate-600">
         This page does not expose any client- or system-identifying details beyond the
         engagement and tenant names. If you believe this certification has been revoked,
         contact the issuing tenant.
@@ -99,8 +100,8 @@ export default async function VerifyPage({
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex justify-between border-b border-slate-100 pb-2 last:border-0">
-      <span className="text-slate-500">{label}</span>
+    <div className="flex justify-between border-b border-[var(--field-border)] pb-2 last:border-0">
+      <span className="text-slate-600">{label}</span>
       <span className="text-slate-900">{children}</span>
     </div>
   );

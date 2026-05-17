@@ -83,7 +83,7 @@ export default async function EvidencePage({
         </CardHeader>
         <CardContent>
           {requests.length === 0 ? (
-            <p className="text-sm text-slate-500">No requests yet.</p>
+            <p className="text-sm text-slate-600">No requests yet.</p>
           ) : (
             <ul className="divide-y divide-slate-100">
               {requests.map((r) => (
@@ -94,7 +94,7 @@ export default async function EvidencePage({
                       {r.description && (
                         <p className="mt-1 text-sm text-slate-600">{r.description}</p>
                       )}
-                      <p className="mt-1 text-xs text-slate-500">
+                      <p className="mt-1 text-xs text-slate-600">
                         Status: {r.status}
                         {r.dueAt ? ` · Due ${new Date(r.dueAt).toLocaleDateString('en-AU')}` : ''}
                       </p>
@@ -126,12 +126,12 @@ export default async function EvidencePage({
         </CardHeader>
         <CardContent>
           {items.length === 0 ? (
-            <p className="text-sm text-slate-500">No evidence yet.</p>
+            <p className="text-sm text-slate-600">No evidence yet.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wider text-slate-500">
+                  <tr className="border-b border-[var(--field-border)] text-left text-xs uppercase text-slate-600">
                     <th className="py-2 pr-3">Filename</th>
                     <th className="py-2 pr-3">v</th>
                     <th className="py-2 pr-3">SHA-256</th>
@@ -141,14 +141,14 @@ export default async function EvidencePage({
                 </thead>
                 <tbody>
                   {items.map((it) => (
-                    <tr key={it.id} className="border-b border-slate-100">
+                    <tr key={it.id} className="border-b border-[var(--field-border)]">
                       <td className="py-2 pr-3 text-slate-900">{it.filename}</td>
-                      <td className="py-2 pr-3 text-slate-500">v{it.version}</td>
-                      <td className="py-2 pr-3 font-mono text-xs text-slate-500">
+                      <td className="py-2 pr-3 text-slate-600">v{it.version}</td>
+                      <td className="py-2 pr-3 font-mono text-xs text-slate-600">
                         {it.sha256.slice(0, 16)}…
                       </td>
                       <td className="py-2 pr-3">
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
+                        <span className="rounded-full bg-[var(--oak-mist-strong)] px-2 py-0.5 text-xs text-slate-700">
                           {it.reviewStatus}
                         </span>
                       </td>
@@ -169,7 +169,7 @@ export default async function EvidencePage({
         </CardContent>
       </Card>
 
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-slate-600">
         See <Link href={`/engagements/${id}/evidence/cve`} className="underline">CVE scan as evidence</Link>{' '}
         for supply-chain snapshots.
       </p>

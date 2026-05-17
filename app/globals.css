@@ -1,26 +1,62 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --oak-shield: #0f3f2c;
+  --oak-shield-hover: #14543b;
+  --oak-mist: #edf5ef;
+  --oak-mist-strong: #dcebe1;
+  --oak-border: #bdd4c5;
+  --ink: #0f172a;
+  --ink-muted: #475569;
+  --field-border: #cbd5e1;
+  --panel-surface: #fffefa;
+  --background: #f6f8f4;
+  --foreground: var(--ink);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-oak-shield: var(--oak-shield);
+  --color-oak-mist: var(--oak-mist);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+input,
+select,
+textarea {
+  background-color: var(--panel-surface);
+  color: var(--ink);
+  caret-color: var(--oak-shield);
+}
+
+select,
+textarea {
+  border-color: var(--field-border);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--ink-muted);
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--oak-shield);
+}
+
+::selection {
+  background: var(--oak-mist-strong);
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline-color: var(--oak-shield);
 }

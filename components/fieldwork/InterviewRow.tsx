@@ -52,11 +52,11 @@ export function InterviewRow({
   }
 
   return (
-    <div className="rounded-md border border-slate-200 bg-white p-3 text-sm">
+    <div className="rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-3 text-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-medium text-slate-900">{interview.title}</p>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-600">
             {interview.scheduledAt
               ? new Date(interview.scheduledAt).toLocaleString('en-AU')
               : 'Not scheduled'}
@@ -67,18 +67,18 @@ export function InterviewRow({
             <p className="mt-2 text-sm text-slate-700">{interview.purpose}</p>
           )}
           {interview.attendees?.length ? (
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-slate-600">
               Attendees: {interview.attendees.map((a) => a.name).join(', ')}
             </p>
           ) : null}
         </div>
         <div className="flex flex-col items-end gap-1 text-xs">
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-slate-700">
+          <span className="rounded-full bg-[var(--oak-mist-strong)] px-2 py-0.5 text-slate-700">
             {interview.status}
           </span>
           <Link
             href={`/api/interviews/${interview.id}/ics`}
-            className="text-teal-900 underline"
+            className="text-[var(--oak-shield)] underline"
           >
             Add to calendar
           </Link>
@@ -96,14 +96,14 @@ export function InterviewRow({
             placeholder="Interview notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="w-full rounded-md border border-slate-200 bg-white p-2 text-sm"
+            className="w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm"
           />
           <textarea
             rows={3}
             placeholder="Observations"
             value={observations}
             onChange={(e) => setObservations(e.target.value)}
-            className="w-full rounded-md border border-slate-200 bg-white p-2 text-sm"
+            className="w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm"
           />
           <div className="flex gap-2">
             <Button size="sm" variant="primary" disabled={busy} onClick={() => save('completed')}>

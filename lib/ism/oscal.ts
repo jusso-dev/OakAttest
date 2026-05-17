@@ -94,29 +94,40 @@ export function parseOscalCatalogue(raw: unknown): OscalCatalogue {
 // control with its enclosing topic.
 export function iterateControls(catalogue: OscalCatalogue): Array<{
   topic: string | undefined;
+  subtopic: string | undefined;
   control: OscalControl;
 }> {
-  const out: Array<{ topic: string | undefined; control: OscalControl }> = [];
+  const out: Array<{
+    topic: string | undefined;
+    subtopic: string | undefined;
+    control: OscalControl;
+  }> = [];
 
-  function visitControls(controls: OscalControl[] | undefined, topic: string | undefined) {
+  function visitControls(
+    controls: OscalControl[] | undefined,
+    topic: string | undefined,
+    subtopic: string | undefined,
+  ) {
     if (!controls) return;
     for (const c of controls) {
-      out.push({ topic, control: c });
-      if (c.controls) visitControls(c.controls, topic);
+      out.push({ topic, subtopic, control: c });
+      if (c.controls) visitControls(c.controls, topic, subtopic);
     }
   }
 
-  function visitGroup(group: Group, parentTopic: string | undefined) {
-    const topic = group.title ?? parentTopic;
-    visitControls(group.controls, topic);
+  function visitGroup(group: Group, path: string[]) {
+    const nextPath = group.title ? [...path, group.title] : path;
+    const topic = nextPath[0];
+    const subtopic = nextPath.length > 1 ? nextPath.slice(1).join(' / ') : undefined;
+    visitControls(group.controls, topic, subtopic);
     if (group.groups) {
-      for (const g of group.groups) visitGroup(g, topic);
+      for (const g of group.groups) visitGroup(g, nextPath);
     }
   }
 
-  visitControls(catalogue.catalog.controls, undefined);
+  visitControls(catalogue.catalog.controls, undefined, undefined);
   if (catalogue.catalog.groups) {
-    for (const g of catalogue.catalog.groups) visitGroup(g, undefined);
+    for (const g of catalogue.catalog.groups) visitGroup(g, []);
   }
   return out;
 }
@@ -126,24 +137,25 @@ export function iterateControls(catalogue: OscalCatalogue): Array<{
 export function extractMinClassification(c: OscalControl): Classification {
   const props = c.props ?? [];
 
-  const direct = props.find(
-    (p) =>
-      p.name.toLowerCase() === 'classification' ||
-      p.name.toLowerCase() === 'min-classification',
-  );
-  if (direct) {
-    const v = normaliseClassification(direct.value);
-    if (v) return v;
+  const direct = props
+    .filter((p) => isDirectClassificationProp(p.name))
+    .flatMap((p) => extractClassificationsFromValue(p.value));
+  if (direct.length > 0) {
+    return lowestClassification(direct);
+  }
+
+  const applicability = props
+    .filter((p) => isApplicabilityProp(p.name))
+    .flatMap((p) => extractClassificationsFromValue(p.value));
+  if (applicability.length > 0) {
+    return lowestClassification(applicability);
   }
 
   const flagged = props
     .filter((p) => p.name.toLowerCase().startsWith('applies-to'))
-    .map((p) => normaliseClassification(p.value))
-    .filter((v): v is Classification => Boolean(v));
+    .flatMap((p) => extractClassificationsFromValue(p.value));
   if (flagged.length > 0) {
-    return flagged.reduce((min, cur) =>
-      CLASSIFICATION_RANK[cur] < CLASSIFICATION_RANK[min] ? cur : min,
-    );
+    return lowestClassification(flagged);
   }
 
   // Default to OFFICIAL: the cumulative rule means a missing classification
@@ -151,17 +163,63 @@ export function extractMinClassification(c: OscalControl): Classification {
   return 'OFFICIAL';
 }
 
+function isDirectClassificationProp(name: string) {
+  const n = name.toLowerCase();
+  return (
+    n === 'classification' ||
+    n === 'min-classification' ||
+    n === 'minimum-classification' ||
+    n === 'security-classification' ||
+    n === 'protective-marking'
+  );
+}
+
+function isApplicabilityProp(name: string) {
+  return name.toLowerCase() === 'applicability';
+}
+
+function extractClassificationsFromValue(value: string): Classification[] {
+  const direct = normaliseClassification(value);
+  if (direct) return [direct];
+
+  return value
+    .split(/[,\n;|/]+/)
+    .map((part) => normaliseClassification(part))
+    .filter((v): v is Classification => Boolean(v));
+}
+
+function lowestClassification(values: Classification[]): Classification {
+  return values.reduce((min, cur) =>
+    CLASSIFICATION_RANK[cur] < CLASSIFICATION_RANK[min] ? cur : min,
+  );
+}
+
 function normaliseClassification(input: string): Classification | null {
-  const v = input.trim().toUpperCase().replace(/[: ]/g, '_');
+  const v = input
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
   switch (v) {
+    case 'NC':
+    case 'NON_CLASSIFIED':
+    case 'NONCLASSIFIED':
+    case 'ALL':
     case 'OFFICIAL':
       return 'OFFICIAL';
+    case 'OS':
+    case 'OFFICIALSENSITIVE':
     case 'OFFICIAL_SENSITIVE':
       return 'OFFICIAL_SENSITIVE';
+    case 'P':
     case 'PROTECTED':
       return 'PROTECTED';
+    case 'S':
     case 'SECRET':
       return 'SECRET';
+    case 'TS':
+    case 'TOPSECRET':
     case 'TOP_SECRET':
       return 'TOP_SECRET';
     default:

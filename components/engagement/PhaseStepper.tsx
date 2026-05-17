@@ -11,9 +11,10 @@ export const PHASES = [
   { key: 'fieldwork', label: 'Fieldwork', segment: 'fieldwork' },
   { key: 'findings', label: 'Findings', segment: 'findings' },
   { key: 'certification', label: 'Certification', segment: 'certification' },
+  { key: 'maintenance', label: 'Maintenance', segment: 'overview' },
 ] as const;
 
-export type Phase = (typeof PHASES)[number]['key'] | 'maintenance';
+export type Phase = (typeof PHASES)[number]['key'];
 
 export function PhaseStepper({
   engagementId,
@@ -24,7 +25,7 @@ export function PhaseStepper({
 }) {
   const currentIndex = PHASES.findIndex((p) => p.key === currentPhase);
   return (
-    <ol className="flex w-full items-center gap-0 overflow-x-auto rounded-md border border-slate-200 bg-white p-1">
+    <ol className="flex w-full items-center gap-0 overflow-x-auto rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-1">
       {PHASES.map((p, i) => {
         const status =
           i < currentIndex ? 'complete' : i === currentIndex ? 'current' : 'upcoming';
@@ -34,17 +35,17 @@ export function PhaseStepper({
               href={`/engagements/${engagementId}/${p.segment}`}
               className={cn(
                 'flex items-center gap-2 rounded px-3 py-2 text-sm transition-colors',
-                status === 'current' && 'bg-teal-50 text-teal-900 font-medium',
-                status === 'complete' && 'text-slate-700 hover:bg-slate-50',
-                status === 'upcoming' && 'text-slate-400 hover:bg-slate-50',
+                status === 'current' && 'bg-[var(--oak-mist)] text-[var(--oak-shield)] font-medium',
+                status === 'complete' && 'text-slate-700 hover:bg-[var(--oak-mist)]',
+                status === 'upcoming' && 'text-slate-600 hover:bg-[var(--oak-mist)]',
               )}
             >
               <span
                 className={cn(
-                  'flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold',
-                  status === 'current' && 'bg-teal-900 text-white',
+                  'flex h-5 w-5 items-center justify-center rounded-full text-xs font-semibold',
+                  status === 'current' && 'bg-[var(--oak-shield)] text-white',
                   status === 'complete' && 'bg-slate-700 text-white',
-                  status === 'upcoming' && 'border border-slate-300 text-slate-400',
+                  status === 'upcoming' && 'border border-slate-300 text-slate-600',
                 )}
               >
                 {status === 'complete' ? <Check className="h-3 w-3" /> : i + 1}

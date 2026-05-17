@@ -84,7 +84,7 @@ export function IpAllowlistManager({
       {error && <p className="text-sm text-red-700">{error}</p>}
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wider text-slate-500">
+          <tr className="border-b border-[var(--field-border)] text-left text-xs uppercase text-slate-600">
             <th className="py-2 pr-3">CIDR</th>
             <th className="py-2 pr-3">Description</th>
             <th className="py-2 pr-3"></th>
@@ -93,13 +93,13 @@ export function IpAllowlistManager({
         <tbody>
           {entries.length === 0 ? (
             <tr>
-              <td colSpan={3} className="py-3 text-sm text-slate-500">
+              <td colSpan={3} className="py-3 text-sm text-slate-600">
                 No restrictions. Any IP may sign in.
               </td>
             </tr>
           ) : (
             entries.map((e) => (
-              <tr key={e.id} className="border-b border-slate-100">
+              <tr key={e.id} className="border-b border-[var(--field-border)]">
                 <td className="py-2 pr-3 font-mono text-xs">{e.cidr}</td>
                 <td className="py-2 pr-3 text-slate-700">{e.description ?? '—'}</td>
                 <td className="py-2 pr-3 text-right">

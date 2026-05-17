@@ -3,11 +3,11 @@ import { db } from '@/lib/db/client';
 import { systemBoundaries } from '@/db/schema/boundaries';
 import { engagementControls, ismControls } from '@/db/schema/ism';
 import { engagements } from '@/db/schema/engagements';
-import { engagementMembers } from '@/db/schema/tenants';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BoundaryEditor } from '@/components/engagement/BoundaryEditor';
 import { ApplicabilityWorksheet } from '@/components/engagement/ApplicabilityWorksheet';
 import { getSession } from '@/lib/auth/session';
+import { rolesForUser } from '@/lib/rbac/require';
 
 export default async function ScopePage({
   params,
@@ -37,30 +37,32 @@ export default async function ScopePage({
       id: engagementControls.id,
       controlId: engagementControls.controlId,
       description: ismControls.description,
+      chapter: ismControls.topic,
+      subChapter: ismControls.section,
       minClassification: ismControls.minClassification,
       status: engagementControls.status,
       applicable: engagementControls.applicable,
       justification: engagementControls.applicabilityJustification,
       implementationStatement: engagementControls.implementationStatement,
+      assessmentMethods: engagementControls.assessmentMethods,
+      assessmentObjects: engagementControls.assessmentObjects,
+      evidenceQuality: engagementControls.evidenceQuality,
+      evidenceLimitations: engagementControls.evidenceLimitations,
     })
     .from(engagementControls)
     .innerJoin(ismControls, eq(ismControls.id, engagementControls.ismControlId))
     .where(eq(engagementControls.engagementId, id))
     .orderBy(engagementControls.controlId);
 
-  const userRoles = await db
-    .select({ role: engagementMembers.role })
-    .from(engagementMembers)
-    .where(
-      and(
-        eq(engagementMembers.engagementId, id),
-        eq(engagementMembers.userId, session.user.id),
-      ),
-    );
-  const roles = userRoles.map((r) => r.role);
+  const roles = await rolesForUser({
+    userId: session.user.id,
+    tenantId: engagement.tenantId,
+    engagementId: id,
+  });
   const isAssessor = roles.some((r) => r === 'lead_assessor' || r === 'assessor');
   const isClient = roles.some((r) => r === 'client_admin' || r === 'client_contributor');
-  const canLock = roles.includes('lead_assessor');
+  const isTenantAdmin = roles.some((r) => r === 'tenant_owner' || r === 'assessor_admin');
+  const canLock = roles.includes('lead_assessor') || isTenantAdmin;
 
   const initialNodes = (boundary?.graph?.nodes ?? []).map((n) => ({
     id: n.id,
@@ -72,6 +74,9 @@ export default async function ScopePage({
     id: e.id,
     source: e.source,
     target: e.target,
+    sourceHandle: e.sourceHandle,
+    targetHandle: e.targetHandle,
+    type: e.type,
     label: e.label,
   })) as never;
 
@@ -93,7 +98,7 @@ export default async function ScopePage({
             initialEdges={initialEdges}
             locked={Boolean(boundary?.locked || engagement.boundaryLockedAt)}
             canLock={canLock}
-            canEdit={isClient || isAssessor}
+            canEdit={isClient || isAssessor || isTenantAdmin}
           />
         </CardContent>
       </Card>

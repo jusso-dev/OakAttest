@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { generateCertificationDraft } from '@/app/actions/certification';
+import { useUnsavedChanges } from '@/components/engagement/UnsavedChangesGuard';
 
 const schema = z.object({
   scope: z.string().min(10).max(8000),
@@ -26,11 +27,12 @@ export function CertificationDraftForm({ engagementId }: { engagementId: string 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: { recommendation: 'recommended_with_conditions' },
   });
+  useUnsavedChanges(isDirty, 'Certification draft');
 
   async function onSubmit(v: Values) {
     setServerError(null);
@@ -56,7 +58,7 @@ export function CertificationDraftForm({ engagementId }: { engagementId: string 
         <textarea
           id="scope"
           rows={3}
-          className="flex w-full rounded-md border border-slate-200 bg-white p-2 text-sm"
+          className="flex w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm"
           {...register('scope')}
         />
         {errors.scope && <p className="text-xs text-red-700">{errors.scope.message}</p>}
@@ -66,7 +68,7 @@ export function CertificationDraftForm({ engagementId }: { engagementId: string 
         <textarea
           id="methodology"
           rows={3}
-          className="flex w-full rounded-md border border-slate-200 bg-white p-2 text-sm"
+          className="flex w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm"
           {...register('methodology')}
         />
         {errors.methodology && <p className="text-xs text-red-700">{errors.methodology.message}</p>}
@@ -76,7 +78,7 @@ export function CertificationDraftForm({ engagementId }: { engagementId: string 
           <Label htmlFor="recommendation">Recommendation</Label>
           <select
             id="recommendation"
-            className="flex h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-sm"
+            className="flex h-9 w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3 text-sm"
             {...register('recommendation')}
           >
             <option value="recommended">Recommended</option>
@@ -94,7 +96,7 @@ export function CertificationDraftForm({ engagementId }: { engagementId: string 
         <textarea
           id="conditions"
           rows={2}
-          className="flex w-full rounded-md border border-slate-200 bg-white p-2 text-sm"
+          className="flex w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm"
           {...register('conditions')}
         />
       </div>

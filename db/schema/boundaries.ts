@@ -36,6 +36,8 @@ export const systemBoundaries = pgTable(
         data: {
           label: string;
           componentType: string;
+          width?: number;
+          height?: number;
           environment?: string;
           classification?: string;
           owner?: string;
@@ -46,6 +48,9 @@ export const systemBoundaries = pgTable(
         id: string;
         source: string;
         target: string;
+        sourceHandle?: string;
+        targetHandle?: string;
+        type?: string;
         label?: string;
         data?: { protocol?: string; encrypted?: boolean };
       }>;

@@ -35,7 +35,7 @@ export function VulnScanUpload({ engagementId }: { engagementId: string }) {
 
   return (
     <div className="space-y-2">
-      <label className="inline-flex h-9 cursor-pointer items-center justify-center rounded-md bg-teal-900 px-4 text-sm font-medium text-white hover:bg-teal-800">
+      <label className="inline-flex h-9 cursor-pointer items-center justify-center rounded-md bg-[var(--oak-shield)] px-4 text-sm font-medium text-white hover:bg-[var(--oak-shield-hover)]">
         {busy ? 'Importing…' : 'Import vulnerability scan'}
         <input
           type="file"
@@ -48,7 +48,7 @@ export function VulnScanUpload({ engagementId }: { engagementId: string }) {
           }}
         />
       </label>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-slate-600">
         Supported: Nessus (.nessus XML), Rapid7 CSV, Qualys CSV, generic CSV with columns
         host/title/severity/cvss.
       </p>
