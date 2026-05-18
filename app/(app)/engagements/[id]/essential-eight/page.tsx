@@ -7,10 +7,13 @@ import {
   essentialEightReports,
 } from '@/db/schema/essential-eight';
 import { engagementControls, ismControls } from '@/db/schema/ism';
+import { evidenceItemControls, evidenceItems } from '@/db/schema/evidence';
+import { findingControls, findings } from '@/db/schema/findings';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { EssentialEightGrid } from '@/components/engagement/EssentialEightGrid';
 import { EssentialEightChart } from '@/components/engagement/EssentialEightChart';
 import { calculateEssentialEightOverall, ESSENTIAL_EIGHT_STRATEGIES } from '@/lib/essential-eight';
+import { groupEssentialEightMappedControls } from '@/lib/essential-eight-mapping';
 
 export const metadata = { title: 'Essential Eight · OakAttest' };
 
@@ -46,29 +49,50 @@ export default async function EssentialEightPage({
 
   const mappedControls = await db
     .select({
+      ismControlId: ismControls.id,
       controlId: engagementControls.controlId,
       description: ismControls.description,
+      status: engagementControls.status,
+      applicable: engagementControls.applicable,
       mapping: ismControls.essentialEightMapping,
     })
     .from(engagementControls)
     .innerJoin(ismControls, eq(ismControls.id, engagementControls.ismControlId))
     .where(eq(engagementControls.engagementId, id));
 
+  const mappedEvidence = await db
+    .select({
+      ismControlId: evidenceItemControls.ismControlId,
+      id: evidenceItems.id,
+      filename: evidenceItems.filename,
+      reviewStatus: evidenceItems.reviewStatus,
+      sha256: evidenceItems.sha256,
+    })
+    .from(evidenceItemControls)
+    .innerJoin(evidenceItems, eq(evidenceItems.id, evidenceItemControls.evidenceItemId))
+    .where(eq(evidenceItems.engagementId, id));
+
+  const mappedFindings = await db
+    .select({
+      ismControlId: findingControls.ismControlId,
+      code: findings.code,
+      title: findings.title,
+      type: findings.type,
+      severity: findings.severity,
+      status: findings.status,
+    })
+    .from(findingControls)
+    .innerJoin(findings, eq(findings.id, findingControls.findingId))
+    .where(eq(findings.engagementId, id));
+
   const byStrategy = Object.fromEntries(rows.map((r) => [r.strategy, r]));
   const targetMaturity = profile?.targetMaturity ?? 'ml1';
   const overall = calculateEssentialEightOverall(rows, targetMaturity);
-  const mappedByStrategy = new Map<string, Array<{ controlId: string; description: string; maturityLevel?: number | null }>>();
-  for (const control of mappedControls) {
-    for (const mapping of control.mapping ?? []) {
-      const existing = mappedByStrategy.get(mapping.strategy) ?? [];
-      existing.push({
-        controlId: control.controlId,
-        description: control.description,
-        maturityLevel: mapping.maturityLevel ?? null,
-      });
-      mappedByStrategy.set(mapping.strategy, existing);
-    }
-  }
+  const mappedByStrategy = groupEssentialEightMappedControls({
+    controls: mappedControls,
+    evidence: mappedEvidence,
+    findings: mappedFindings,
+  });
 
   return (
     <div className="space-y-6">

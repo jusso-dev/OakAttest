@@ -10,6 +10,7 @@ import {
   upsertEssentialEightProfile,
 } from '@/app/actions/essential-eight';
 import { formatMaturity } from '@/lib/essential-eight';
+import type { EssentialEightMappedControl } from '@/lib/essential-eight-mapping';
 
 type Strategy = {
   key: string;
@@ -23,7 +24,7 @@ type Strategy = {
   evidenceQuality?: string;
   evidenceLimitations?: string;
   assessorConclusion?: string;
-  mappedControls?: Array<{ controlId: string; description: string; maturityLevel?: number | null }>;
+  mappedControls?: EssentialEightMappedControl[];
 };
 
 const LEVELS = ['ml0', 'ml1', 'ml2', 'ml3'];
@@ -270,11 +271,56 @@ function StrategyCard({
       {strategy.mappedControls && strategy.mappedControls.length > 0 && (
         <div className="mt-3 rounded-md bg-[var(--oak-mist)] p-2">
           <p className="text-xs font-medium uppercase text-slate-600">Mapped ISM controls</p>
-          <div className="mt-1 flex flex-wrap gap-1">
-            {strategy.mappedControls.slice(0, 10).map((control) => (
-              <span key={`${strategy.key}-${control.controlId}`} className="rounded-full bg-[var(--panel-surface)] px-2 py-0.5 text-xs text-slate-700" title={control.description}>
-                {control.controlId}{control.maturityLevel ? ` ML${control.maturityLevel}` : ''}
-              </span>
+          <div className="mt-2 space-y-2">
+            {strategy.mappedControls.slice(0, 6).map((control) => (
+              <div key={`${strategy.key}-${control.controlId}`} className="rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-xs font-semibold text-slate-900">
+                    {control.controlId}
+                  </span>
+                  {control.maturityLevel && (
+                    <span className="rounded-full bg-[var(--oak-mist)] px-2 py-0.5 text-xs text-slate-700">
+                      ML{control.maturityLevel}
+                    </span>
+                  )}
+                  <span className="text-xs text-slate-600">
+                    {control.applicable ?? 'undecided'} · {control.status ?? 'not_started'}
+                  </span>
+                </div>
+                <p className="mt-1 line-clamp-2 text-xs text-slate-600">{control.description}</p>
+                {(control.evidence.length > 0 || control.findings.length > 0) && (
+                  <div className="mt-2 grid gap-2 text-xs md:grid-cols-2">
+                    <div>
+                      <p className="font-medium text-slate-700">Candidate evidence</p>
+                      {control.evidence.length === 0 ? (
+                        <p className="text-slate-500">None linked to this ISM control.</p>
+                      ) : (
+                        <ul className="mt-1 space-y-1 text-slate-600">
+                          {control.evidence.slice(0, 3).map((item) => (
+                            <li key={item.id} className="truncate">
+                              {item.filename} ({item.reviewStatus})
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-slate-700">Findings</p>
+                      {control.findings.length === 0 ? (
+                        <p className="text-slate-500">None linked to this ISM control.</p>
+                      ) : (
+                        <ul className="mt-1 space-y-1 text-slate-600">
+                          {control.findings.slice(0, 3).map((finding) => (
+                            <li key={finding.code} className="truncate">
+                              {finding.code}: {finding.severity} {finding.status}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>
