@@ -37,6 +37,9 @@ describe('Essential Eight report export', () => {
           evidenceQuality: 'good',
           evidenceLimitations: null,
           assessorConclusion: 'Meets target for sampled fleet.',
+          criteriaResults: [
+            { criterionId: 'application_control-ml1', maturity: 'ml1', status: 'met' },
+          ],
           exceptions: [],
           mappedControls: [{ controlId: 'ISM-0001', maturityLevel: 2 }],
           evidence: [{ filename: 'policy.pdf', sha256: 'a'.repeat(64), reviewStatus: 'accepted' }],

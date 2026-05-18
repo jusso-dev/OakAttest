@@ -142,6 +142,7 @@ export default async function EssentialEightPage({
               evidenceQuality: byStrategy[s.key]?.evidenceQuality ?? '',
               evidenceLimitations: byStrategy[s.key]?.evidenceLimitations ?? '',
               assessorConclusion: byStrategy[s.key]?.assessorConclusion ?? '',
+              criteriaResults: byStrategy[s.key]?.criteriaResults ?? [],
               exceptions: byStrategy[s.key]?.exceptions ?? [],
               mappedControls: mappedByStrategy.get(s.key) ?? [],
             }))}

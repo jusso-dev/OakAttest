@@ -11,6 +11,11 @@ import {
 } from '@/app/actions/essential-eight';
 import { formatMaturity } from '@/lib/essential-eight';
 import type { EssentialEightMappedControl } from '@/lib/essential-eight-mapping';
+import {
+  E8_CRITERION_STATUSES,
+  criteriaForStrategy,
+  type EssentialEightCriterionResult,
+} from '@/lib/essential-eight-criteria';
 
 type Strategy = {
   key: string;
@@ -25,6 +30,7 @@ type Strategy = {
   evidenceQuality?: string;
   evidenceLimitations?: string;
   assessorConclusion?: string;
+  criteriaResults?: EssentialEightCriterionResult[];
   exceptions?: Array<{
     scope?: string;
     justification?: string;
@@ -208,6 +214,10 @@ function StrategyCard({
   const [quality, setQuality] = useState(strategy.evidenceQuality ?? '');
   const [limitations, setLimitations] = useState(strategy.evidenceLimitations ?? '');
   const [conclusion, setConclusion] = useState(strategy.assessorConclusion ?? '');
+  const criteria = criteriaForStrategy(strategy.key);
+  const [criteriaResults, setCriteriaResults] = useState<EssentialEightCriterionResult[]>(
+    strategy.criteriaResults ?? [],
+  );
   const [evidenceRefs, setEvidenceRefs] = useState<string[]>(strategy.evidenceRefs ?? []);
   const firstException = strategy.exceptions?.[0];
   const [exceptionScope, setExceptionScope] = useState(firstException?.scope ?? '');
@@ -232,6 +242,7 @@ function StrategyCard({
         evidenceQuality: quality as never || undefined,
         evidenceLimitations: limitations || undefined,
         assessorConclusion: conclusion || undefined,
+        criteriaResults,
         evidenceRefs,
         exceptions: buildException({
           scope: exceptionScope,
@@ -302,6 +313,58 @@ function StrategyCard({
       </div>
       <textarea rows={2} placeholder="Evidence limitations" value={limitations} onChange={(e) => setLimitations(e.target.value)} className="mt-3 w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm" />
       <textarea rows={2} placeholder="Assessor conclusion" value={conclusion} onChange={(e) => setConclusion(e.target.value)} className="mt-3 w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm" />
+      <div className="mt-3 rounded-md border border-[var(--field-border)] p-2">
+        <p className="text-xs font-medium uppercase text-slate-600">ML criteria checks</p>
+        <div className="mt-2 space-y-2">
+          {criteria.map((criterion) => {
+            const result = criteriaResults.find((item) => item.criterionId === criterion.id);
+            return (
+              <div key={criterion.id} className="grid gap-2 rounded-md bg-[var(--oak-mist)] p-2 md:grid-cols-[1fr_150px]">
+                <div>
+                  <p className="text-xs font-medium text-slate-900">
+                    {formatMaturity(criterion.maturity)} · {criterion.title}
+                  </p>
+                  <input
+                    value={result?.notes ?? ''}
+                    onChange={(event) =>
+                      setCriteriaResults((current) =>
+                        upsertCriterionResult(current, {
+                          criterionId: criterion.id,
+                          maturity: criterion.maturity,
+                          status: result?.status ?? 'not_assessed',
+                          notes: event.target.value,
+                        }),
+                      )
+                    }
+                    placeholder="Criterion notes"
+                    className="mt-1 h-8 w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-2 text-xs"
+                  />
+                </div>
+                <select
+                  value={result?.status ?? 'not_assessed'}
+                  onChange={(event) =>
+                    setCriteriaResults((current) =>
+                      upsertCriterionResult(current, {
+                        criterionId: criterion.id,
+                        maturity: criterion.maturity,
+                        status: event.target.value as EssentialEightCriterionResult['status'],
+                        notes: result?.notes,
+                      }),
+                    )
+                  }
+                  className="h-8 rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-2 text-xs"
+                >
+                  {E8_CRITERION_STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {status.replace('_', ' ')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            );
+          })}
+        </div>
+      </div>
       {evidenceOptions.length > 0 && (
         <div className="mt-3 rounded-md border border-[var(--field-border)] p-2">
           <p className="text-xs font-medium uppercase text-slate-600">Linked E8 evidence</p>
@@ -401,6 +464,14 @@ function StrategyCard({
       </div>
     </div>
   );
+}
+
+function upsertCriterionResult(
+  current: EssentialEightCriterionResult[],
+  next: EssentialEightCriterionResult,
+) {
+  const existing = current.filter((item) => item.criterionId !== next.criterionId);
+  return [...existing, next];
 }
 
 function buildException(input: {

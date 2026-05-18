@@ -42,6 +42,15 @@ export const essentialEightAssessments = pgTable(
     evidenceQuality: text('evidence_quality'),
     evidenceLimitations: text('evidence_limitations'),
     assessorConclusion: text('assessor_conclusion'),
+    criteriaResults: jsonb('criteria_results').$type<
+      Array<{
+        criterionId: string;
+        maturity: 'ml1' | 'ml2' | 'ml3';
+        status: 'not_assessed' | 'met' | 'partially_met' | 'not_met' | 'not_applicable';
+        notes?: string;
+        evidenceRefs?: string[];
+      }>
+    >(),
     exceptions: jsonb('exceptions').$type<
       Array<{
         scope?: string;

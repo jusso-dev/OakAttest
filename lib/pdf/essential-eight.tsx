@@ -7,6 +7,7 @@ import {
   pdf,
 } from '@react-pdf/renderer';
 import { e8StrategyLabel, formatMaturity } from '@/lib/essential-eight';
+import { criteriaForStrategy } from '@/lib/essential-eight-criteria';
 
 const styles = StyleSheet.create({
   page: { padding: 44, fontSize: 9, fontFamily: 'Helvetica', color: '#0f172a' },
@@ -71,6 +72,13 @@ export type EssentialEightReportData = {
     evidenceQuality: string | null;
     evidenceLimitations: string | null;
     assessorConclusion: string | null;
+    criteriaResults: Array<{
+      criterionId: string;
+      maturity: 'ml1' | 'ml2' | 'ml3';
+      status: string;
+      notes?: string;
+      evidenceRefs?: string[];
+    }>;
     exceptions: Array<{
       scope?: string;
       justification?: string;
@@ -150,6 +158,13 @@ export function EssentialEightReportDocument({ data }: { data: EssentialEightRep
             {strategy.assessorConclusion && (
               <Text style={styles.body}>Conclusion: {strategy.assessorConclusion}</Text>
             )}
+            <Text style={styles.small}>
+              Criteria:{' '}
+              {criteriaForStrategy(strategy.strategy).map((criterion) => {
+                const result = (strategy.criteriaResults ?? []).find((item) => item.criterionId === criterion.id);
+                return `${formatMaturity(criterion.maturity)} ${result?.status ?? 'not_assessed'}`;
+              }).join('; ')}
+            </Text>
             {strategy.evidenceLimitations && (
               <Text style={styles.body}>Limitations: {strategy.evidenceLimitations}</Text>
             )}

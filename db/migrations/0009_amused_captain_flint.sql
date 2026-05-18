@@ -1,0 +1,1 @@
+ALTER TABLE "essential_eight_assessments" ADD COLUMN "criteria_results" jsonb;

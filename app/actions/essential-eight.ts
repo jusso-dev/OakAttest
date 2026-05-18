@@ -29,6 +29,7 @@ import {
 } from '@/lib/storage/s3';
 import { calculateEssentialEightOverall, ESSENTIAL_EIGHT_STRATEGIES } from '@/lib/essential-eight';
 import { validateEssentialEightAssessment } from '@/lib/essential-eight-validation';
+import { E8_CRITERION_STATUSES } from '@/lib/essential-eight-criteria';
 import {
   renderEssentialEightReportPdf,
   type EssentialEightReportData,
@@ -71,6 +72,18 @@ const upsertSchema = z.object({
   evidenceQuality: z.enum(['excellent', 'good', 'fair', 'poor', 'insufficient']).optional(),
   evidenceLimitations: z.string().max(4000).optional(),
   assessorConclusion: z.string().max(8000).optional(),
+  criteriaResults: z
+    .array(
+      z.object({
+        criterionId: z.string().max(120),
+        maturity: z.enum(['ml1', 'ml2', 'ml3']),
+        status: z.enum(E8_CRITERION_STATUSES),
+        notes: z.string().max(4000).optional(),
+        evidenceRefs: z.array(z.string().uuid()).optional(),
+      }),
+    )
+    .max(40)
+    .optional(),
   exceptions: z
     .array(
       z.object({
@@ -201,6 +214,7 @@ export async function upsertEssentialEight(input: z.infer<typeof upsertSchema>) 
           evidenceQuality: data.evidenceQuality ?? existing.evidenceQuality,
           evidenceLimitations: data.evidenceLimitations ?? existing.evidenceLimitations,
           assessorConclusion: data.assessorConclusion ?? existing.assessorConclusion,
+          criteriaResults: (data.criteriaResults ?? existing.criteriaResults) as never,
           exceptions: (data.exceptions ?? existing.exceptions) as never,
           assessedBy: session.user.id,
           updatedAt: new Date(),
@@ -221,6 +235,7 @@ export async function upsertEssentialEight(input: z.infer<typeof upsertSchema>) 
         evidenceQuality: data.evidenceQuality ?? null,
         evidenceLimitations: data.evidenceLimitations ?? null,
         assessorConclusion: data.assessorConclusion ?? null,
+        criteriaResults: (data.criteriaResults ?? null) as never,
         exceptions: (data.exceptions ?? null) as never,
         assessedBy: session.user.id,
       });
@@ -248,6 +263,7 @@ export async function upsertEssentialEight(input: z.infer<typeof upsertSchema>) 
         targetMaturity: data.targetMaturity,
         evidenceQuality: data.evidenceQuality,
         evidenceRefs: data.evidenceRefs?.length ?? 0,
+        criteriaResults: data.criteriaResults?.length ?? 0,
         exceptions: data.exceptions?.length ?? 0,
       } as never,
     });
@@ -421,6 +437,7 @@ export async function generateEssentialEightReport(input: { engagementId: string
         evidenceQuality: row?.evidenceQuality ?? null,
         evidenceLimitations: row?.evidenceLimitations ?? null,
         assessorConclusion: row?.assessorConclusion ?? null,
+        criteriaResults: row?.criteriaResults ?? [],
         exceptions: row?.exceptions ?? [],
         mappedControls: (controlsByStrategy.get(strategy.key) ?? []).map((control) => ({
           controlId: control.controlId,

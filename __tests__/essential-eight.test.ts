@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { calculateEssentialEightOverall, formatMaturity } from '@/lib/essential-eight';
+import { criteriaForStrategy, criteriaCompletionSummary } from '@/lib/essential-eight-criteria';
 import { validateEssentialEightAssessment } from '@/lib/essential-eight-validation';
 
 describe('Essential Eight package maturity', () => {
@@ -82,5 +83,17 @@ describe('Essential Eight package maturity', () => {
         assessorConclusion: '',
       }),
     ).not.toThrow();
+  });
+
+  it('provides structured ML1 to ML3 criteria per strategy', () => {
+    const criteria = criteriaForStrategy('multi_factor_authentication');
+    expect(criteria.map((item) => item.maturity)).toEqual(['ml1', 'ml2', 'ml3']);
+    expect(criteria.every((item) => item.title.length > 20)).toBe(true);
+    expect(
+      criteriaCompletionSummary([
+        { criterionId: criteria[0].id, maturity: 'ml1', status: 'met' },
+        { criterionId: criteria[1].id, maturity: 'ml2', status: 'not_met' },
+      ]),
+    ).toMatchObject({ assessed: 2, notMet: 1 });
   });
 });
