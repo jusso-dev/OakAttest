@@ -1,8 +1,11 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, ne } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db/client';
 import { engagements } from '@/db/schema/engagements';
 import { certificationReports } from '@/db/schema/certification';
+import { evidenceItems } from '@/db/schema/evidence';
+import { ismImports } from '@/db/schema/ism';
+import { engagementTasks } from '@/db/schema/tasks';
 import { tenants } from '@/db/schema/tenants';
 import { requirePageSession } from '@/lib/auth/session';
 import { resolveActiveTenant } from '@/lib/auth/active-tenant';
@@ -10,6 +13,7 @@ import { requirePermission } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ReassessmentTaskButton } from '@/components/admin/ReassessmentTaskButton';
+import { CompliancePolicyForm } from '@/components/admin/CompliancePolicyForm';
 import { addCalendarMonths, daysUntil, dueSoonDays, reassessmentMonthsFor } from '@/lib/compliance/policy';
 import type { Classification } from '@/db/schema/enums';
 
@@ -40,7 +44,9 @@ export default async function CompliancePage() {
       id: engagements.id,
       name: engagements.name,
       classification: engagements.classification,
+      ismRevision: engagements.ismRevision,
       certifiedAt: engagements.certifiedAt,
+      updatedAt: engagements.updatedAt,
     })
     .from(engagements)
     .where(
@@ -55,6 +61,37 @@ export default async function CompliancePage() {
     .select()
     .from(certificationReports)
     .where(eq(certificationReports.tenantId, tenant.tenantId));
+  const engagementIds = certified.map((engagement) => engagement.id);
+  const taskRows =
+    engagementIds.length > 0
+      ? await db
+          .select()
+          .from(engagementTasks)
+          .where(
+            and(
+              eq(engagementTasks.tenantId, tenant.tenantId),
+              inArray(engagementTasks.engagementId, engagementIds),
+              ne(engagementTasks.status, 'done'),
+              ne(engagementTasks.status, 'cancelled'),
+            ),
+          )
+      : [];
+  const evidenceRows =
+    engagementIds.length > 0
+      ? await db
+          .select({
+            engagementId: evidenceItems.engagementId,
+            uploadedAt: evidenceItems.uploadedAt,
+            reviewStatus: evidenceItems.reviewStatus,
+          })
+          .from(evidenceItems)
+          .where(and(eq(evidenceItems.tenantId, tenant.tenantId), inArray(evidenceItems.engagementId, engagementIds)))
+      : [];
+  const [latestIsm] = await db
+    .select({ revision: ismImports.revision, completedAt: ismImports.completedAt })
+    .from(ismImports)
+    .orderBy(desc(ismImports.completedAt))
+    .limit(1);
 
   const today = new Date();
   const rows = certified.map((e) => {
@@ -64,7 +101,25 @@ export default async function CompliancePage() {
     const latestReport = reports
       .filter((r) => r.engagementId === e.id && r.status === 'signed')
       .sort((a, b) => b.version - a.version)[0];
-    return { ...e, due, days, latestReport };
+    const openTasks = taskRows.filter((task) => task.engagementId === e.id);
+    const staleEvidence = evidenceRows.filter(
+      (item) =>
+        item.engagementId === e.id &&
+        item.reviewStatus !== 'rejected' &&
+        item.uploadedAt < addCalendarMonths(today, -12),
+    ).length;
+    const hasNewIsmRelease = Boolean(latestIsm && latestIsm.revision !== e.ismRevision);
+    const hasMaterialChange = Boolean(e.certifiedAt && e.updatedAt > e.certifiedAt);
+    return {
+      ...e,
+      due,
+      days,
+      latestReport,
+      openTasks,
+      staleEvidence,
+      hasNewIsmRelease,
+      hasMaterialChange,
+    };
   });
 
   return (
@@ -73,6 +128,18 @@ export default async function CompliancePage() {
         <p className="text-xs uppercase text-slate-600">Tenant admin</p>
         <h1 className="mt-1 text-2xl font-semibold text-slate-900">Ongoing compliance</h1>
       </header>
+      <Card>
+        <CardHeader>
+          <CardTitle>Compliance policy</CardTitle>
+          <CardDescription>
+            Configure calendar-month reassessment intervals and the due-soon reminder window for
+            certified engagements.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CompliancePolicyForm tenantId={tenant.tenantId} initialPolicy={compliancePolicy} />
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>Re-assessment schedule</CardTitle>
@@ -93,6 +160,8 @@ export default async function CompliancePage() {
                   <th className="py-2 pr-3">Certified</th>
                   <th className="py-2 pr-3">Re-assess by</th>
                   <th className="py-2 pr-3">In</th>
+                  <th className="py-2 pr-3">Signals</th>
+                  <th className="py-2 pr-3">Report/tasks</th>
                   <th className="py-2 pr-3"></th>
                 </tr>
               </thead>
@@ -122,6 +191,30 @@ export default async function CompliancePage() {
                         <span className="text-slate-600">{r.days} days</span>
                       )}
                     </td>
+                    <td className="py-2 pr-3">
+                      <div className="flex flex-wrap gap-1">
+                        {r.hasNewIsmRelease && <Signal>New ISM release</Signal>}
+                        {r.hasMaterialChange && <Signal>Scope changed</Signal>}
+                        {r.staleEvidence > 0 && <Signal>{r.staleEvidence} stale evidence</Signal>}
+                        {r.openTasks.length === 0 && !r.hasNewIsmRelease && !r.hasMaterialChange && r.staleEvidence === 0 ? (
+                          <span className="text-slate-500">—</span>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td className="py-2 pr-3 text-slate-600">
+                      <div className="space-y-1">
+                        {r.latestReport ? (
+                          <a href={`/engagements/${r.id}/certification`} className="block text-[var(--oak-shield)] underline">
+                            Signed report v{r.latestReport.version}
+                          </a>
+                        ) : (
+                          <span>—</span>
+                        )}
+                        <a href={`/engagements/${r.id}/tasks`} className="block text-[var(--oak-shield)] underline">
+                          {r.openTasks.length} open task(s)
+                        </a>
+                      </div>
+                    </td>
                     <td className="py-2 pr-3 text-right">
                       {r.due ? (
                         <ReassessmentTaskButton
@@ -138,5 +231,13 @@ export default async function CompliancePage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function Signal({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">
+      {children}
+    </span>
   );
 }

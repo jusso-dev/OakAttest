@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, ne } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { engagementTasks } from '@/db/schema/tasks';
 import { engagements } from '@/db/schema/engagements';
@@ -233,13 +233,43 @@ export async function createReassessmentTask(input: z.infer<typeof reassessmentT
     engagementId: data.engagementId,
   });
 
+  const dueAt = parseDueDate(data.dueDate);
+  const [existing] = await db
+    .select({ id: engagementTasks.id })
+    .from(engagementTasks)
+    .where(
+      and(
+        eq(engagementTasks.tenantId, tenantId),
+        eq(engagementTasks.engagementId, data.engagementId),
+        eq(engagementTasks.title, 'Plan reassessment'),
+        ne(engagementTasks.status, 'done'),
+        ne(engagementTasks.status, 'cancelled'),
+      ),
+    )
+    .limit(1);
+  if (existing) return { taskId: existing.id };
+
+  const [lead] = await db
+    .select({ userId: engagementMembers.userId })
+    .from(engagementMembers)
+    .where(
+      and(
+        eq(engagementMembers.tenantId, tenantId),
+        eq(engagementMembers.engagementId, data.engagementId),
+        eq(engagementMembers.role, 'lead_assessor'),
+        isNull(engagementMembers.deletedAt),
+      ),
+    )
+    .limit(1);
+
   return createEngagementTask({
     engagementId: data.engagementId,
     title: 'Plan reassessment',
     description: 'Review assessment scope, latest ISM release, evidence freshness, material system changes, and open findings before reassessment.',
     priority: 'high',
     status: 'todo',
-    dueDate: data.dueDate,
+    ownerUserId: lead?.userId ?? null,
+    dueDate: dueAt?.toISOString().slice(0, 10) ?? data.dueDate,
   });
 }
 

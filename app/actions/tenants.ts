@@ -97,6 +97,18 @@ const securityPolicySchema = z.object({
   mfaGracePeriodDays: z.number().int().min(0).max(30).default(0),
 });
 
+const compliancePolicySchema = z.object({
+  tenantId: z.string().uuid(),
+  dueSoonDays: z.number().int().min(1).max(365),
+  reassessmentMonths: z.object({
+    OFFICIAL: z.number().int().min(1).max(120),
+    OFFICIAL_SENSITIVE: z.number().int().min(1).max(120),
+    PROTECTED: z.number().int().min(1).max(120),
+    SECRET: z.number().int().min(1).max(120),
+    TOP_SECRET: z.number().int().min(1).max(120),
+  }),
+});
+
 export async function updateTenantSecurityPolicy(input: z.infer<typeof securityPolicySchema>) {
   const session = await requireSession();
   const data = securityPolicySchema.parse(input);
@@ -128,6 +140,43 @@ export async function updateTenantSecurityPolicy(input: z.infer<typeof securityP
   });
 
   revalidatePath('/admin');
+  return { ok: true };
+}
+
+export async function updateTenantCompliancePolicy(input: z.infer<typeof compliancePolicySchema>) {
+  const session = await requireSession();
+  const data = compliancePolicySchema.parse(input);
+
+  await requirePermission(ACTIONS.complianceView, {
+    userId: session.user.id,
+    tenantId: data.tenantId,
+  });
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(tenants)
+      .set({
+        compliancePolicy: {
+          dueSoonDays: data.dueSoonDays,
+          reassessmentMonths: data.reassessmentMonths,
+        } as never,
+        updatedAt: new Date(),
+      })
+      .where(eq(tenants.id, data.tenantId));
+    await tx.insert(auditLog).values({
+      tenantId: data.tenantId,
+      actorUserId: session.user.id,
+      action: 'tenant.compliance_policy.update',
+      resourceType: 'tenant',
+      resourceId: data.tenantId,
+      afterJson: {
+        dueSoonDays: data.dueSoonDays,
+        reassessmentMonths: data.reassessmentMonths,
+      } as never,
+    });
+  });
+
+  revalidatePath('/admin/compliance');
   return { ok: true };
 }
 
