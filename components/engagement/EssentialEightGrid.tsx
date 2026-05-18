@@ -3,7 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { upsertEssentialEight } from '@/app/actions/essential-eight';
+import {
+  generateEssentialEightReport,
+  getEssentialEightReportDownloadUrl,
+  upsertEssentialEight,
+  upsertEssentialEightProfile,
+} from '@/app/actions/essential-eight';
+import { formatMaturity } from '@/lib/essential-eight';
 
 type Strategy = {
   key: string;
@@ -11,6 +17,13 @@ type Strategy = {
   current: string;
   target: string;
   remediationPlan: string;
+  assessmentMethods?: string;
+  assessmentObjects?: string;
+  sampleSize?: string;
+  evidenceQuality?: string;
+  evidenceLimitations?: string;
+  assessorConclusion?: string;
+  mappedControls?: Array<{ controlId: string; description: string; maturityLevel?: number | null }>;
 };
 
 const LEVELS = ['ml0', 'ml1', 'ml2', 'ml3'];
@@ -18,15 +31,142 @@ const LEVELS = ['ml0', 'ml1', 'ml2', 'ml3'];
 export function EssentialEightGrid({
   engagementId,
   strategies,
+  profile,
+  overall,
+  reports,
 }: {
   engagementId: string;
   strategies: Strategy[];
+  profile: { targetMaturity: string; scope: string; approach: string; limitations: string };
+  overall: { achieved: string; blockers: Array<{ label: string; current: string; target: string }> };
+  reports: Array<{ id: string; version: number; sha256: string; generatedAt: string }>;
 }) {
+  const router = useRouter();
+  const [targetMaturity, setTargetMaturity] = useState(profile.targetMaturity);
+  const [scope, setScope] = useState(profile.scope);
+  const [approach, setApproach] = useState(profile.approach);
+  const [limitations, setLimitations] = useState(profile.limitations);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  async function saveProfile() {
+    setBusy('profile');
+    try {
+      await upsertEssentialEightProfile({
+        engagementId,
+        targetMaturity: targetMaturity as never,
+        scope,
+        approach,
+        limitations,
+      });
+      router.refresh();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function exportReport() {
+    setBusy('report');
+    try {
+      const report = await generateEssentialEightReport({ engagementId });
+      const { url } = await getEssentialEightReportDownloadUrl({ engagementId, reportId: report.id });
+      window.open(url, '_blank');
+      router.refresh();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function downloadReport(reportId: string) {
+    const { url } = await getEssentialEightReportDownloadUrl({ engagementId, reportId });
+    window.open(url, '_blank');
+  }
+
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {strategies.map((s) => (
-        <StrategyCard key={s.key} engagementId={engagementId} strategy={s} />
-      ))}
+    <div className="space-y-4">
+      <div className="rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-slate-950">Overall package maturity</p>
+            <p className="mt-1 text-2xl font-semibold text-[var(--oak-shield)]">
+              {formatMaturity(overall.achieved)}
+            </p>
+            <p className="mt-1 text-xs text-slate-600">
+              Calculated as the lowest achieved maturity across all eight strategies.
+            </p>
+          </div>
+          <Button variant="primary" disabled={Boolean(busy)} onClick={exportReport}>
+            {busy === 'report' ? 'Generating…' : 'Export E8 report'}
+          </Button>
+        </div>
+        {overall.blockers.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {overall.blockers.map((blocker) => (
+              <span key={blocker.label} className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-900">
+                {blocker.label}: {formatMaturity(blocker.current)} / target {formatMaturity(blocker.target)}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-4">
+        <div className="grid gap-3 md:grid-cols-[160px_1fr]">
+          <label className="space-y-1">
+            <span className="text-xs text-slate-600">Target maturity</span>
+            <select
+              value={targetMaturity}
+              onChange={(e) => setTargetMaturity(e.target.value)}
+              className="flex h-9 w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3 text-sm"
+            >
+              {LEVELS.map((l) => (
+                <option key={l} value={l}>{l.toUpperCase()}</option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs text-slate-600">Scope</span>
+            <input
+              value={scope}
+              onChange={(e) => setScope(e.target.value)}
+              className="flex h-9 w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3 text-sm"
+            />
+          </label>
+        </div>
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <textarea rows={3} placeholder="Assessment approach" value={approach} onChange={(e) => setApproach(e.target.value)} className="w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm" />
+          <textarea rows={3} placeholder="Assessment limitations" value={limitations} onChange={(e) => setLimitations(e.target.value)} className="w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm" />
+        </div>
+        <div className="mt-3 flex justify-end">
+          <Button size="sm" variant="outline" disabled={busy === 'profile'} onClick={saveProfile}>
+            {busy === 'profile' ? 'Saving…' : 'Save profile'}
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {strategies.map((s) => (
+          <StrategyCard key={s.key} engagementId={engagementId} strategy={s} />
+        ))}
+      </div>
+
+      {reports.length > 0 && (
+        <div className="rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-4">
+          <p className="text-sm font-semibold text-slate-950">Generated reports</p>
+          <ul className="mt-2 divide-y divide-slate-100 text-sm">
+            {reports.map((report) => (
+              <li key={report.id} className="flex items-center justify-between py-2">
+                <div>
+                  <p>Version {report.version} · {new Date(report.generatedAt).toLocaleString('en-AU')}</p>
+                  <p className="font-mono text-xs text-slate-600">{report.sha256.slice(0, 16)}…</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => downloadReport(report.id)}>
+                  Download
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
@@ -42,6 +182,12 @@ function StrategyCard({
   const [current, setCurrent] = useState(strategy.current);
   const [target, setTarget] = useState(strategy.target);
   const [plan, setPlan] = useState(strategy.remediationPlan);
+  const [methods, setMethods] = useState(strategy.assessmentMethods ?? '');
+  const [objects, setObjects] = useState(strategy.assessmentObjects ?? '');
+  const [sampleSize, setSampleSize] = useState(strategy.sampleSize ?? '');
+  const [quality, setQuality] = useState(strategy.evidenceQuality ?? '');
+  const [limitations, setLimitations] = useState(strategy.evidenceLimitations ?? '');
+  const [conclusion, setConclusion] = useState(strategy.assessorConclusion ?? '');
   const [busy, setBusy] = useState(false);
 
   async function save() {
@@ -53,6 +199,12 @@ function StrategyCard({
         currentMaturity: current as never,
         targetMaturity: target as never,
         remediationPlan: plan || undefined,
+        assessmentMethods: methods || undefined,
+        assessmentObjects: objects || undefined,
+        sampleSize: sampleSize || undefined,
+        evidenceQuality: quality as never || undefined,
+        evidenceLimitations: limitations || undefined,
+        assessorConclusion: conclusion || undefined,
       });
       router.refresh();
     } finally {
@@ -100,6 +252,33 @@ function StrategyCard({
         onChange={(e) => setPlan(e.target.value)}
         className="mt-3 w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm"
       />
+      <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+        <input value={methods} onChange={(e) => setMethods(e.target.value)} placeholder="Assessment methods" className="h-9 rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3" />
+        <input value={objects} onChange={(e) => setObjects(e.target.value)} placeholder="Assessment objects" className="h-9 rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3" />
+        <input value={sampleSize} onChange={(e) => setSampleSize(e.target.value)} placeholder="Sample size" className="h-9 rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3" />
+        <select value={quality} onChange={(e) => setQuality(e.target.value)} className="h-9 rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3">
+          <option value="">Evidence quality</option>
+          <option value="excellent">Excellent</option>
+          <option value="good">Good</option>
+          <option value="fair">Fair</option>
+          <option value="poor">Poor</option>
+          <option value="insufficient">Insufficient</option>
+        </select>
+      </div>
+      <textarea rows={2} placeholder="Evidence limitations" value={limitations} onChange={(e) => setLimitations(e.target.value)} className="mt-3 w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm" />
+      <textarea rows={2} placeholder="Assessor conclusion" value={conclusion} onChange={(e) => setConclusion(e.target.value)} className="mt-3 w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm" />
+      {strategy.mappedControls && strategy.mappedControls.length > 0 && (
+        <div className="mt-3 rounded-md bg-[var(--oak-mist)] p-2">
+          <p className="text-xs font-medium uppercase text-slate-600">Mapped ISM controls</p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {strategy.mappedControls.slice(0, 10).map((control) => (
+              <span key={`${strategy.key}-${control.controlId}`} className="rounded-full bg-[var(--panel-surface)] px-2 py-0.5 text-xs text-slate-700" title={control.description}>
+                {control.controlId}{control.maturityLevel ? ` ML${control.maturityLevel}` : ''}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="mt-3 flex justify-end">
         <Button size="sm" variant="primary" disabled={busy} onClick={save}>
           {busy ? 'Saving…' : 'Save'}

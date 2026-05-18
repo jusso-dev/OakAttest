@@ -1,25 +1,18 @@
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import {
   essentialEightAssessments,
   essentialEightHistory,
+  essentialEightProfiles,
+  essentialEightReports,
 } from '@/db/schema/essential-eight';
+import { engagementControls, ismControls } from '@/db/schema/ism';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { EssentialEightGrid } from '@/components/engagement/EssentialEightGrid';
 import { EssentialEightChart } from '@/components/engagement/EssentialEightChart';
+import { calculateEssentialEightOverall, ESSENTIAL_EIGHT_STRATEGIES } from '@/lib/essential-eight';
 
 export const metadata = { title: 'Essential Eight · OakAttest' };
-
-const STRATEGIES = [
-  { key: 'application_control', label: 'Application control' },
-  { key: 'patch_applications', label: 'Patch applications' },
-  { key: 'configure_macro_settings', label: 'Configure macro settings' },
-  { key: 'user_application_hardening', label: 'User application hardening' },
-  { key: 'restrict_admin_privileges', label: 'Restrict admin privileges' },
-  { key: 'patch_operating_systems', label: 'Patch operating systems' },
-  { key: 'multi_factor_authentication', label: 'Multi-factor authentication' },
-  { key: 'regular_backups', label: 'Regular backups' },
-] as const;
 
 export default async function EssentialEightPage({
   params,
@@ -39,7 +32,43 @@ export default async function EssentialEightPage({
     .where(eq(essentialEightHistory.engagementId, id))
     .orderBy(essentialEightHistory.recordedAt);
 
+  const [profile] = await db
+    .select()
+    .from(essentialEightProfiles)
+    .where(eq(essentialEightProfiles.engagementId, id))
+    .limit(1);
+
+  const reports = await db
+    .select()
+    .from(essentialEightReports)
+    .where(eq(essentialEightReports.engagementId, id))
+    .orderBy(desc(essentialEightReports.version));
+
+  const mappedControls = await db
+    .select({
+      controlId: engagementControls.controlId,
+      description: ismControls.description,
+      mapping: ismControls.essentialEightMapping,
+    })
+    .from(engagementControls)
+    .innerJoin(ismControls, eq(ismControls.id, engagementControls.ismControlId))
+    .where(eq(engagementControls.engagementId, id));
+
   const byStrategy = Object.fromEntries(rows.map((r) => [r.strategy, r]));
+  const targetMaturity = profile?.targetMaturity ?? 'ml1';
+  const overall = calculateEssentialEightOverall(rows, targetMaturity);
+  const mappedByStrategy = new Map<string, Array<{ controlId: string; description: string; maturityLevel?: number | null }>>();
+  for (const control of mappedControls) {
+    for (const mapping of control.mapping ?? []) {
+      const existing = mappedByStrategy.get(mapping.strategy) ?? [];
+      existing.push({
+        controlId: control.controlId,
+        description: control.description,
+        maturityLevel: mapping.maturityLevel ?? null,
+      });
+      mappedByStrategy.set(mapping.strategy, existing);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -53,11 +82,31 @@ export default async function EssentialEightPage({
         <CardContent>
           <EssentialEightGrid
             engagementId={id}
-            strategies={STRATEGIES.map((s) => ({
+            profile={{
+              targetMaturity,
+              scope: profile?.scope ?? '',
+              approach: profile?.approach ?? '',
+              limitations: profile?.limitations ?? '',
+            }}
+            overall={overall}
+            reports={reports.map((report) => ({
+              id: report.id,
+              version: report.version,
+              sha256: report.sha256,
+              generatedAt: report.generatedAt.toISOString(),
+            }))}
+            strategies={ESSENTIAL_EIGHT_STRATEGIES.map((s) => ({
               ...s,
               current: byStrategy[s.key]?.currentMaturity ?? 'ml0',
-              target: byStrategy[s.key]?.targetMaturity ?? 'ml1',
+              target: byStrategy[s.key]?.targetMaturity ?? targetMaturity,
               remediationPlan: byStrategy[s.key]?.remediationPlan ?? '',
+              assessmentMethods: byStrategy[s.key]?.assessmentMethods ?? '',
+              assessmentObjects: byStrategy[s.key]?.assessmentObjects ?? '',
+              sampleSize: byStrategy[s.key]?.sampleSize ?? '',
+              evidenceQuality: byStrategy[s.key]?.evidenceQuality ?? '',
+              evidenceLimitations: byStrategy[s.key]?.evidenceLimitations ?? '',
+              assessorConclusion: byStrategy[s.key]?.assessorConclusion ?? '',
+              mappedControls: mappedByStrategy.get(s.key) ?? [],
             }))}
           />
         </CardContent>

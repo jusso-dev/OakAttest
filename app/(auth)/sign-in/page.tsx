@@ -11,8 +11,8 @@ export default function SignInPage() {
       <CardHeader>
         <CardTitle>Sign in</CardTitle>
         <CardDescription>
-          Multi-factor authentication is optional for self-installed instances and strongly
-          recommended for assessor-side users.
+          Multi-factor authentication follows the assessor firm workspace policy and may be
+          required before access is granted.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

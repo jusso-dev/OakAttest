@@ -21,6 +21,7 @@ import {
   buildEvidenceKey,
   presignUpload,
   presignDownload,
+  verifyObject,
 } from '@/lib/storage/s3';
 
 async function tenantForEngagement(engagementId: string): Promise<string> {
@@ -199,12 +200,33 @@ export async function finaliseEvidenceUpload(input: z.infer<typeof finaliseSchem
     engagementId: data.engagementId,
   });
 
+  const [item] = await db
+    .select({
+      storageKey: evidenceItems.storageKey,
+      sizeBytes: evidenceItems.sizeBytes,
+    })
+    .from(evidenceItems)
+    .where(and(eq(evidenceItems.id, data.evidenceItemId), eq(evidenceItems.engagementId, data.engagementId)))
+    .limit(1);
+  if (!item) throw new Error('Evidence not found');
+
+  const verification = await verifyObject({
+    key: item.storageKey,
+    expectedSizeBytes: item.sizeBytes,
+  });
+
   await db.transaction(async (tx) => {
     await tx
       .update(evidenceItems)
       .set({
         sha256: data.sha256.toLowerCase(),
         description: data.description ?? null,
+        storageVerifiedAt: new Date(),
+        storageVerification: JSON.stringify({
+          method: 'storage_head_and_client_sha256',
+          sizeBytes: verification.sizeBytes,
+          etag: verification.etag,
+        }),
       })
       .where(
         and(
@@ -254,7 +276,7 @@ export async function reviewEvidence(input: z.infer<typeof reviewSchema>) {
         reviewedAt: new Date(),
         reviewNotes: data.notes ?? null,
       })
-      .where(eq(evidenceItems.id, data.evidenceItemId));
+      .where(and(eq(evidenceItems.id, data.evidenceItemId), eq(evidenceItems.engagementId, data.engagementId)));
     await tx.insert(auditLog).values({
       tenantId,
       engagementId: data.engagementId,
@@ -286,7 +308,7 @@ export async function getEvidenceDownloadUrl(opts: {
   const [item] = await db
     .select({ key: evidenceItems.storageKey, engagementId: evidenceItems.engagementId })
     .from(evidenceItems)
-    .where(eq(evidenceItems.id, opts.evidenceItemId))
+    .where(and(eq(evidenceItems.id, opts.evidenceItemId), eq(evidenceItems.engagementId, opts.engagementId)))
     .limit(1);
   if (!item || item.engagementId !== opts.engagementId) {
     throw new Error('Evidence not found');

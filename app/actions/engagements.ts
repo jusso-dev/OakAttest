@@ -64,6 +64,12 @@ const stateSchema = z.object({
   status: z.enum(['draft', 'active', 'on_hold', 'completed', 'archived']),
 });
 
+const migrateIsmSchema = z.object({
+  engagementId: z.string().uuid(),
+  toRevision: z.string().min(1),
+  reason: z.string().min(10).max(4000),
+});
+
 export async function createEngagement(input: z.infer<typeof createSchema>) {
   const session = await requireSession();
   const data = createSchema.parse(input);
@@ -233,4 +239,105 @@ export async function updateEngagementState(input: z.infer<typeof stateSchema>) 
   revalidatePath(`/engagements/${data.engagementId}`);
   revalidatePath(`/engagements/${data.engagementId}/overview`);
   return { ok: true };
+}
+
+export async function migrateEngagementIsmRevision(input: z.infer<typeof migrateIsmSchema>) {
+  const session = await requireSession();
+  const data = migrateIsmSchema.parse(input);
+  const [engagement] = await db
+    .select()
+    .from(engagements)
+    .where(eq(engagements.id, data.engagementId))
+    .limit(1);
+  if (!engagement) throw new Error('Engagement not found');
+
+  await requirePermission(ACTIONS.engagementUpdate, {
+    userId: session.user.id,
+    tenantId: engagement.tenantId,
+    engagementId: data.engagementId,
+  });
+
+  const nextControls = await db
+    .select()
+    .from(ismControls)
+    .where(
+      and(
+        eq(ismControls.revision, data.toRevision),
+        lte(ismControls.minClassificationRank, engagement.classificationRank),
+      ),
+    );
+  if (nextControls.length === 0) throw new Error('No controls found for target revision');
+
+  const existing = await db
+    .select()
+    .from(engagementControls)
+    .where(eq(engagementControls.engagementId, data.engagementId));
+  const existingByControlId = new Map(existing.map((row) => [row.controlId, row]));
+  const nextByControlId = new Map(nextControls.map((row) => [row.controlId, row]));
+
+  let updated = 0;
+  let added = 0;
+  let removed = 0;
+
+  await db.transaction(async (tx) => {
+    for (const next of nextControls) {
+      const current = existingByControlId.get(next.controlId);
+      if (current) {
+        if (current.revision !== data.toRevision || current.ismControlId !== next.id) {
+          updated += 1;
+          await tx
+            .update(engagementControls)
+            .set({
+              ismControlId: next.id,
+              revision: next.revision,
+              updatedAt: new Date(),
+            })
+            .where(eq(engagementControls.id, current.id));
+        }
+      } else {
+        added += 1;
+        await tx.insert(engagementControls).values({
+          engagementId: data.engagementId,
+          tenantId: engagement.tenantId,
+          ismControlId: next.id,
+          controlId: next.controlId,
+          revision: next.revision,
+        });
+      }
+    }
+
+    for (const current of existing) {
+      if (!nextByControlId.has(current.controlId)) {
+        removed += 1;
+        await tx
+          .update(engagementControls)
+          .set({
+            status: 'not_applicable',
+            applicable: 'no',
+            applicabilityJustification: `Control was not present in migrated ISM revision ${data.toRevision}. Previous assessment material is retained for audit history. Migration reason: ${data.reason}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(engagementControls.id, current.id));
+      }
+    }
+
+    await tx
+      .update(engagements)
+      .set({ ismRevision: data.toRevision, updatedAt: new Date() })
+      .where(eq(engagements.id, data.engagementId));
+    await tx.insert(auditLog).values({
+      tenantId: engagement.tenantId,
+      engagementId: data.engagementId,
+      actorUserId: session.user.id,
+      action: 'engagement.ism_migrate',
+      resourceType: 'engagement',
+      resourceId: data.engagementId,
+      beforeJson: { ismRevision: engagement.ismRevision } as never,
+      afterJson: { ismRevision: data.toRevision, updated, added, removed, reason: data.reason } as never,
+    });
+  });
+
+  revalidatePath(`/engagements/${data.engagementId}`);
+  revalidatePath(`/engagements/${data.engagementId}/scope`);
+  return { updated, added, removed };
 }

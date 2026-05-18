@@ -148,7 +148,7 @@ export async function generateInterviewIcs(opts: {
   const [i] = await db
     .select()
     .from(interviews)
-    .where(eq(interviews.id, opts.interviewId))
+    .where(and(eq(interviews.id, opts.interviewId), eq(interviews.engagementId, opts.engagementId)))
     .limit(1);
   if (!i || i.engagementId !== opts.engagementId) throw new Error('Interview not found');
 

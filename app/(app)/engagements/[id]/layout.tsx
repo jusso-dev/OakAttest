@@ -105,6 +105,14 @@ export default async function EngagementLayout({
           canEdit={canUpdateState}
         />
         <PhaseStepper engagementId={row.id} currentPhase={row.phase as Phase} />
+        <div>
+          <a
+            href={`/engagements/${row.id}/coverage`}
+            className="inline-flex h-8 items-center rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3 text-sm font-medium text-slate-900 hover:bg-[var(--oak-mist)]"
+          >
+            Assessment coverage
+          </a>
+        </div>
         {canViewTasks ? (
           <EngagementTaskStrip
             engagementId={row.id}

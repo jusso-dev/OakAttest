@@ -47,8 +47,8 @@ export default async function TermsPage() {
           </li>
           <li>
             Sessions for assessor users are 8 hours rolling with a 12-hour absolute cap; client
-            sessions are 4 hours. Multi-factor authentication is optional for self-installed
-            instances and strongly recommended for assessor users.
+            sessions are 4 hours. Multi-factor authentication follows the assessor firm
+            workspace policy and may be required for assessor-side or all users.
           </li>
           <li>
             You must not upload material you are not authorised to share. The assessor firm

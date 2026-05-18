@@ -28,6 +28,14 @@ export const tenants = pgTable(
       accentColour?: string;
       productName?: string;
     }>(),
+    securityPolicy: jsonb('security_policy').$type<{
+      mfaMode?: 'optional' | 'assessor_required' | 'all_users_required';
+      mfaGracePeriodDays?: number;
+    }>(),
+    compliancePolicy: jsonb('compliance_policy').$type<{
+      reassessmentMonths?: Partial<Record<string, number>>;
+      dueSoonDays?: number;
+    }>(),
     // Billing reference (section 13 mentions a billing stub). Held as text so
     // we can swap providers later without a migration.
     billingCustomerId: text('billing_customer_id'),

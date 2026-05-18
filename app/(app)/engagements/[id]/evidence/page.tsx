@@ -2,13 +2,16 @@ import { desc, eq } from 'drizzle-orm';
 import Link from 'next/link';
 import { db } from '@/lib/db/client';
 import { evidenceRequests, evidenceItems } from '@/db/schema/evidence';
-import { engagementMembers } from '@/db/schema/tenants';
 import { engagementControls, ismControls } from '@/db/schema/ism';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getSession } from '@/lib/auth/session';
+import { rolesForUser } from '@/lib/rbac/require';
 import { EvidenceRequestForm } from '@/components/evidence/EvidenceRequestForm';
 import { EvidenceUploader } from '@/components/evidence/EvidenceUploader';
 import { EvidenceReviewActions } from '@/components/evidence/EvidenceReviewActions';
+import { engagements } from '@/db/schema/engagements';
+import { EnterpriseEvidenceGuidance } from '@/components/evidence/EnterpriseEvidenceGuidance';
+import { EnterpriseEvidenceCsvPanel } from '@/components/evidence/EnterpriseEvidenceCsvPanel';
 
 export default async function EvidencePage({
   params,
@@ -17,6 +20,13 @@ export default async function EvidencePage({
 }) {
   const { id } = await params;
   const session = (await getSession())!;
+
+  const [engagement] = await db
+    .select({ tenantId: engagements.tenantId })
+    .from(engagements)
+    .where(eq(engagements.id, id))
+    .limit(1);
+  if (!engagement) throw new Error('Engagement not found');
 
   const requests = await db
     .select()
@@ -41,20 +51,20 @@ export default async function EvidencePage({
     .where(eq(engagementControls.engagementId, id))
     .orderBy(engagementControls.controlId);
 
-  const userRoles = await db
-    .select({ role: engagementMembers.role })
-    .from(engagementMembers)
-    .where(eq(engagementMembers.engagementId, id));
-  const myRoles = userRoles
-    .filter((_, i) => i < userRoles.length) // type bridge
-    .map((r) => r.role);
+  const myRoles = await rolesForUser({
+    userId: session.user.id,
+    tenantId: engagement.tenantId,
+    engagementId: id,
+  });
   const isAssessor = myRoles.includes('lead_assessor') || myRoles.includes('assessor');
   const isClient = myRoles.includes('client_admin') || myRoles.includes('client_contributor');
 
-  void session;
-
   return (
     <div className="space-y-6">
+      <EnterpriseEvidenceGuidance isAssessor={isAssessor} />
+
+      {isAssessor && <EnterpriseEvidenceCsvPanel engagementId={id} />}
+
       {isAssessor && (
         <Card>
           <CardHeader>

@@ -1,4 +1,10 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  HeadObjectCommand,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 // S3-compatible client + presigned-URL helpers. The default region is suitable
@@ -103,6 +109,14 @@ export function buildCertificationKey(opts: {
   return `tenants/${opts.tenantId}/engagements/${opts.engagementId}/certification/v${opts.version}.${ext}`;
 }
 
+export function buildEssentialEightReportKey(opts: {
+  tenantId: string;
+  engagementId: string;
+  version: number;
+}): string {
+  return `tenants/${opts.tenantId}/engagements/${opts.engagementId}/essential-eight/v${opts.version}.json`;
+}
+
 export async function presignUpload(opts: {
   key: string;
   contentType?: string;
@@ -142,6 +156,28 @@ export async function presignDownload(opts: {
   const config = readStorageConfig();
   const cmd = new GetObjectCommand({ Bucket: config.bucket, Key: opts.key });
   return getSignedUrl(client(), cmd, { expiresIn: opts.expiresIn ?? 300 });
+}
+
+export async function verifyObject(opts: {
+  key: string;
+  expectedSizeBytes?: number;
+}): Promise<{ bucket: string; key: string; sizeBytes: number | null; etag: string | null }> {
+  const config = readStorageConfig();
+  const result = await client().send(new HeadObjectCommand({ Bucket: config.bucket, Key: opts.key }));
+  const sizeBytes = result.ContentLength ?? null;
+  if (
+    opts.expectedSizeBytes !== undefined &&
+    sizeBytes !== null &&
+    sizeBytes !== opts.expectedSizeBytes
+  ) {
+    throw new Error(`Uploaded object size mismatch: expected ${opts.expectedSizeBytes}, got ${sizeBytes}`);
+  }
+  return {
+    bucket: config.bucket,
+    key: opts.key,
+    sizeBytes,
+    etag: result.ETag?.replaceAll('"', '') ?? null,
+  };
 }
 
 // Upload a Buffer directly from the server (used for generated PDFs and

@@ -6,16 +6,21 @@ import { AppShell } from '@/components/AppShell';
 import { CommandPalette } from '@/components/CommandPalette';
 import { db } from '@/lib/db/client';
 import { engagements } from '@/db/schema/engagements';
-import { engagementMembers } from '@/db/schema/tenants';
+import { engagementMembers, tenants } from '@/db/schema/tenants';
 import { users } from '@/db/schema/auth';
 import { rolesForUser } from '@/lib/rbac/require';
+import { isMfaRequiredForRoles } from '@/lib/auth/mfa-policy';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
   if (!session) redirect('/signin');
 
   const [profile] = await db
-    .select({ accepted: users.dataHandlingAcceptedAt })
+    .select({
+      accepted: users.dataHandlingAcceptedAt,
+      twoFactorEnabled: users.twoFactorEnabled,
+      mfaEnrolledAt: users.mfaEnrolledAt,
+    })
     .from(users)
     .where(eq(users.id, session.user.id))
     .limit(1);
@@ -23,6 +28,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const tenant = await resolveActiveTenant(session.user.id);
   if (!tenant) redirect('/onboarding');
+
+  const [tenantSecurity] = await db
+    .select({ securityPolicy: tenants.securityPolicy })
+    .from(tenants)
+    .where(eq(tenants.id, tenant.tenantId))
+    .limit(1);
 
   const engagementList =
     tenant.access === 'tenant'
@@ -111,6 +122,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     tenantId: tenant.tenantId,
     engagementId: tenant.access === 'engagement' ? engagementList[0]?.id : undefined,
   });
+  if (
+    isMfaRequiredForRoles(roles, tenantSecurity?.securityPolicy ?? null) &&
+    !profile.mfaEnrolledAt &&
+    !profile.twoFactorEnabled
+  ) {
+    redirect('/mfa?next=/dashboard');
+  }
   const userRole = formatRole(roles[0] ?? 'read_only_observer');
 
   return (

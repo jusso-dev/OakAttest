@@ -1,7 +1,7 @@
 import { eq, count, desc } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { engagements, clientOrganisations, systems } from '@/db/schema/engagements';
-import { engagementControls } from '@/db/schema/ism';
+import { engagementControls, ismImports } from '@/db/schema/ism';
 import { engagementMembers } from '@/db/schema/tenants';
 import { users } from '@/db/schema/auth';
 import { sspExports } from '@/db/schema/ssp';
@@ -15,6 +15,8 @@ import { RoleAccessGuide } from '@/components/admin/RoleAccessGuide';
 import { CveSubmitForm } from '@/components/evidence/CveSubmitForm';
 import { VulnScanUpload } from '@/components/fieldwork/VulnScanUpload';
 import { IrapGuidancePanel } from '@/components/engagement/IrapGuidancePanel';
+import { IsmMigrationPanel } from '@/components/engagement/IsmMigrationPanel';
+import { compareIsmRevisions } from '@/lib/ism/compare';
 
 export default async function OverviewPage({
   params,
@@ -65,6 +67,16 @@ export default async function OverviewPage({
     .orderBy(desc(sspExports.version))
     .limit(5);
 
+  const [latestIsm] = await db
+    .select({ revision: ismImports.revision, completedAt: ismImports.completedAt })
+    .from(ismImports)
+    .orderBy(desc(ismImports.completedAt))
+    .limit(1);
+  const ismDiff =
+    latestIsm && latestIsm.revision !== engagement.ismRevision
+      ? await compareIsmRevisions(engagement.ismRevision, latestIsm.revision)
+      : null;
+
   const roles = await rolesForUser({
     userId: session.user.id,
     tenantId: engagement.tenantId,
@@ -76,6 +88,16 @@ export default async function OverviewPage({
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
+      {latestIsm && ismDiff ? (
+        <div className="md:col-span-2">
+          <IsmMigrationPanel
+            engagementId={id}
+            currentRevision={engagement.ismRevision}
+            targetRevision={latestIsm.revision}
+            diff={ismDiff}
+          />
+        </div>
+      ) : null}
       <Card>
         <CardHeader>
           <CardTitle>Scope</CardTitle>

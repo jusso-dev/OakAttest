@@ -91,6 +91,46 @@ const inviteSchema = z.object({
   role: z.enum(['tenant_owner', 'assessor_admin']),
 });
 
+const securityPolicySchema = z.object({
+  tenantId: z.string().uuid(),
+  mfaMode: z.enum(['optional', 'assessor_required', 'all_users_required']),
+  mfaGracePeriodDays: z.number().int().min(0).max(30).default(0),
+});
+
+export async function updateTenantSecurityPolicy(input: z.infer<typeof securityPolicySchema>) {
+  const session = await requireSession();
+  const data = securityPolicySchema.parse(input);
+
+  await requirePermission(ACTIONS.tenantManage, {
+    userId: session.user.id,
+    tenantId: data.tenantId,
+  });
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(tenants)
+      .set({
+        securityPolicy: {
+          mfaMode: data.mfaMode,
+          mfaGracePeriodDays: data.mfaGracePeriodDays,
+        } as never,
+        updatedAt: new Date(),
+      })
+      .where(eq(tenants.id, data.tenantId));
+    await tx.insert(auditLog).values({
+      tenantId: data.tenantId,
+      actorUserId: session.user.id,
+      action: 'tenant.security_policy.update',
+      resourceType: 'tenant',
+      resourceId: data.tenantId,
+      afterJson: { mfaMode: data.mfaMode, mfaGracePeriodDays: data.mfaGracePeriodDays } as never,
+    });
+  });
+
+  revalidatePath('/admin');
+  return { ok: true };
+}
+
 export async function inviteTenantMember(input: z.infer<typeof inviteSchema>) {
   const session = await requireSession();
   const data = inviteSchema.parse(input);

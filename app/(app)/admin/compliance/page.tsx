@@ -3,9 +3,15 @@ import { redirect } from 'next/navigation';
 import { db } from '@/lib/db/client';
 import { engagements } from '@/db/schema/engagements';
 import { certificationReports } from '@/db/schema/certification';
+import { tenants } from '@/db/schema/tenants';
 import { getSession } from '@/lib/auth/session';
 import { resolveActiveTenant } from '@/lib/auth/active-tenant';
+import { requirePermission } from '@/lib/rbac/require';
+import { ACTIONS } from '@/lib/rbac/matrix';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ReassessmentTaskButton } from '@/components/admin/ReassessmentTaskButton';
+import { addCalendarMonths, daysUntil, dueSoonDays, reassessmentMonthsFor } from '@/lib/compliance/policy';
+import type { Classification } from '@/db/schema/enums';
 
 export const metadata = { title: 'Ongoing compliance · OakAttest' };
 
@@ -13,18 +19,21 @@ export const metadata = { title: 'Ongoing compliance · OakAttest' };
 // This page lists them with a re-assessment countdown. PROTECTED engagements
 // have a 2-year recertification cycle; SECRET and TOP_SECRET have shorter
 // intervals defined by the assessor firm's policy.
-const REASSESSMENT_MONTHS: Record<string, number> = {
-  OFFICIAL: 36,
-  OFFICIAL_SENSITIVE: 36,
-  PROTECTED: 24,
-  SECRET: 24,
-  TOP_SECRET: 12,
-};
-
 export default async function CompliancePage() {
   const session = (await getSession())!;
   const tenant = await resolveActiveTenant(session.user.id);
   if (!tenant) redirect('/onboarding');
+  await requirePermission(ACTIONS.complianceView, {
+    userId: session.user.id,
+    tenantId: tenant.tenantId,
+  });
+
+  const [tenantSettings] = await db
+    .select({ compliancePolicy: tenants.compliancePolicy })
+    .from(tenants)
+    .where(eq(tenants.id, tenant.tenantId))
+    .limit(1);
+  const compliancePolicy = tenantSettings?.compliancePolicy ?? null;
 
   const certified = await db
     .select({
@@ -49,11 +58,9 @@ export default async function CompliancePage() {
 
   const today = new Date();
   const rows = certified.map((e) => {
-    const months = REASSESSMENT_MONTHS[e.classification] ?? 24;
-    const due = e.certifiedAt
-      ? new Date(new Date(e.certifiedAt).getTime() + months * 30 * 24 * 60 * 60 * 1000)
-      : null;
-    const days = due ? Math.round((due.getTime() - today.getTime()) / (24 * 60 * 60 * 1000)) : null;
+    const months = reassessmentMonthsFor(e.classification as Classification, compliancePolicy);
+    const due = e.certifiedAt ? addCalendarMonths(new Date(e.certifiedAt), months) : null;
+    const days = due ? daysUntil(due, today) : null;
     const latestReport = reports
       .filter((r) => r.engagementId === e.id && r.status === 'signed')
       .sort((a, b) => b.version - a.version)[0];
@@ -70,8 +77,8 @@ export default async function CompliancePage() {
         <CardHeader>
           <CardTitle>Re-assessment schedule</CardTitle>
           <CardDescription>
-            Recertification cycle is derived from classification: 12 months for TOP_SECRET, 24
-            months for PROTECTED/SECRET, 36 months for OFFICIAL tiers.
+            Reassessment timing is derived from the tenant policy and classification. Due-soon
+            threshold is {dueSoonDays(compliancePolicy)} days.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -86,6 +93,7 @@ export default async function CompliancePage() {
                   <th className="py-2 pr-3">Certified</th>
                   <th className="py-2 pr-3">Re-assess by</th>
                   <th className="py-2 pr-3">In</th>
+                  <th className="py-2 pr-3"></th>
                 </tr>
               </thead>
               <tbody>
@@ -108,11 +116,19 @@ export default async function CompliancePage() {
                         '—'
                       ) : r.days < 0 ? (
                         <span className="font-medium text-red-700">{Math.abs(r.days)} days overdue</span>
-                      ) : r.days < 60 ? (
+                      ) : r.days < dueSoonDays(compliancePolicy) ? (
                         <span className="font-medium text-amber-700">{r.days} days</span>
                       ) : (
                         <span className="text-slate-600">{r.days} days</span>
                       )}
+                    </td>
+                    <td className="py-2 pr-3 text-right">
+                      {r.due ? (
+                        <ReassessmentTaskButton
+                          engagementId={r.id}
+                          dueDate={r.due.toISOString().slice(0, 10)}
+                        />
+                      ) : null}
                     </td>
                   </tr>
                 ))}

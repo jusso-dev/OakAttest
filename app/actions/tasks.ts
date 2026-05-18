@@ -211,6 +211,32 @@ export async function updateEngagementTask(input: z.infer<typeof updateTaskSchem
   return { taskId: task.id };
 }
 
+const reassessmentTaskSchema = z.object({
+  engagementId: z.string().uuid(),
+  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+
+export async function createReassessmentTask(input: z.infer<typeof reassessmentTaskSchema>) {
+  const session = await requireSession();
+  const data = reassessmentTaskSchema.parse(input);
+  const tenantId = await engagementTenant(data.engagementId);
+
+  await requirePermission(ACTIONS.taskManage, {
+    userId: session.user.id,
+    tenantId,
+    engagementId: data.engagementId,
+  });
+
+  return createEngagementTask({
+    engagementId: data.engagementId,
+    title: 'Plan reassessment',
+    description: 'Review assessment scope, latest ISM release, evidence freshness, material system changes, and open findings before reassessment.',
+    priority: 'high',
+    status: 'todo',
+    dueDate: data.dueDate,
+  });
+}
+
 function revalidateTaskSurfaces(engagementId: string) {
   revalidatePath('/dashboard');
   revalidatePath(`/engagements/${engagementId}/tasks`);

@@ -10,6 +10,8 @@ import {
   findingControls,
   findingEvidence,
   remediationActions,
+  findingRetests,
+  findingRiskAcceptances,
 } from '@/db/schema/findings';
 import { engagements } from '@/db/schema/engagements';
 import { auditLog } from '@/db/schema/audit';
@@ -117,7 +119,7 @@ export async function signOffFinding(input: z.infer<typeof signOffSchema>) {
     await tx
       .update(findings)
       .set({ signedOffBy: session.user.id, signedOffAt: new Date(), updatedAt: new Date() })
-      .where(eq(findings.id, data.findingId));
+      .where(and(eq(findings.id, data.findingId), eq(findings.engagementId, data.engagementId)));
     await tx.insert(auditLog).values({
       tenantId,
       engagementId: data.engagementId,
@@ -150,6 +152,15 @@ export async function updateFindingStatus(input: z.infer<typeof updateStatusSche
   });
 
   await db.transaction(async (tx) => {
+    const [finding] = await tx
+      .select({ type: findings.type, signedOffAt: findings.signedOffAt })
+      .from(findings)
+      .where(and(eq(findings.id, data.findingId), eq(findings.engagementId, data.engagementId)))
+      .limit(1);
+    if (!finding) throw new Error('Finding not found');
+    if (data.status === 'closed' && finding.type === 'non_conformance' && !finding.signedOffAt) {
+      throw new Error('Non-conformances require lead assessor sign-off before closure.');
+    }
     await tx
       .update(findings)
       .set({
@@ -157,7 +168,7 @@ export async function updateFindingStatus(input: z.infer<typeof updateStatusSche
         closedAt: data.status === 'closed' ? new Date() : null,
         updatedAt: new Date(),
       })
-      .where(eq(findings.id, data.findingId));
+      .where(and(eq(findings.id, data.findingId), eq(findings.engagementId, data.engagementId)));
     await tx.insert(auditLog).values({
       tenantId,
       engagementId: data.engagementId,
@@ -171,6 +182,128 @@ export async function updateFindingStatus(input: z.infer<typeof updateStatusSche
 
   revalidatePath(`/engagements/${data.engagementId}/findings`);
   return { ok: true };
+}
+
+const retestSchema = z.object({
+  engagementId: z.string().uuid(),
+  findingId: z.string().uuid(),
+  method: z.string().min(2).max(1000),
+  result: z.enum(['passed', 'failed', 'partially_remediated']),
+  notes: z.string().max(4000).optional(),
+  evidenceItemIds: z.array(z.string().uuid()).optional(),
+});
+
+export async function recordFindingRetest(input: z.infer<typeof retestSchema>) {
+  const session = await requireSession();
+  const data = retestSchema.parse(input);
+  const tenantId = await tenantForEngagement(data.engagementId);
+
+  await requirePermission(ACTIONS.findingUpdate, {
+    userId: session.user.id,
+    tenantId,
+    engagementId: data.engagementId,
+  });
+
+  const id = crypto.randomUUID();
+  await db.transaction(async (tx) => {
+    const [finding] = await tx
+      .select({ id: findings.id })
+      .from(findings)
+      .where(and(eq(findings.id, data.findingId), eq(findings.engagementId, data.engagementId)))
+      .limit(1);
+    if (!finding) throw new Error('Finding not found');
+    await tx.insert(findingRetests).values({
+      id,
+      findingId: data.findingId,
+      engagementId: data.engagementId,
+      tenantId,
+      method: data.method,
+      result: data.result,
+      notes: data.notes ?? null,
+      evidenceItemIds: (data.evidenceItemIds ?? null) as never,
+      retestedBy: session.user.id,
+    });
+    await tx
+      .update(findings)
+      .set({
+        status: data.result === 'passed' ? 'awaiting_retest' : 'in_progress',
+        updatedAt: new Date(),
+      })
+      .where(and(eq(findings.id, data.findingId), eq(findings.engagementId, data.engagementId)));
+    await tx.insert(auditLog).values({
+      tenantId,
+      engagementId: data.engagementId,
+      actorUserId: session.user.id,
+      action: 'finding.retest',
+      resourceType: 'finding',
+      resourceId: data.findingId,
+      afterJson: { result: data.result, evidenceCount: data.evidenceItemIds?.length ?? 0 } as never,
+    });
+  });
+
+  revalidatePath(`/engagements/${data.engagementId}/findings`);
+  return { id };
+}
+
+const acceptRiskSchema = z.object({
+  engagementId: z.string().uuid(),
+  findingId: z.string().uuid(),
+  acceptedByName: z.string().min(2).max(200),
+  acceptedAt: z.string().datetime(),
+  rationale: z.string().min(10).max(4000),
+  residualRiskId: z.string().uuid().optional(),
+});
+
+export async function acceptFindingRisk(input: z.infer<typeof acceptRiskSchema>) {
+  const session = await requireSession();
+  const data = acceptRiskSchema.parse(input);
+  const tenantId = await tenantForEngagement(data.engagementId);
+
+  await requirePermission(ACTIONS.findingUpdate, {
+    userId: session.user.id,
+    tenantId,
+    engagementId: data.engagementId,
+  });
+
+  const id = crypto.randomUUID();
+  await db.transaction(async (tx) => {
+    const [finding] = await tx
+      .select({ id: findings.id })
+      .from(findings)
+      .where(and(eq(findings.id, data.findingId), eq(findings.engagementId, data.engagementId)))
+      .limit(1);
+    if (!finding) throw new Error('Finding not found');
+    await tx.insert(findingRiskAcceptances).values({
+      id,
+      findingId: data.findingId,
+      engagementId: data.engagementId,
+      tenantId,
+      acceptedByName: data.acceptedByName,
+      acceptedAt: new Date(data.acceptedAt),
+      rationale: data.rationale,
+      residualRiskId: data.residualRiskId ?? null,
+      recordedBy: session.user.id,
+    });
+    await tx
+      .update(findings)
+      .set({ status: 'accepted_risk', updatedAt: new Date(), closedAt: new Date() })
+      .where(and(eq(findings.id, data.findingId), eq(findings.engagementId, data.engagementId)));
+    await tx.insert(auditLog).values({
+      tenantId,
+      engagementId: data.engagementId,
+      actorUserId: session.user.id,
+      action: 'finding.risk_accept',
+      resourceType: 'finding',
+      resourceId: data.findingId,
+      afterJson: {
+        acceptedByName: data.acceptedByName,
+        residualRiskId: data.residualRiskId ?? null,
+      } as never,
+    });
+  });
+
+  revalidatePath(`/engagements/${data.engagementId}/findings`);
+  return { id };
 }
 
 // Remediation actions are owned by the client side.

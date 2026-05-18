@@ -76,6 +76,7 @@ export const ACTIONS = {
 
   // audit
   auditView: 'audit:view',
+  complianceView: 'compliance:view',
 
   // independence-gated client-side actions
   remediationGuidanceView: 'remediation_guidance:view',
@@ -189,6 +190,7 @@ export const PERMISSIONS: Record<Action, Allow> = {
 
   // Audit
   [ACTIONS.auditView]: ['tenant_owner', 'assessor_admin'],
+  [ACTIONS.complianceView]: ['tenant_owner', 'assessor_admin'],
 
   // Independence guard: remediation guidance is client-side only.
   // Note the explicit absence of any assessor or tenant role here.

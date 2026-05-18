@@ -6,6 +6,7 @@ import {
   integer,
   index,
   primaryKey,
+  jsonb,
 } from 'drizzle-orm/pg-core';
 import {
   findingTypeEnum,
@@ -110,4 +111,42 @@ export const remediationActions = pgTable(
     index('remediation_actions_finding_idx').on(t.findingId),
     index('remediation_actions_engagement_idx').on(t.engagementId),
   ],
+);
+
+export const findingRetests = pgTable(
+  'finding_retests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    findingId: uuid('finding_id').notNull().references(() => findings.id, { onDelete: 'cascade' }),
+    engagementId: uuid('engagement_id')
+      .notNull()
+      .references(() => engagements.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+    method: text('method').notNull(),
+    result: text('result').notNull(),
+    notes: text('notes'),
+    evidenceItemIds: jsonb('evidence_item_ids').$type<string[]>(),
+    retestedBy: uuid('retested_by').references(() => users.id),
+    retestedAt: timestamp('retested_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('finding_retests_finding_idx').on(t.findingId)],
+);
+
+export const findingRiskAcceptances = pgTable(
+  'finding_risk_acceptances',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    findingId: uuid('finding_id').notNull().references(() => findings.id, { onDelete: 'cascade' }),
+    engagementId: uuid('engagement_id')
+      .notNull()
+      .references(() => engagements.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+    acceptedByName: text('accepted_by_name').notNull(),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true }).notNull(),
+    rationale: text('rationale').notNull(),
+    residualRiskId: uuid('residual_risk_id'),
+    recordedBy: uuid('recorded_by').references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('finding_risk_acceptances_finding_idx').on(t.findingId)],
 );

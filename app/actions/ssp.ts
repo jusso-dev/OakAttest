@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 import { and, eq, isNull, desc, max } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
 import crypto from 'node:crypto';
 import JSZip from 'jszip';
 import { db } from '@/lib/db/client';
@@ -10,7 +11,12 @@ import { engagementControls, ismControls } from '@/db/schema/ism';
 import { systemBoundaries } from '@/db/schema/boundaries';
 import { essentialEightAssessments } from '@/db/schema/essential-eight';
 import { residualRisks } from '@/db/schema/certification';
-import { sspExports, sspSections } from '@/db/schema/ssp';
+import {
+  sspExports,
+  sspSections,
+  sspSectionComments,
+  sspSectionVersions,
+} from '@/db/schema/ssp';
 import { engagementMembers, tenants } from '@/db/schema/tenants';
 import { users } from '@/db/schema/auth';
 import { auditLog } from '@/db/schema/audit';
@@ -462,7 +468,7 @@ export async function getSspDownloadUrl(opts: {
   const [exp] = await db
     .select()
     .from(sspExports)
-    .where(eq(sspExports.id, opts.exportId))
+    .where(and(eq(sspExports.id, opts.exportId), eq(sspExports.engagementId, opts.engagementId)))
     .limit(1);
   if (!exp || exp.engagementId !== opts.engagementId) throw new Error('Export not found');
 
@@ -497,7 +503,7 @@ export async function deleteSspExport(input: z.infer<typeof deleteExportSchema>)
   const [exp] = await db
     .select()
     .from(sspExports)
-    .where(eq(sspExports.id, data.exportId))
+    .where(and(eq(sspExports.id, data.exportId), eq(sspExports.engagementId, data.engagementId)))
     .limit(1);
   if (!exp || exp.engagementId !== data.engagementId) throw new Error('Export not found');
 
@@ -510,7 +516,9 @@ export async function deleteSspExport(input: z.infer<typeof deleteExportSchema>)
   await deleteObject(exp.storageKey);
 
   await db.transaction(async (tx) => {
-    await tx.delete(sspExports).where(eq(sspExports.id, exp.id));
+    await tx
+      .delete(sspExports)
+      .where(and(eq(sspExports.id, exp.id), eq(sspExports.engagementId, data.engagementId)));
     await tx.insert(auditLog).values({
       tenantId: exp.tenantId,
       engagementId: data.engagementId,
@@ -547,6 +555,9 @@ const sectionSchema = z.object({
     'annexes',
   ]),
   content: z.string().max(50000),
+  reviewStatus: z
+    .enum(['draft', 'client_ready', 'assessor_reviewed', 'changes_requested', 'approved'])
+    .optional(),
 });
 
 export async function saveSspSection(input: z.infer<typeof sectionSchema>) {
@@ -583,24 +594,41 @@ export async function saveSspSection(input: z.infer<typeof sectionSchema>) {
     .limit(1);
 
   await db.transaction(async (tx) => {
+    let sectionId = existing?.id;
     if (existing) {
       await tx
         .update(sspSections)
         .set({
           content: data.content,
+          reviewStatus: data.reviewStatus ?? existing.reviewStatus,
           lastEditedBy: session.user.id,
           lastEditedAt: new Date(),
         })
         .where(eq(sspSections.id, existing.id));
     } else {
-      await tx.insert(sspSections).values({
+      const [inserted] = await tx.insert(sspSections).values({
         engagementId: data.engagementId,
         tenantId: eng.tenantId,
         sectionKey: data.sectionKey,
         content: data.content,
+        reviewStatus: data.reviewStatus ?? 'draft',
         lastEditedBy: session.user.id,
-      });
+      }).returning({ id: sspSections.id });
+      sectionId = inserted.id;
     }
+    const [{ maxV }] = await tx
+      .select({ maxV: max(sspSectionVersions.version) })
+      .from(sspSectionVersions)
+      .where(eq(sspSectionVersions.sectionId, sectionId!));
+    await tx.insert(sspSectionVersions).values({
+      sectionId: sectionId!,
+      engagementId: data.engagementId,
+      tenantId: eng.tenantId,
+      version: (maxV ?? 0) + 1,
+      content: data.content,
+      reviewStatus: data.reviewStatus ?? existing?.reviewStatus ?? 'draft',
+      editedBy: session.user.id,
+    });
     await tx.insert(auditLog).values({
       tenantId: eng.tenantId,
       engagementId: data.engagementId,
@@ -611,5 +639,103 @@ export async function saveSspSection(input: z.infer<typeof sectionSchema>) {
     });
   });
 
+  return { ok: true };
+}
+
+const commentSchema = z.object({
+  engagementId: z.string().uuid(),
+  sectionKey: sectionSchema.shape.sectionKey,
+  body: z.string().min(2).max(4000),
+  parentCommentId: z.string().uuid().optional(),
+});
+
+export async function addSspSectionComment(input: z.infer<typeof commentSchema>) {
+  const session = await requireSession();
+  const data = commentSchema.parse(input);
+  const [eng] = await db
+    .select({ tenantId: engagements.tenantId })
+    .from(engagements)
+    .where(eq(engagements.id, data.engagementId))
+    .limit(1);
+  if (!eng) throw new Error('Engagement not found');
+  await requirePermission(ACTIONS.engagementView, {
+    userId: session.user.id,
+    tenantId: eng.tenantId,
+    engagementId: data.engagementId,
+  });
+
+  const [section] = await db
+    .select()
+    .from(sspSections)
+    .where(and(eq(sspSections.engagementId, data.engagementId), eq(sspSections.sectionKey, data.sectionKey)))
+    .limit(1);
+  if (!section) throw new Error('Save the SSP section before commenting on it.');
+
+  const id = crypto.randomUUID();
+  await db.transaction(async (tx) => {
+    await tx.insert(sspSectionComments).values({
+      id,
+      sectionId: section.id,
+      engagementId: data.engagementId,
+      tenantId: eng.tenantId,
+      parentCommentId: data.parentCommentId ?? null,
+      body: data.body,
+      createdBy: session.user.id,
+    });
+    await tx.insert(auditLog).values({
+      tenantId: eng.tenantId,
+      engagementId: data.engagementId,
+      actorUserId: session.user.id,
+      action: 'ssp.comment.add',
+      resourceType: 'ssp_section_comment',
+      resourceId: id,
+      afterJson: { sectionKey: data.sectionKey } as never,
+    });
+  });
+  revalidatePath(`/engagements/${data.engagementId}/overview`);
+  return { id };
+}
+
+const resolveCommentSchema = z.object({
+  engagementId: z.string().uuid(),
+  commentId: z.string().uuid(),
+  status: z.enum(['open', 'resolved']),
+});
+
+export async function updateSspSectionCommentStatus(input: z.infer<typeof resolveCommentSchema>) {
+  const session = await requireSession();
+  const data = resolveCommentSchema.parse(input);
+  const [comment] = await db
+    .select()
+    .from(sspSectionComments)
+    .where(and(eq(sspSectionComments.id, data.commentId), eq(sspSectionComments.engagementId, data.engagementId)))
+    .limit(1);
+  if (!comment) throw new Error('Comment not found');
+  await requirePermission(ACTIONS.engagementUpdate, {
+    userId: session.user.id,
+    tenantId: comment.tenantId,
+    engagementId: data.engagementId,
+  });
+  await db.transaction(async (tx) => {
+    await tx
+      .update(sspSectionComments)
+      .set({
+        status: data.status,
+        resolvedBy: data.status === 'resolved' ? session.user.id : null,
+        resolvedAt: data.status === 'resolved' ? new Date() : null,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(sspSectionComments.id, data.commentId), eq(sspSectionComments.engagementId, data.engagementId)));
+    await tx.insert(auditLog).values({
+      tenantId: comment.tenantId,
+      engagementId: data.engagementId,
+      actorUserId: session.user.id,
+      action: 'ssp.comment.status',
+      resourceType: 'ssp_section_comment',
+      resourceId: data.commentId,
+      afterJson: { status: data.status } as never,
+    });
+  });
+  revalidatePath(`/engagements/${data.engagementId}/overview`);
   return { ok: true };
 }

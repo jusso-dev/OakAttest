@@ -120,7 +120,12 @@ export async function writeImplementationStatement(input: z.infer<typeof stateme
         status: data.statement.trim() ? 'evidence_pending' : 'in_progress',
         updatedAt: new Date(),
       })
-      .where(eq(engagementControls.id, data.engagementControlId));
+      .where(
+        and(
+          eq(engagementControls.id, data.engagementControlId),
+          eq(engagementControls.engagementId, data.engagementId),
+        ),
+      );
     await tx.insert(auditLog).values({
       tenantId,
       engagementId: data.engagementId,

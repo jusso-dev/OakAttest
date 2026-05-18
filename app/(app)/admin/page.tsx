@@ -10,6 +10,7 @@ import { redirect } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TenantInviteForm } from '@/components/admin/TenantInviteForm';
 import { RoleAccessGuide } from '@/components/admin/RoleAccessGuide';
+import { SecurityPolicyForm } from '@/components/admin/SecurityPolicyForm';
 
 export const metadata = { title: 'Tenant admin · OakAttest' };
 
@@ -51,7 +52,7 @@ export default async function AdminPage({
     );
 
   const [tenantRow] = await db
-    .select({ name: tenants.name, slug: tenants.slug })
+    .select({ name: tenants.name, slug: tenants.slug, securityPolicy: tenants.securityPolicy })
     .from(tenants)
     .where(eq(tenants.id, tenant.tenantId))
     .limit(1);
@@ -119,11 +120,16 @@ export default async function AdminPage({
         <CardHeader>
           <CardTitle>Account security</CardTitle>
           <CardDescription>
-            Multi-factor authentication is optional for now, but strongly recommended for
-            assessor-side accounts.
+            Configure whether MFA is optional, required for assessor-side roles, or required for
+            every user in this workspace.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          <SecurityPolicyForm
+            tenantId={tenant.tenantId}
+            initialMode={tenantRow.securityPolicy?.mfaMode ?? 'optional'}
+            initialGraceDays={tenantRow.securityPolicy?.mfaGracePeriodDays ?? 0}
+          />
           <a
             href="/mfa?next=/admin"
             className="inline-flex h-9 items-center justify-center rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-4 text-sm font-medium text-slate-900 hover:bg-[var(--oak-mist)]"

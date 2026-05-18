@@ -2,12 +2,13 @@ import { desc, eq } from 'drizzle-orm';
 import Link from 'next/link';
 import { db } from '@/lib/db/client';
 import { interviews } from '@/db/schema/interviews';
-import { engagementMembers } from '@/db/schema/tenants';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { InterviewForm } from '@/components/fieldwork/InterviewForm';
 import { InterviewRow } from '@/components/fieldwork/InterviewRow';
 import { VulnScanUpload } from '@/components/fieldwork/VulnScanUpload';
 import { getSession } from '@/lib/auth/session';
+import { rolesForUser } from '@/lib/rbac/require';
+import { engagements } from '@/db/schema/engagements';
 
 export default async function FieldworkPage({
   params,
@@ -17,20 +18,25 @@ export default async function FieldworkPage({
   const { id } = await params;
   const session = (await getSession())!;
 
+  const [engagement] = await db
+    .select({ tenantId: engagements.tenantId })
+    .from(engagements)
+    .where(eq(engagements.id, id))
+    .limit(1);
+  if (!engagement) throw new Error('Engagement not found');
+
   const all = await db
     .select()
     .from(interviews)
     .where(eq(interviews.engagementId, id))
     .orderBy(desc(interviews.scheduledAt));
 
-  const myRoles = await db
-    .select({ role: engagementMembers.role })
-    .from(engagementMembers)
-    .where(eq(engagementMembers.engagementId, id));
-  const roles = myRoles.map((r) => r.role);
+  const roles = await rolesForUser({
+    userId: session.user.id,
+    tenantId: engagement.tenantId,
+    engagementId: id,
+  });
   const isAssessor = roles.includes('lead_assessor') || roles.includes('assessor');
-
-  void session;
 
   return (
     <div className="space-y-6">

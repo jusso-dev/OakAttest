@@ -27,6 +27,8 @@ import {
 } from '@/lib/storage/s3';
 import { renderCertificationPdf, type CertificationData } from '@/lib/pdf/certification';
 import { resolveBranding } from '@/lib/branding';
+import { getCertificationReadiness } from '@/lib/certification/readiness';
+import { signCertificationBundle } from '@/lib/security/signing';
 
 const generateSchema = z.object({
   engagementId: z.string().uuid(),
@@ -199,6 +201,15 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
     engagementId: data.engagementId,
   });
 
+  const readiness = await getCertificationReadiness(data.engagementId);
+  if (!readiness.readyToSign) {
+    throw new Error(
+      `Certification cannot be signed until readiness blockers are resolved: ${readiness.blockers
+        .map((item) => item.label)
+        .join(', ')}`,
+    );
+  }
+
   const [tenant] = await db
     .select({ name: tenants.name })
     .from(tenants)
@@ -343,12 +354,13 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
     .where(and(eq(tenantSigningKeys.tenantId, report.tenantId), eq(tenantSigningKeys.revokedAt, null as never)))
     .limit(1);
 
-  const secret = process.env.BETTER_AUTH_SECRET ?? 'dev';
-  const signatureValue =
-    signingKey?.kmsKeyArn
-      ? `kms:${signingKey.kmsKeyArn}`
-      : crypto.createHmac('sha256', secret + report.tenantId).update(bundleHash).digest('hex');
-  const signatureAlgorithm = signingKey?.kmsKeyArn ? 'kms-sign-rsa-pss' : 'hmac-sha256-dev';
+  const signature = await signCertificationBundle({
+    tenantId: report.tenantId,
+    bundleHash,
+    signingKey,
+  });
+  const signatureValue = signature.signatureValue;
+  const signatureAlgorithm = signature.signatureAlgorithm;
 
   await db.transaction(async (tx) => {
     await tx
