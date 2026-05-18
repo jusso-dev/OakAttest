@@ -1,6 +1,7 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { tenantInvitations, tenantMembers, tenants } from '@/db/schema/tenants';
+import { tenantSigningKeys } from '@/db/schema/certification';
 import { users } from '@/db/schema/auth';
 import { requirePageSession } from '@/lib/auth/session';
 import { resolveActiveTenant } from '@/lib/auth/active-tenant';
@@ -11,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { TenantInviteForm } from '@/components/admin/TenantInviteForm';
 import { RoleAccessGuide } from '@/components/admin/RoleAccessGuide';
 import { SecurityPolicyForm } from '@/components/admin/SecurityPolicyForm';
+import { SigningKeysPanel } from '@/components/admin/SigningKeysPanel';
 
 export const metadata = { title: 'Tenant admin · OakAttest' };
 
@@ -24,8 +26,9 @@ export default async function AdminPage({
   const tenant = await resolveActiveTenant(session.user.id);
   if (!tenant) redirect('/onboarding');
 
+  let roles: Awaited<ReturnType<typeof requirePermission>> = [];
   try {
-    await requirePermission(ACTIONS.tenantViewMembers, {
+    roles = await requirePermission(ACTIONS.tenantViewMembers, {
       userId: session.user.id,
       tenantId: tenant.tenantId,
     });
@@ -74,7 +77,22 @@ export default async function AdminPage({
       ),
     );
 
+  const signingKeys = await db
+    .select({
+      id: tenantSigningKeys.id,
+      keyType: tenantSigningKeys.keyType,
+      kmsKeyArn: tenantSigningKeys.kmsKeyArn,
+      fingerprint: tenantSigningKeys.fingerprint,
+      createdAt: tenantSigningKeys.createdAt,
+      rotatedAt: tenantSigningKeys.rotatedAt,
+      revokedAt: tenantSigningKeys.revokedAt,
+    })
+    .from(tenantSigningKeys)
+    .where(eq(tenantSigningKeys.tenantId, tenant.tenantId))
+    .orderBy(tenantSigningKeys.createdAt);
+
   const inviteMode = params?.invite === '1';
+  const canManageTenant = roles.includes('tenant_owner');
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -136,6 +154,23 @@ export default async function AdminPage({
           >
             Set up MFA
           </a>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Certification signing</CardTitle>
+          <CardDescription>
+            Register an AWS KMS asymmetric RSA signing key for certification bundles. New
+            registrations rotate the previous active key while preserving historical verification.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SigningKeysPanel
+            tenantId={tenant.tenantId}
+            keys={signingKeys}
+            canManage={canManageTenant}
+          />
         </CardContent>
       </Card>
 

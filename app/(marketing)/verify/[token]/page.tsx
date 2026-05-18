@@ -1,11 +1,12 @@
 import { notFound } from 'next/navigation';
-import { eq } from 'drizzle-orm';
+import { eq, or } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
-import { certificationReports } from '@/db/schema/certification';
+import { certificationReports, tenantSigningKeys } from '@/db/schema/certification';
 import { engagements } from '@/db/schema/engagements';
 import { tenants } from '@/db/schema/tenants';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BrandLogo } from '@/components/BrandLogo';
+import { verifyCertificationSignature } from '@/lib/security/signing';
 
 export const metadata = { title: 'Verify · OakAttest' };
 
@@ -27,15 +28,52 @@ export default async function VerifyPage({
       status: certificationReports.status,
       signedAt: certificationReports.signedAt,
       bundleSha256: certificationReports.bundleSha256,
+      revokedAt: certificationReports.revokedAt,
+      revokedReason: certificationReports.revokedReason,
+      signatureValue: certificationReports.signatureValue,
       signatureAlgorithm: certificationReports.signatureAlgorithm,
+      signingKeyId: certificationReports.signingKeyId,
+      signingKeyFingerprint: certificationReports.signingKeyFingerprint,
       engagementId: certificationReports.engagementId,
       tenantId: certificationReports.tenantId,
+      keyId: tenantSigningKeys.id,
+      keyPublicKey: tenantSigningKeys.publicKey,
+      keyFingerprint: tenantSigningKeys.fingerprint,
+      keyRotatedAt: tenantSigningKeys.rotatedAt,
+      keyRevokedAt: tenantSigningKeys.revokedAt,
     })
     .from(certificationReports)
+    .leftJoin(
+      tenantSigningKeys,
+      or(
+        eq(tenantSigningKeys.id, certificationReports.signingKeyId),
+        eq(tenantSigningKeys.fingerprint, certificationReports.signingKeyFingerprint),
+      ),
+    )
     .where(eq(certificationReports.publicVerificationToken, token))
     .limit(1);
 
-  if (!report || report.status !== 'signed') notFound();
+  if (!report || (report.status !== 'signed' && report.status !== 'revoked')) notFound();
+
+  const verification = verifyCertificationSignature({
+    tenantId: report.tenantId,
+    bundleHash: report.bundleSha256,
+    signatureValue: report.signatureValue,
+    signatureAlgorithm: report.signatureAlgorithm,
+    reportRevokedAt:
+      report.revokedAt ?? (report.status === 'revoked' ? report.signedAt ?? 'revoked' : null),
+    signingKey: report.keyId
+      ? {
+          id: report.keyId,
+          publicKey: report.keyPublicKey,
+          fingerprint: report.keyFingerprint,
+          rotatedAt: report.keyRotatedAt,
+          revokedAt: report.keyRevokedAt,
+        }
+      : report.signingKeyFingerprint
+        ? { fingerprint: report.signingKeyFingerprint }
+        : null,
+  });
 
   const [engagement] = await db
     .select({
@@ -77,14 +115,38 @@ export default async function VerifyPage({
         <CardContent className="space-y-3 text-sm">
           <Row label="Classification">{engagement.classification.replace('_', ':')}</Row>
           <Row label="Report version">v{report.version}</Row>
-          <Row label="Status">Signed</Row>
+          <Row label="Report status">
+            {report.status === 'revoked' || report.revokedAt ? 'Revoked' : 'Signed'}
+          </Row>
           <Row label="Signed at">
             {report.signedAt ? new Date(report.signedAt).toLocaleString('en-AU') : '—'}
           </Row>
+          <Row label="Signature status">
+            <span className={verification.valid ? 'text-emerald-700' : 'text-red-700'}>
+              {signatureStatusLabel(verification.status)}
+            </span>
+          </Row>
           <Row label="Signature algorithm">{report.signatureAlgorithm ?? '—'}</Row>
+          <div>
+            <p className="text-slate-600">Signing key fingerprint</p>
+            <p className="break-all font-mono text-xs">
+              {verification.keyFingerprint ?? report.signingKeyFingerprint ?? '—'}
+            </p>
+          </div>
+          <Row label="Signing key status">
+            {signingKeyStatus({
+              rotatedAt: report.keyRotatedAt,
+              revokedAt: report.keyRevokedAt,
+              hasKey: Boolean(report.keyId),
+            })}
+          </Row>
           <div>
             <p className="text-slate-600">Bundle SHA-256</p>
             <p className="break-all font-mono text-xs">{report.bundleSha256}</p>
+          </div>
+          <div className="rounded-md border border-[var(--field-border)] bg-[var(--oak-mist)] p-3 text-slate-700">
+            {verification.message}
+            {report.revokedReason ? ` Reason: ${report.revokedReason}` : ''}
           </div>
         </CardContent>
       </Card>
@@ -96,6 +158,40 @@ export default async function VerifyPage({
       </p>
     </main>
   );
+}
+
+function signatureStatusLabel(status: ReturnType<typeof verifyCertificationSignature>['status']) {
+  switch (status) {
+    case 'valid':
+      return 'Valid';
+    case 'valid_with_key_warning':
+      return 'Valid with key warning';
+    case 'report_revoked':
+      return 'Report revoked';
+    case 'missing_signature':
+      return 'Missing signature metadata';
+    case 'missing_key':
+      return 'Missing public key';
+    case 'unsupported_algorithm':
+      return 'Unsupported algorithm';
+    case 'invalid':
+      return 'Invalid';
+  }
+}
+
+function signingKeyStatus({
+  hasKey,
+  rotatedAt,
+  revokedAt,
+}: {
+  hasKey: boolean;
+  rotatedAt: Date | null;
+  revokedAt: Date | null;
+}) {
+  if (!hasKey) return 'Not found';
+  if (revokedAt) return `Revoked ${new Date(revokedAt).toLocaleDateString('en-AU')}`;
+  if (rotatedAt) return `Rotated ${new Date(rotatedAt).toLocaleDateString('en-AU')}`;
+  return 'Active';
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {

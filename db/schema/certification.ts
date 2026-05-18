@@ -37,6 +37,8 @@ export const certificationReports = pgTable(
     publicVerificationToken: text('public_verification_token'),
     signedBy: uuid('signed_by').references(() => users.id),
     signedAt: timestamp('signed_at', { withTimezone: true }),
+    signingKeyId: uuid('signing_key_id'),
+    signingKeyFingerprint: text('signing_key_fingerprint'),
     signatureValue: text('signature_value'),
     signatureAlgorithm: text('signature_algorithm'),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),

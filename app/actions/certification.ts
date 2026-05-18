@@ -31,7 +31,11 @@ import {
   getCertificationReadiness,
   toCertificationReadinessSnapshot,
 } from '@/lib/certification/readiness';
-import { signCertificationBundle } from '@/lib/security/signing';
+import {
+  DEV_REPORT_ALGORITHM,
+  KMS_REPORT_ALGORITHM,
+  signCertificationBundle,
+} from '@/lib/security/signing';
 
 const generateSchema = z.object({
   engagementId: z.string().uuid(),
@@ -252,6 +256,20 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
   const verifyUrl = `${baseUrl}/verify/${publicToken}`;
 
   const signedAt = new Date();
+
+  const [signingKey] = await db
+    .select()
+    .from(tenantSigningKeys)
+    .where(
+      and(
+        eq(tenantSigningKeys.tenantId, report.tenantId),
+        isNull(tenantSigningKeys.revokedAt),
+        isNull(tenantSigningKeys.rotatedAt),
+      ),
+    )
+    .orderBy(desc(tenantSigningKeys.createdAt))
+    .limit(1);
+
   const signed: CertificationData = {
     ...snapshot,
     readiness: toCertificationReadinessSnapshot(readiness),
@@ -264,7 +282,8 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
 
   // First render the signed PDF so we have the bytes to hash.
   const signedPdf = await renderCertificationPdf(signed);
-  zip.file(`certification-report-v${report.version}.pdf`, signedPdf);
+  const pdfFilename = `certification-report-v${report.version}.pdf`;
+  zip.file(pdfFilename, signedPdf);
 
   // Findings CSV.
   const findingRows = await db
@@ -285,53 +304,51 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
         eq(findingRiskAcceptances.engagementId, data.engagementId),
       ),
     );
-  zip.file(
-    'findings-register.csv',
-    toCsv(
-      [
-        'code',
-        'type',
-        'severity',
-        'status',
-        'title',
-        'description',
-        'reportedAt',
-        'signedOffAt',
-        'closedAt',
-        'latestRetestResult',
-        'latestRetestAt',
-        'latestRetestEvidenceCount',
-        'riskAcceptedBy',
-        'riskAcceptedAt',
-        'residualRiskId',
-      ],
-      findingRows.map((f) => {
-        const latestRetest = retestRows
-          .filter((r) => r.findingId === f.id)
-          .sort((a, b) => b.retestedAt.getTime() - a.retestedAt.getTime())[0];
-        const latestAcceptance = acceptanceRows
-          .filter((r) => r.findingId === f.id)
-          .sort((a, b) => b.acceptedAt.getTime() - a.acceptedAt.getTime())[0];
-        return {
-          code: f.code,
-          type: f.type,
-          severity: f.severity,
-          status: f.status,
-          title: f.title,
-          description: f.description,
-          reportedAt: f.reportedAt.toISOString(),
-          signedOffAt: f.signedOffAt?.toISOString() ?? '',
-          closedAt: f.closedAt?.toISOString() ?? '',
-          latestRetestResult: latestRetest?.result ?? '',
-          latestRetestAt: latestRetest?.retestedAt.toISOString() ?? '',
-          latestRetestEvidenceCount: String(latestRetest?.evidenceItemIds?.length ?? 0),
-          riskAcceptedBy: latestAcceptance?.acceptedByName ?? '',
-          riskAcceptedAt: latestAcceptance?.acceptedAt.toISOString() ?? '',
-          residualRiskId: latestAcceptance?.residualRiskId ?? '',
-        };
-      }),
-    ),
+  const findingsCsv = toCsv(
+    [
+      'code',
+      'type',
+      'severity',
+      'status',
+      'title',
+      'description',
+      'reportedAt',
+      'signedOffAt',
+      'closedAt',
+      'latestRetestResult',
+      'latestRetestAt',
+      'latestRetestEvidenceCount',
+      'riskAcceptedBy',
+      'riskAcceptedAt',
+      'residualRiskId',
+    ],
+    findingRows.map((f) => {
+      const latestRetest = retestRows
+        .filter((r) => r.findingId === f.id)
+        .sort((a, b) => b.retestedAt.getTime() - a.retestedAt.getTime())[0];
+      const latestAcceptance = acceptanceRows
+        .filter((r) => r.findingId === f.id)
+        .sort((a, b) => b.acceptedAt.getTime() - a.acceptedAt.getTime())[0];
+      return {
+        code: f.code,
+        type: f.type,
+        severity: f.severity,
+        status: f.status,
+        title: f.title,
+        description: f.description,
+        reportedAt: f.reportedAt.toISOString(),
+        signedOffAt: f.signedOffAt?.toISOString() ?? '',
+        closedAt: f.closedAt?.toISOString() ?? '',
+        latestRetestResult: latestRetest?.result ?? '',
+        latestRetestAt: latestRetest?.retestedAt.toISOString() ?? '',
+        latestRetestEvidenceCount: String(latestRetest?.evidenceItemIds?.length ?? 0),
+        riskAcceptedBy: latestAcceptance?.acceptedByName ?? '',
+        riskAcceptedAt: latestAcceptance?.acceptedAt.toISOString() ?? '',
+        residualRiskId: latestAcceptance?.residualRiskId ?? '',
+      };
+    }),
   );
+  zip.file('findings-register.csv', findingsCsv);
 
   // Evidence index CSV.
   const evidenceRows = await db
@@ -345,20 +362,18 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
         isNull(evidenceItems.quarantinedAt),
       ),
     );
-  zip.file(
-    'evidence-index.csv',
-    toCsv(
-      ['filename', 'sha256', 'sizeBytes', 'uploadedAt', 'reviewStatus', 'storageKey'],
-      evidenceRows.map((e) => ({
-        filename: e.filename,
-        sha256: e.sha256,
-        sizeBytes: String(e.sizeBytes),
-        uploadedAt: e.uploadedAt.toISOString(),
-        reviewStatus: e.reviewStatus,
-        storageKey: e.storageKey,
-      })),
-    ),
+  const evidenceCsv = toCsv(
+    ['filename', 'sha256', 'sizeBytes', 'uploadedAt', 'reviewStatus', 'storageKey'],
+    evidenceRows.map((e) => ({
+      filename: e.filename,
+      sha256: e.sha256,
+      sizeBytes: String(e.sizeBytes),
+      uploadedAt: e.uploadedAt.toISOString(),
+      reviewStatus: e.reviewStatus,
+      storageKey: e.storageKey,
+    })),
   );
+  zip.file('evidence-index.csv', evidenceCsv);
 
   // SSP latest PDF (if any).
   const [latestSsp] = await db
@@ -373,10 +388,10 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
     )
     .orderBy(desc(sspExports.version))
     .limit(1);
+  let sspReference: string | null = null;
   if (latestSsp) {
-    zip.file('system-security-plan.pdf-reference.txt',
-      `SSP PDF stored at: ${latestSsp.storageBucket}/${latestSsp.storageKey}\nSHA-256: ${latestSsp.sha256}\n`,
-    );
+    sspReference = `SSP PDF stored at: ${latestSsp.storageBucket}/${latestSsp.storageKey}\nSHA-256: ${latestSsp.sha256}\n`;
+    zip.file('system-security-plan.pdf-reference.txt', sspReference);
   }
 
   // Audit log CSV (this engagement only).
@@ -385,25 +400,46 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
     .from(auditLog)
     .where(and(eq(auditLog.tenantId, report.tenantId), eq(auditLog.engagementId, data.engagementId)))
     .orderBy(auditLog.createdAt);
-  zip.file(
-    'audit-log.csv',
-    toCsv(
-      ['createdAt', 'action', 'resourceType', 'resourceId', 'actorUserId', 'actorIp'],
-      auditRows.map((a) => ({
-        createdAt: a.createdAt.toISOString(),
-        action: a.action,
-        resourceType: a.resourceType,
-        resourceId: a.resourceId ?? '',
-        actorUserId: a.actorUserId ?? '',
-        actorIp: a.actorIp ?? '',
-      })),
-    ),
+  const auditCsv = toCsv(
+    ['createdAt', 'action', 'resourceType', 'resourceId', 'actorUserId', 'actorIp'],
+    auditRows.map((a) => ({
+      createdAt: a.createdAt.toISOString(),
+      action: a.action,
+      resourceType: a.resourceType,
+      resourceId: a.resourceId ?? '',
+      actorUserId: a.actorUserId ?? '',
+      actorIp: a.actorIp ?? '',
+    })),
   );
+  zip.file('audit-log.csv', auditCsv);
 
   // Manifest with the per-file SHA-256s.
+  const manifestRows = [
+    { filename: pdfFilename, body: signedPdf },
+    { filename: 'findings-register.csv', body: findingsCsv },
+    { filename: 'evidence-index.csv', body: evidenceCsv },
+    ...(sspReference
+      ? [{ filename: 'system-security-plan.pdf-reference.txt', body: sspReference }]
+      : []),
+    { filename: 'audit-log.csv', body: auditCsv },
+  ];
   zip.file(
     'MANIFEST.txt',
-    `OakAttest Certification Bundle\nEngagement: ${snapshot.engagement.name}\nTenant: ${tenant.name}\nReport version: ${report.version}\nSigned: ${signedAt.toISOString()}\nSigned by: ${session.user.email}\nVerification: ${verifyUrl}\n`,
+    [
+      'OakAttest Certification Bundle',
+      `Engagement: ${snapshot.engagement.name}`,
+      `Tenant: ${tenant.name}`,
+      `Report version: ${report.version}`,
+      `Signed: ${signedAt.toISOString()}`,
+      `Signed by: ${session.user.email}`,
+      `Verification: ${verifyUrl}`,
+      `Signature algorithm: ${signingKey?.kmsKeyArn ? KMS_REPORT_ALGORITHM : DEV_REPORT_ALGORITHM}`,
+      `Signing key fingerprint: ${signingKey?.fingerprint ?? 'development-fallback'}`,
+      '',
+      'Files:',
+      ...manifestRows.map((row) => `${sha256(row.body)}  ${row.filename}`),
+      '',
+    ].join('\n'),
   );
 
   const bundleBytes = await zip.generateAsync({ type: 'nodebuffer' });
@@ -422,21 +458,6 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
     version: report.version,
     kind: 'bundle',
   });
-  await putBuffer({
-    key: bundleKey,
-    body: bundleBytes,
-    contentType: 'application/zip',
-  });
-
-  // Look up the active tenant signing key, if any. If none exists we sign
-  // with a tenant-derived HMAC over the bundle hash — sufficient for the
-  // milestone-1 stub; KMS-backed RSA signing lands when KMS is provisioned.
-  const [signingKey] = await db
-    .select()
-    .from(tenantSigningKeys)
-    .where(and(eq(tenantSigningKeys.tenantId, report.tenantId), eq(tenantSigningKeys.revokedAt, null as never)))
-    .limit(1);
-
   const signature = await signCertificationBundle({
     tenantId: report.tenantId,
     bundleHash,
@@ -444,6 +465,12 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
   });
   const signatureValue = signature.signatureValue;
   const signatureAlgorithm = signature.signatureAlgorithm;
+
+  await putBuffer({
+    key: bundleKey,
+    body: bundleBytes,
+    contentType: 'application/zip',
+  });
 
   await db.transaction(async (tx) => {
     await tx
@@ -456,6 +483,8 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
         publicVerificationToken: publicToken,
         signedBy: session.user.id,
         signedAt,
+        signingKeyId: signingKey?.id ?? null,
+        signingKeyFingerprint: signature.keyFingerprint,
         signatureValue,
         signatureAlgorithm,
       })
@@ -488,6 +517,7 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
         version: report.version,
         bundleHash,
         signatureAlgorithm,
+        keyFingerprint: signature.keyFingerprint,
         verifyUrl,
       } as never,
     });
@@ -549,4 +579,8 @@ function toCsv(headers: string[], rows: Array<Record<string, string>>): string {
     headers.join(','),
     ...rows.map((r) => headers.map((h) => esc(r[h] ?? '')).join(',')),
   ].join('\n');
+}
+
+function sha256(value: string | Buffer): string {
+  return crypto.createHash('sha256').update(value).digest('hex');
 }
