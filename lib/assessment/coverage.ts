@@ -10,6 +10,7 @@ import { engagements } from '@/db/schema/engagements';
 
 export type CoverageBlocker = {
   key: string;
+  category: 'scope' | 'evidence' | 'findings' | 'risk' | 'ssp' | 'essential_eight' | 'certification';
   label: string;
   count: number;
   href: string;
@@ -233,25 +234,25 @@ export function buildEngagementCoverage(
 ): EngagementCoverage {
   const href = (path: string) => `/engagements/${engagementId}/${path}`;
   const blockers: CoverageBlocker[] = [
-    blocker('boundary-unlocked', 'System boundary is not locked', counts.unlockedBoundary, href('scope'), 'danger'),
-    blocker('undecided-controls', 'Controls missing applicability decisions', counts.undecidedControls, href('scope'), 'danger'),
-    blocker('missing-statements', 'Applicable controls missing implementation statements', counts.missingStatements, href('scope'), 'danger'),
-    blocker('missing-control-evidence', 'Applicable controls missing verified linked evidence', counts.applicableControlsWithoutEvidence, href('evidence'), 'danger'),
-    blocker('poor-evidence', 'Controls with poor or insufficient evidence quality', counts.poorEvidenceControls, href('scope'), 'warning'),
-    blocker('open-evidence-requests', 'Open or partially satisfied evidence requests', counts.openEvidenceRequests, href('evidence'), 'danger'),
-    blocker('pending-evidence', 'Evidence pending review', counts.pendingEvidence, href('evidence'), 'danger'),
-    blocker('rejected-evidence', 'Rejected or insufficient evidence items', counts.rejectedEvidence, href('evidence'), 'danger'),
-    blocker('unverified-evidence', 'Evidence not finalised or quarantined', counts.unverifiedEvidence, href('evidence'), 'danger'),
-    blocker('unlinked-findings', 'Findings without linked controls', counts.unlinkedFindings, href('findings'), 'warning'),
-    blocker('findings-without-evidence', 'Findings without linked evidence', counts.findingsWithoutEvidence, href('findings'), 'warning'),
-    blocker('open-high-findings', 'Open critical/high non-conformances', counts.openHighFindings, href('findings'), 'danger'),
-    blocker('awaiting-retest', 'Findings awaiting retest', counts.awaitingRetestFindings, href('findings'), 'danger'),
-    blocker('unsigned-non-conformances', 'Non-conformances missing lead assessor sign-off', counts.unsignedNonConformances, href('findings'), 'danger'),
-    blocker('unaccepted-risks', 'Residual risks missing acceptance', counts.residualRisksMissingAcceptance, href('certification'), 'danger'),
-    blocker('unrated-risks', 'Residual risks missing likelihood, impact, or treatment', counts.residualRisksMissingRating, href('certification'), 'danger'),
-    blocker('incomplete-e8', 'Essential Eight strategies missing conclusion or evidence quality', counts.incompleteE8, href('essential-eight'), 'warning'),
-    blocker('unapproved-ssp', 'SSP sections not approved', counts.unapprovedSspSections, href('overview'), 'warning'),
-    blocker('missing-ssp-export', 'Latest SSP PDF export is missing', counts.missingSspExport, href('overview'), 'danger'),
+    blocker('boundary-unlocked', 'scope', 'System boundary is not locked', counts.unlockedBoundary, href('scope'), 'danger'),
+    blocker('undecided-controls', 'scope', 'Controls missing applicability decisions', counts.undecidedControls, href('scope'), 'danger'),
+    blocker('missing-statements', 'scope', 'Applicable controls missing implementation statements', counts.missingStatements, href('scope'), 'danger'),
+    blocker('missing-control-evidence', 'evidence', 'Applicable controls missing verified linked evidence', counts.applicableControlsWithoutEvidence, href('evidence'), 'danger'),
+    blocker('poor-evidence', 'evidence', 'Controls with poor or insufficient evidence quality', counts.poorEvidenceControls, href('scope'), 'warning'),
+    blocker('open-evidence-requests', 'evidence', 'Open or partially satisfied evidence requests', counts.openEvidenceRequests, href('evidence'), 'danger'),
+    blocker('pending-evidence', 'evidence', 'Evidence pending review', counts.pendingEvidence, href('evidence'), 'danger'),
+    blocker('rejected-evidence', 'evidence', 'Rejected or insufficient evidence items', counts.rejectedEvidence, href('evidence'), 'danger'),
+    blocker('unverified-evidence', 'evidence', 'Evidence not finalised or quarantined', counts.unverifiedEvidence, href('evidence'), 'danger'),
+    blocker('unlinked-findings', 'findings', 'Findings without linked controls', counts.unlinkedFindings, href('findings'), 'warning'),
+    blocker('findings-without-evidence', 'findings', 'Findings without linked evidence', counts.findingsWithoutEvidence, href('findings'), 'warning'),
+    blocker('open-high-findings', 'findings', 'Open critical/high non-conformances', counts.openHighFindings, href('findings'), 'danger'),
+    blocker('awaiting-retest', 'findings', 'Findings awaiting retest', counts.awaitingRetestFindings, href('findings'), 'danger'),
+    blocker('unsigned-non-conformances', 'findings', 'Non-conformances missing lead assessor sign-off', counts.unsignedNonConformances, href('findings'), 'danger'),
+    blocker('unaccepted-risks', 'risk', 'Residual risks missing acceptance', counts.residualRisksMissingAcceptance, href('certification'), 'danger'),
+    blocker('unrated-risks', 'risk', 'Residual risks missing likelihood, impact, or treatment', counts.residualRisksMissingRating, href('certification'), 'danger'),
+    blocker('incomplete-e8', 'essential_eight', 'Essential Eight strategies missing conclusion or evidence quality', counts.incompleteE8, href('essential-eight'), 'warning'),
+    blocker('unapproved-ssp', 'ssp', 'SSP sections not approved', counts.unapprovedSspSections, href('overview'), 'warning'),
+    blocker('missing-ssp-export', 'certification', 'Latest SSP PDF export is missing', counts.missingSspExport, href('overview'), 'danger'),
   ].filter((item) => item.count > 0);
 
   return {
@@ -264,12 +265,31 @@ export function buildEngagementCoverage(
 
 function blocker(
   key: string,
+  category: CoverageBlocker['category'],
   label: string,
   count: number,
   href: string,
   severity: CoverageBlocker['severity'],
 ): CoverageBlocker {
-  return { key, label, count, href, severity };
+  return { key, category, label, count, href, severity };
+}
+
+export function filterCoverageBlockersForRoles(
+  blockers: CoverageBlocker[],
+  roles: string[],
+): CoverageBlocker[] {
+  const isClient = roles.some((role) => role === 'client_admin' || role === 'client_contributor');
+  const isAssessor = roles.some((role) => role === 'lead_assessor' || role === 'assessor' || role === 'assessor_admin' || role === 'tenant_owner');
+  if (isAssessor) return blockers;
+  if (isClient) {
+    return blockers.filter((blocker) =>
+      blocker.category === 'evidence' ||
+      blocker.key === 'missing-statements' ||
+      blocker.key === 'unaccepted-risks' ||
+      blocker.key === 'unrated-risks',
+    );
+  }
+  return blockers.filter((blocker) => blocker.severity === 'danger');
 }
 
 function countRows(table: Parameters<ReturnType<typeof db.select>['from']>[0], where: unknown) {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildEngagementCoverage,
+  filterCoverageBlockersForRoles,
   type EngagementCoverageCounts,
 } from '@/lib/assessment/coverage';
 
@@ -88,5 +89,24 @@ describe('assessment coverage readiness model', () => {
     expect(coverage.hardFailureCount).toBe(0);
     expect(coverage.warningCount).toBe(5);
     expect(coverage.blockers.every((item) => item.severity === 'warning')).toBe(true);
+  });
+
+  it('filters client-visible blockers to evidence and client-actionable work', () => {
+    const coverage = buildEngagementCoverage('eng-1', {
+      ...completeCounts,
+      undecidedControls: 1,
+      missingStatements: 1,
+      openEvidenceRequests: 1,
+      unapprovedSspSections: 1,
+      residualRisksMissingRating: 1,
+    });
+
+    const clientBlockers = filterCoverageBlockersForRoles(coverage.blockers, ['client_contributor']);
+
+    expect(clientBlockers.map((item) => item.key)).toEqual([
+      'missing-statements',
+      'open-evidence-requests',
+      'unrated-risks',
+    ]);
   });
 });
