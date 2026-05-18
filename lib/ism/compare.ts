@@ -10,6 +10,32 @@ export type IsmRevisionDiff = {
   removed: number;
   changed: number;
   unchanged: number;
+  items: {
+    added: IsmRevisionDiffItem[];
+    removed: IsmRevisionDiffItem[];
+    changed: IsmRevisionChangedItem[];
+    unchanged: IsmRevisionDiffItem[];
+  };
+};
+
+export type IsmRevisionDiffItem = {
+  controlId: string;
+  description: string;
+  minClassification: string | null;
+  essentialEightMapping: unknown;
+};
+
+export type IsmRevisionChangedItem = IsmRevisionDiffItem & {
+  previousDescription: string;
+  changedFields: string[];
+};
+
+type ComparableControl = {
+  controlId: string;
+  description: string;
+  guidance: string | null;
+  minClassification: string | null;
+  essentialEightMapping: unknown;
 };
 
 export async function compareIsmRevisions(fromRevision: string, toRevision: string): Promise<IsmRevisionDiff> {
@@ -17,28 +43,50 @@ export async function compareIsmRevisions(fromRevision: string, toRevision: stri
     db.select().from(ismControls).where(eq(ismControls.revision, fromRevision)),
     db.select().from(ismControls).where(eq(ismControls.revision, toRevision)),
   ]);
+  return diffIsmControlRows({ fromRevision, toRevision, fromRows, toRows });
+}
+
+export function diffIsmControlRows(opts: {
+  fromRevision: string;
+  toRevision: string;
+  fromRows: ComparableControl[];
+  toRows: ComparableControl[];
+}): IsmRevisionDiff {
+  const { fromRevision, toRevision, fromRows, toRows } = opts;
   const from = new Map(fromRows.map((row) => [row.controlId, row]));
   const to = new Map(toRows.map((row) => [row.controlId, row]));
-  let added = 0;
-  let changed = 0;
-  let unchanged = 0;
+  const added: IsmRevisionDiffItem[] = [];
+  const changed: IsmRevisionChangedItem[] = [];
+  const unchanged: IsmRevisionDiffItem[] = [];
   for (const [controlId, row] of to) {
     const old = from.get(controlId);
     if (!old) {
-      added += 1;
-    } else if (
-      old.description !== row.description ||
-      old.guidance !== row.guidance ||
-      old.minClassification !== row.minClassification ||
-      JSON.stringify(old.essentialEightMapping ?? null) !== JSON.stringify(row.essentialEightMapping ?? null)
-    ) {
-      changed += 1;
+      added.push(toDiffItem(row));
     } else {
-      unchanged += 1;
+      const changedFields = changedFieldNames(old, row);
+      if (changedFields.length > 0) {
+        changed.push({
+          ...toDiffItem(row),
+          previousDescription: old.description,
+          changedFields,
+        });
+      } else {
+        unchanged.push(toDiffItem(row));
+      }
     }
   }
-  const removed = [...from.keys()].filter((controlId) => !to.has(controlId)).length;
-  return { fromRevision, toRevision, added, removed, changed, unchanged };
+  const removed = [...from.values()]
+    .filter((row) => !to.has(row.controlId))
+    .map(toDiffItem);
+  return {
+    fromRevision,
+    toRevision,
+    added: added.length,
+    removed: removed.length,
+    changed: changed.length,
+    unchanged: unchanged.length,
+    items: { added, removed, changed, unchanged },
+  };
 }
 
 export async function migrateEngagementIsmRevision(opts: {
@@ -67,4 +115,27 @@ export async function migrateEngagementIsmRevision(opts: {
     .where(eq(engagementControls.engagementId, opts.engagementId));
   const existingIds = new Set(existing.map((row) => row.controlId));
   return { engagement, inScope: controls, existingIds };
+}
+
+function changedFieldNames(previous: ComparableControl, next: ComparableControl): string[] {
+  const fields: string[] = [];
+  if (previous.description !== next.description) fields.push('description');
+  if (previous.guidance !== next.guidance) fields.push('guidance');
+  if (previous.minClassification !== next.minClassification) fields.push('classification');
+  if (
+    JSON.stringify(previous.essentialEightMapping ?? null) !==
+    JSON.stringify(next.essentialEightMapping ?? null)
+  ) {
+    fields.push('essential_eight_mapping');
+  }
+  return fields;
+}
+
+function toDiffItem(row: ComparableControl): IsmRevisionDiffItem {
+  return {
+    controlId: row.controlId,
+    description: row.description,
+    minClassification: row.minClassification,
+    essentialEightMapping: row.essentialEightMapping,
+  };
 }

@@ -9,6 +9,9 @@ import { db } from '@/lib/db/client';
 import { engagements, clientOrganisations, systems } from '@/db/schema/engagements';
 import { engagementMembers } from '@/db/schema/tenants';
 import { ismControls, engagementControls } from '@/db/schema/ism';
+import { evidenceItemControls, evidenceRequestControls } from '@/db/schema/evidence';
+import { findingControls } from '@/db/schema/findings';
+import { interviewControls } from '@/db/schema/interviews';
 import { auditLog } from '@/db/schema/audit';
 import { CLASSIFICATION_RANK, type Classification } from '@/db/schema/enums';
 import { requireSession } from '@/lib/auth/session';
@@ -296,6 +299,10 @@ export async function migrateEngagementIsmRevision(input: z.infer<typeof migrate
       if (current) {
         if (current.revision !== data.toRevision || current.ismControlId !== next.id) {
           updated += 1;
+          await preserveControlLinksForRevisionMigration(tx, {
+            fromIsmControlId: current.ismControlId,
+            toIsmControlId: next.id,
+          });
           await tx
             .update(engagementControls)
             .set({
@@ -369,4 +376,53 @@ export async function migrateEngagementIsmRevision(input: z.infer<typeof migrate
   revalidatePath(`/engagements/${data.engagementId}`);
   revalidatePath(`/engagements/${data.engagementId}/scope`);
   return { updated, added, removed };
+}
+
+async function preserveControlLinksForRevisionMigration(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  opts: { fromIsmControlId: string; toIsmControlId: string },
+) {
+  const [evidenceLinks, requestLinks, findingLinks, interviewLinks] = await Promise.all([
+    tx
+      .select({ evidenceItemId: evidenceItemControls.evidenceItemId })
+      .from(evidenceItemControls)
+      .where(eq(evidenceItemControls.ismControlId, opts.fromIsmControlId)),
+    tx
+      .select({ evidenceRequestId: evidenceRequestControls.evidenceRequestId })
+      .from(evidenceRequestControls)
+      .where(eq(evidenceRequestControls.ismControlId, opts.fromIsmControlId)),
+    tx
+      .select({ findingId: findingControls.findingId })
+      .from(findingControls)
+      .where(eq(findingControls.ismControlId, opts.fromIsmControlId)),
+    tx
+      .select({ interviewId: interviewControls.interviewId })
+      .from(interviewControls)
+      .where(eq(interviewControls.ismControlId, opts.fromIsmControlId)),
+  ]);
+
+  if (evidenceLinks.length > 0) {
+    await tx
+      .insert(evidenceItemControls)
+      .values(evidenceLinks.map((link) => ({ ...link, ismControlId: opts.toIsmControlId })))
+      .onConflictDoNothing();
+  }
+  if (requestLinks.length > 0) {
+    await tx
+      .insert(evidenceRequestControls)
+      .values(requestLinks.map((link) => ({ ...link, ismControlId: opts.toIsmControlId })))
+      .onConflictDoNothing();
+  }
+  if (findingLinks.length > 0) {
+    await tx
+      .insert(findingControls)
+      .values(findingLinks.map((link) => ({ ...link, ismControlId: opts.toIsmControlId })))
+      .onConflictDoNothing();
+  }
+  if (interviewLinks.length > 0) {
+    await tx
+      .insert(interviewControls)
+      .values(interviewLinks.map((link) => ({ ...link, ismControlId: opts.toIsmControlId })))
+      .onConflictDoNothing();
+  }
 }
