@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
-import { findings, remediationActions } from '@/db/schema/findings';
+import {
+  findings,
+  findingRetests,
+  findingRiskAcceptances,
+  remediationActions,
+} from '@/db/schema/findings';
 import { auditLog } from '@/db/schema/audit';
 import { engagements } from '@/db/schema/engagements';
 import { requireSession } from '@/lib/auth/session';
@@ -30,13 +35,23 @@ export async function GET(
   const list = await db
     .select()
     .from(findings)
-    .where(eq(findings.engagementId, id))
+    .where(and(eq(findings.tenantId, eng.tenantId), eq(findings.engagementId, id)))
     .orderBy(findings.sequence);
 
   const remediations = await db
     .select()
     .from(remediationActions)
-    .where(eq(remediationActions.engagementId, id));
+    .where(and(eq(remediationActions.tenantId, eng.tenantId), eq(remediationActions.engagementId, id)));
+
+  const retests = await db
+    .select()
+    .from(findingRetests)
+    .where(and(eq(findingRetests.tenantId, eng.tenantId), eq(findingRetests.engagementId, id)));
+
+  const acceptances = await db
+    .select()
+    .from(findingRiskAcceptances)
+    .where(and(eq(findingRiskAcceptances.tenantId, eng.tenantId), eq(findingRiskAcceptances.engagementId, id)));
 
   const headers = [
     'code',
@@ -50,20 +65,40 @@ export async function GET(
     'signedOffAt',
     'closedAt',
     'remediationCount',
+    'latestRetestResult',
+    'latestRetestAt',
+    'latestRetestEvidenceCount',
+    'riskAcceptedBy',
+    'riskAcceptedAt',
+    'residualRiskId',
   ];
-  const rows = list.map((f) => ({
-    code: f.code,
-    type: f.type,
-    severity: f.severity,
-    status: f.status,
-    title: f.title,
-    description: f.description,
-    recommendation: f.recommendation ?? '',
-    reportedAt: f.reportedAt.toISOString(),
-    signedOffAt: f.signedOffAt?.toISOString() ?? '',
-    closedAt: f.closedAt?.toISOString() ?? '',
-    remediationCount: String(remediations.filter((r) => r.findingId === f.id).length),
-  }));
+  const rows = list.map((f) => {
+    const latestRetest = retests
+      .filter((r) => r.findingId === f.id)
+      .sort((a, b) => b.retestedAt.getTime() - a.retestedAt.getTime())[0];
+    const latestAcceptance = acceptances
+      .filter((r) => r.findingId === f.id)
+      .sort((a, b) => b.acceptedAt.getTime() - a.acceptedAt.getTime())[0];
+    return {
+      code: f.code,
+      type: f.type,
+      severity: f.severity,
+      status: f.status,
+      title: f.title,
+      description: f.description,
+      recommendation: f.recommendation ?? '',
+      reportedAt: f.reportedAt.toISOString(),
+      signedOffAt: f.signedOffAt?.toISOString() ?? '',
+      closedAt: f.closedAt?.toISOString() ?? '',
+      remediationCount: String(remediations.filter((r) => r.findingId === f.id).length),
+      latestRetestResult: latestRetest?.result ?? '',
+      latestRetestAt: latestRetest?.retestedAt.toISOString() ?? '',
+      latestRetestEvidenceCount: String(latestRetest?.evidenceItemIds?.length ?? 0),
+      riskAcceptedBy: latestAcceptance?.acceptedByName ?? '',
+      riskAcceptedAt: latestAcceptance?.acceptedAt.toISOString() ?? '',
+      residualRiskId: latestAcceptance?.residualRiskId ?? '',
+    };
+  });
   const esc = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
   const csv = [
     headers.join(','),

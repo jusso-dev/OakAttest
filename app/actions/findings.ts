@@ -20,6 +20,7 @@ import { auditLog } from '@/db/schema/audit';
 import { requireSession } from '@/lib/auth/session';
 import { requirePermission } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
+import { assertCanCloseFinding } from '@/lib/findings/closure';
 
 async function tenantForEngagement(engagementId: string): Promise<string> {
   const [row] = await db
@@ -200,8 +201,27 @@ export async function updateFindingStatus(input: z.infer<typeof updateStatusSche
       )
       .limit(1);
     if (!finding) throw new Error('Finding not found');
-    if (data.status === 'closed' && finding.type === 'non_conformance' && !finding.signedOffAt) {
-      throw new Error('Non-conformances require lead assessor sign-off before closure.');
+    if (data.status === 'closed') {
+      const retests = await tx
+        .select({
+          result: findingRetests.result,
+          evidenceItemIds: findingRetests.evidenceItemIds,
+        })
+        .from(findingRetests)
+        .where(
+          and(
+            eq(findingRetests.findingId, data.findingId),
+            eq(findingRetests.tenantId, tenantId),
+            eq(findingRetests.engagementId, data.engagementId),
+          ),
+        );
+      assertCanCloseFinding({
+        type: finding.type,
+        signedOffAt: finding.signedOffAt,
+        passedRetestWithEvidenceCount: retests.filter(
+          (retest) => retest.result === 'passed' && (retest.evidenceItemIds?.length ?? 0) > 0,
+        ).length,
+      });
     }
     await tx
       .update(findings)
@@ -239,6 +259,7 @@ const retestSchema = z.object({
   result: z.enum(['passed', 'failed', 'partially_remediated']),
   notes: z.string().max(4000).optional(),
   evidenceItemIds: z.array(z.string().uuid()).optional(),
+  retestedAt: z.string().datetime().optional(),
 });
 
 export async function recordFindingRetest(input: z.infer<typeof retestSchema>) {
@@ -281,6 +302,7 @@ export async function recordFindingRetest(input: z.infer<typeof retestSchema>) {
       notes: data.notes ?? null,
       evidenceItemIds: (data.evidenceItemIds ?? null) as never,
       retestedBy: session.user.id,
+      retestedAt: data.retestedAt ? new Date(data.retestedAt) : new Date(),
     });
     await tx
       .update(findings)
@@ -316,7 +338,7 @@ const acceptRiskSchema = z.object({
   acceptedByName: z.string().min(2).max(200),
   acceptedAt: z.string().datetime(),
   rationale: z.string().min(10).max(4000),
-  residualRiskId: z.string().uuid().optional(),
+  residualRiskId: z.string().uuid(),
 });
 
 export async function acceptFindingRisk(input: z.infer<typeof acceptRiskSchema>) {
@@ -366,9 +388,22 @@ export async function acceptFindingRisk(input: z.infer<typeof acceptRiskSchema>)
       acceptedByName: data.acceptedByName,
       acceptedAt: new Date(data.acceptedAt),
       rationale: data.rationale,
-      residualRiskId: data.residualRiskId ?? null,
+      residualRiskId: data.residualRiskId,
       recordedBy: session.user.id,
     });
+    await tx
+      .update(residualRisks)
+      .set({
+        acceptedBy: data.acceptedByName,
+        acceptedAt: new Date(data.acceptedAt),
+      })
+      .where(
+        and(
+          eq(residualRisks.id, data.residualRiskId),
+          eq(residualRisks.tenantId, tenantId),
+          eq(residualRisks.engagementId, data.engagementId),
+        ),
+      );
     await tx
       .update(findings)
       .set({ status: 'accepted_risk', updatedAt: new Date(), closedAt: new Date() })
@@ -388,7 +423,7 @@ export async function acceptFindingRisk(input: z.infer<typeof acceptRiskSchema>)
       resourceId: data.findingId,
       afterJson: {
         acceptedByName: data.acceptedByName,
-        residualRiskId: data.residualRiskId ?? null,
+        residualRiskId: data.residualRiskId,
       } as never,
     });
   });
@@ -479,6 +514,9 @@ export async function updateRemediationAction(input: z.infer<typeof updateRemedi
   });
 
   const patch: Record<string, unknown> = { updatedAt: new Date() };
+  if (data.status === 'ready_for_retest' && !data.proofEvidenceItemId) {
+    throw new Error('Ready for retest requires proof evidence.');
+  }
   if (data.status) {
     patch.status = data.status;
     if (data.status === 'closed') patch.closedAt = new Date();

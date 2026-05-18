@@ -12,7 +12,7 @@ import {
   residualRisks,
   tenantSigningKeys,
 } from '@/db/schema/certification';
-import { findings } from '@/db/schema/findings';
+import { findings, findingRetests, findingRiskAcceptances } from '@/db/schema/findings';
 import { evidenceItems } from '@/db/schema/evidence';
 import { auditLog } from '@/db/schema/audit';
 import { sspExports } from '@/db/schema/ssp';
@@ -272,20 +272,64 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
     .from(findings)
     .where(and(eq(findings.tenantId, report.tenantId), eq(findings.engagementId, data.engagementId)))
     .orderBy(findings.sequence);
+  const retestRows = await db
+    .select()
+    .from(findingRetests)
+    .where(and(eq(findingRetests.tenantId, report.tenantId), eq(findingRetests.engagementId, data.engagementId)));
+  const acceptanceRows = await db
+    .select()
+    .from(findingRiskAcceptances)
+    .where(
+      and(
+        eq(findingRiskAcceptances.tenantId, report.tenantId),
+        eq(findingRiskAcceptances.engagementId, data.engagementId),
+      ),
+    );
   zip.file(
     'findings-register.csv',
     toCsv(
-      ['code', 'type', 'severity', 'status', 'title', 'description', 'reportedAt', 'closedAt'],
-      findingRows.map((f) => ({
-        code: f.code,
-        type: f.type,
-        severity: f.severity,
-        status: f.status,
-        title: f.title,
-        description: f.description,
-        reportedAt: f.reportedAt.toISOString(),
-        closedAt: f.closedAt?.toISOString() ?? '',
-      })),
+      [
+        'code',
+        'type',
+        'severity',
+        'status',
+        'title',
+        'description',
+        'reportedAt',
+        'signedOffAt',
+        'closedAt',
+        'latestRetestResult',
+        'latestRetestAt',
+        'latestRetestEvidenceCount',
+        'riskAcceptedBy',
+        'riskAcceptedAt',
+        'residualRiskId',
+      ],
+      findingRows.map((f) => {
+        const latestRetest = retestRows
+          .filter((r) => r.findingId === f.id)
+          .sort((a, b) => b.retestedAt.getTime() - a.retestedAt.getTime())[0];
+        const latestAcceptance = acceptanceRows
+          .filter((r) => r.findingId === f.id)
+          .sort((a, b) => b.acceptedAt.getTime() - a.acceptedAt.getTime())[0];
+        return {
+          code: f.code,
+          type: f.type,
+          severity: f.severity,
+          status: f.status,
+          title: f.title,
+          description: f.description,
+          reportedAt: f.reportedAt.toISOString(),
+          signedOffAt: f.signedOffAt?.toISOString() ?? '',
+          closedAt: f.closedAt?.toISOString() ?? '',
+          latestRetestResult: latestRetest?.result ?? '',
+          latestRetestAt: latestRetest?.retestedAt.toISOString() ?? '',
+          latestRetestEvidenceCount: String(latestRetest?.evidenceItemIds?.length ?? 0),
+          riskAcceptedBy: latestAcceptance?.acceptedByName ?? '',
+          riskAcceptedAt: latestAcceptance?.acceptedAt.toISOString() ?? '',
+          residualRiskId: latestAcceptance?.residualRiskId ?? '',
+        };
+      }),
     ),
   );
 

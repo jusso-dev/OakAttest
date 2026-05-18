@@ -1,9 +1,17 @@
 import Link from 'next/link';
-import { desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
-import { findings, findingControls, remediationActions } from '@/db/schema/findings';
+import {
+  findings,
+  findingControls,
+  findingRetests,
+  findingRiskAcceptances,
+  remediationActions,
+} from '@/db/schema/findings';
 import { engagementControls, ismControls } from '@/db/schema/ism';
 import { engagements } from '@/db/schema/engagements';
+import { evidenceItems } from '@/db/schema/evidence';
+import { residualRisks } from '@/db/schema/certification';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FindingCreateForm } from '@/components/findings/FindingCreateForm';
 import { FindingRow } from '@/components/findings/FindingRow';
@@ -37,14 +45,48 @@ export default async function FindingsPage({
   const list = await db
     .select()
     .from(findings)
-    .where(eq(findings.engagementId, id))
+    .where(and(eq(findings.tenantId, engagement.tenantId), eq(findings.engagementId, id)))
     .orderBy(desc(findings.reportedAt));
 
   const remediations = await db
     .select()
     .from(remediationActions)
-    .where(eq(remediationActions.engagementId, id))
+    .where(and(eq(remediationActions.tenantId, engagement.tenantId), eq(remediationActions.engagementId, id)))
     .orderBy(desc(remediationActions.createdAt));
+
+  const retests = await db
+    .select()
+    .from(findingRetests)
+    .where(and(eq(findingRetests.tenantId, engagement.tenantId), eq(findingRetests.engagementId, id)))
+    .orderBy(desc(findingRetests.retestedAt));
+
+  const riskAcceptances = await db
+    .select()
+    .from(findingRiskAcceptances)
+    .where(and(eq(findingRiskAcceptances.tenantId, engagement.tenantId), eq(findingRiskAcceptances.engagementId, id)))
+    .orderBy(desc(findingRiskAcceptances.createdAt));
+
+  const evidence = await db
+    .select({
+      id: evidenceItems.id,
+      filename: evidenceItems.filename,
+      reviewStatus: evidenceItems.reviewStatus,
+      storageVerifiedAt: evidenceItems.storageVerifiedAt,
+      quarantinedAt: evidenceItems.quarantinedAt,
+    })
+    .from(evidenceItems)
+    .where(and(eq(evidenceItems.tenantId, engagement.tenantId), eq(evidenceItems.engagementId, id)))
+    .orderBy(desc(evidenceItems.uploadedAt));
+
+  const risks = await db
+    .select({
+      id: residualRisks.id,
+      title: residualRisks.title,
+      acceptedAt: residualRisks.acceptedAt,
+    })
+    .from(residualRisks)
+    .where(and(eq(residualRisks.tenantId, engagement.tenantId), eq(residualRisks.engagementId, id)))
+    .orderBy(desc(residualRisks.createdAt));
 
   const controls = await db
     .select({
@@ -56,7 +98,7 @@ export default async function FindingsPage({
     })
     .from(engagementControls)
     .innerJoin(ismControls, eq(ismControls.id, engagementControls.ismControlId))
-    .where(eq(engagementControls.engagementId, id))
+    .where(and(eq(engagementControls.tenantId, engagement.tenantId), eq(engagementControls.engagementId, id)))
     .orderBy(engagementControls.controlId);
 
   const findingLinks =
@@ -269,6 +311,19 @@ export default async function FindingsPage({
               description: control.description,
             }))}
             remediations={remediations.filter((r) => r.findingId === f.id)}
+            retests={retests.filter((r) => r.findingId === f.id)}
+            riskAcceptances={riskAcceptances.filter((r) => r.findingId === f.id)}
+            evidenceOptions={evidence.map((item) => ({
+              id: item.id,
+              label: item.filename,
+              reviewStatus: item.reviewStatus,
+              usable: Boolean(item.storageVerifiedAt && !item.quarantinedAt),
+            }))}
+            residualRiskOptions={risks.map((risk) => ({
+              id: risk.id,
+              title: risk.title,
+              accepted: Boolean(risk.acceptedAt),
+            }))}
             canSignOff={isLead}
             canUpdate={isAssessor}
             canRemediate={isClient}
