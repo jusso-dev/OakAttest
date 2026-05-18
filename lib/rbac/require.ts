@@ -54,6 +54,7 @@ export async function rolesForUser(ctx: AuthContext): Promise<Role[]> {
       .from(engagementMembers)
       .where(
         and(
+          eq(engagementMembers.tenantId, ctx.tenantId),
           eq(engagementMembers.engagementId, ctx.engagementId),
           eq(engagementMembers.userId, ctx.userId),
           isNull(engagementMembers.deletedAt),

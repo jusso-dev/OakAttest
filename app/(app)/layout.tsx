@@ -9,7 +9,7 @@ import { engagements } from '@/db/schema/engagements';
 import { engagementMembers, tenants } from '@/db/schema/tenants';
 import { users } from '@/db/schema/auth';
 import { rolesForUser } from '@/lib/rbac/require';
-import { isMfaRequiredForRoles } from '@/lib/auth/mfa-policy';
+import { isMfaRequiredForRoles, shouldRequireMfaEnrollment } from '@/lib/auth/mfa-policy';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
@@ -19,6 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .select({
       accepted: users.dataHandlingAcceptedAt,
       twoFactorEnabled: users.twoFactorEnabled,
+      mfaEnforcedAt: users.mfaEnforcedAt,
       mfaEnrolledAt: users.mfaEnrolledAt,
     })
     .from(users)
@@ -122,10 +123,26 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     tenantId: tenant.tenantId,
     engagementId: tenant.access === 'engagement' ? engagementList[0]?.id : undefined,
   });
+  const securityPolicy = tenantSecurity?.securityPolicy ?? null;
   if (
-    isMfaRequiredForRoles(roles, tenantSecurity?.securityPolicy ?? null) &&
+    isMfaRequiredForRoles(roles, securityPolicy) &&
     !profile.mfaEnrolledAt &&
-    !profile.twoFactorEnabled
+    !profile.twoFactorEnabled &&
+    !profile.mfaEnforcedAt
+  ) {
+    await db
+      .update(users)
+      .set({ mfaEnforcedAt: new Date(), updatedAt: new Date() })
+      .where(eq(users.id, session.user.id));
+  }
+  if (
+    shouldRequireMfaEnrollment({
+      roles,
+      policy: securityPolicy,
+      enrolledAt: profile.mfaEnrolledAt,
+      twoFactorEnabled: profile.twoFactorEnabled,
+      enforcedAt: profile.mfaEnforcedAt,
+    })
   ) {
     redirect('/mfa?next=/dashboard');
   }

@@ -199,13 +199,18 @@ async function buildSspData(
   const [client] = await db
     .select()
     .from(clientOrganisations)
-    .where(eq(clientOrganisations.engagementId, engagementId))
+    .where(
+      and(
+        eq(clientOrganisations.tenantId, engagement.tenantId),
+        eq(clientOrganisations.engagementId, engagementId),
+      ),
+    )
     .limit(1);
 
   const [system] = await db
     .select()
     .from(systems)
-    .where(eq(systems.engagementId, engagementId))
+    .where(and(eq(systems.tenantId, engagement.tenantId), eq(systems.engagementId, engagementId)))
     .limit(1);
 
   const [boundary] = await db
@@ -214,6 +219,7 @@ async function buildSspData(
     .where(
       and(
         eq(systemBoundaries.engagementId, engagementId),
+        eq(systemBoundaries.tenantId, engagement.tenantId),
         isNull(systemBoundaries.supersededAt),
       ),
     )
@@ -235,7 +241,12 @@ async function buildSspData(
     })
     .from(engagementControls)
     .innerJoin(ismControls, eq(ismControls.id, engagementControls.ismControlId))
-    .where(eq(engagementControls.engagementId, engagementId))
+    .where(
+      and(
+        eq(engagementControls.tenantId, engagement.tenantId),
+        eq(engagementControls.engagementId, engagementId),
+      ),
+    )
     .orderBy(engagementControls.controlId);
 
   const e8 = await db
@@ -245,7 +256,12 @@ async function buildSspData(
       targetMaturity: essentialEightAssessments.targetMaturity,
     })
     .from(essentialEightAssessments)
-    .where(eq(essentialEightAssessments.engagementId, engagementId));
+    .where(
+      and(
+        eq(essentialEightAssessments.tenantId, engagement.tenantId),
+        eq(essentialEightAssessments.engagementId, engagementId),
+      ),
+    );
 
   const risks = await db
     .select({
@@ -254,7 +270,12 @@ async function buildSspData(
       mitigation: residualRisks.mitigation,
     })
     .from(residualRisks)
-    .where(eq(residualRisks.engagementId, engagementId));
+    .where(
+      and(
+        eq(residualRisks.tenantId, engagement.tenantId),
+        eq(residualRisks.engagementId, engagementId),
+      ),
+    );
 
   const members = await db
     .select({
@@ -268,6 +289,7 @@ async function buildSspData(
     .where(
       and(
         eq(engagementMembers.engagementId, engagementId),
+        eq(engagementMembers.tenantId, engagement.tenantId),
         isNull(engagementMembers.deletedAt),
       ),
     )
@@ -518,7 +540,13 @@ export async function deleteSspExport(input: z.infer<typeof deleteExportSchema>)
   await db.transaction(async (tx) => {
     await tx
       .delete(sspExports)
-      .where(and(eq(sspExports.id, exp.id), eq(sspExports.engagementId, data.engagementId)));
+      .where(
+        and(
+          eq(sspExports.id, exp.id),
+          eq(sspExports.tenantId, exp.tenantId),
+          eq(sspExports.engagementId, data.engagementId),
+        ),
+      );
     await tx.insert(auditLog).values({
       tenantId: exp.tenantId,
       engagementId: data.engagementId,
@@ -566,7 +594,7 @@ export async function saveSspSection(input: z.infer<typeof sectionSchema>) {
   const [eng] = await db
     .select({ tenantId: engagements.tenantId })
     .from(engagements)
-    .where(eq(engagements.id, data.engagementId))
+    .where(and(eq(engagements.id, data.engagementId), isNull(engagements.deletedAt)))
     .limit(1);
   if (!eng) throw new Error('Engagement not found');
 
@@ -588,6 +616,7 @@ export async function saveSspSection(input: z.infer<typeof sectionSchema>) {
     .where(
       and(
         eq(sspSections.engagementId, data.engagementId),
+        eq(sspSections.tenantId, eng.tenantId),
         eq(sspSections.sectionKey, data.sectionKey),
       ),
     )
@@ -604,7 +633,13 @@ export async function saveSspSection(input: z.infer<typeof sectionSchema>) {
           lastEditedBy: session.user.id,
           lastEditedAt: new Date(),
         })
-        .where(eq(sspSections.id, existing.id));
+        .where(
+          and(
+            eq(sspSections.id, existing.id),
+            eq(sspSections.tenantId, eng.tenantId),
+            eq(sspSections.engagementId, data.engagementId),
+          ),
+        );
     } else {
       const [inserted] = await tx.insert(sspSections).values({
         engagementId: data.engagementId,
@@ -655,7 +690,7 @@ export async function addSspSectionComment(input: z.infer<typeof commentSchema>)
   const [eng] = await db
     .select({ tenantId: engagements.tenantId })
     .from(engagements)
-    .where(eq(engagements.id, data.engagementId))
+    .where(and(eq(engagements.id, data.engagementId), isNull(engagements.deletedAt)))
     .limit(1);
   if (!eng) throw new Error('Engagement not found');
   await requirePermission(ACTIONS.engagementView, {
@@ -667,7 +702,13 @@ export async function addSspSectionComment(input: z.infer<typeof commentSchema>)
   const [section] = await db
     .select()
     .from(sspSections)
-    .where(and(eq(sspSections.engagementId, data.engagementId), eq(sspSections.sectionKey, data.sectionKey)))
+    .where(
+      and(
+        eq(sspSections.tenantId, eng.tenantId),
+        eq(sspSections.engagementId, data.engagementId),
+        eq(sspSections.sectionKey, data.sectionKey),
+      ),
+    )
     .limit(1);
   if (!section) throw new Error('Save the SSP section before commenting on it.');
 
@@ -708,7 +749,12 @@ export async function updateSspSectionCommentStatus(input: z.infer<typeof resolv
   const [comment] = await db
     .select()
     .from(sspSectionComments)
-    .where(and(eq(sspSectionComments.id, data.commentId), eq(sspSectionComments.engagementId, data.engagementId)))
+    .where(
+      and(
+        eq(sspSectionComments.id, data.commentId),
+        eq(sspSectionComments.engagementId, data.engagementId),
+      ),
+    )
     .limit(1);
   if (!comment) throw new Error('Comment not found');
   await requirePermission(ACTIONS.engagementUpdate, {
@@ -725,7 +771,13 @@ export async function updateSspSectionCommentStatus(input: z.infer<typeof resolv
         resolvedAt: data.status === 'resolved' ? new Date() : null,
         updatedAt: new Date(),
       })
-      .where(and(eq(sspSectionComments.id, data.commentId), eq(sspSectionComments.engagementId, data.engagementId)));
+      .where(
+        and(
+          eq(sspSectionComments.id, data.commentId),
+          eq(sspSectionComments.tenantId, comment.tenantId),
+          eq(sspSectionComments.engagementId, data.engagementId),
+        ),
+      );
     await tx.insert(auditLog).values({
       tenantId: comment.tenantId,
       engagementId: data.engagementId,

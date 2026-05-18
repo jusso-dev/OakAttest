@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { and, eq, max } from 'drizzle-orm';
+import { and, eq, inArray, max } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import crypto from 'node:crypto';
 import { db } from '@/lib/db/client';
@@ -14,6 +14,8 @@ import {
   findingRiskAcceptances,
 } from '@/db/schema/findings';
 import { engagements } from '@/db/schema/engagements';
+import { evidenceItems } from '@/db/schema/evidence';
+import { residualRisks } from '@/db/schema/certification';
 import { auditLog } from '@/db/schema/audit';
 import { requireSession } from '@/lib/auth/session';
 import { requirePermission } from '@/lib/rbac/require';
@@ -27,6 +29,29 @@ async function tenantForEngagement(engagementId: string): Promise<string> {
     .limit(1);
   if (!row) throw new Error('Engagement not found');
   return row.tenantId;
+}
+
+async function assertEvidenceItemsInEngagement(input: {
+  tenantId: string;
+  engagementId: string;
+  evidenceItemIds?: string[];
+}) {
+  const ids = input.evidenceItemIds ?? [];
+  if (ids.length === 0) return;
+  const rows = await db
+    .select({ id: evidenceItems.id })
+    .from(evidenceItems)
+    .where(
+      and(
+        eq(evidenceItems.tenantId, input.tenantId),
+        eq(evidenceItems.engagementId, input.engagementId),
+        inArray(evidenceItems.id, ids),
+      ),
+    );
+  const allowed = new Set(rows.map((row) => row.id));
+  if (ids.some((id) => !allowed.has(id))) {
+    throw new Error('Evidence item not found in this engagement');
+  }
 }
 
 const createSchema = z.object({
@@ -50,6 +75,11 @@ export async function createFinding(input: z.infer<typeof createSchema>) {
     tenantId,
     engagementId: data.engagementId,
   });
+  await assertEvidenceItemsInEngagement({
+    tenantId,
+    engagementId: data.engagementId,
+    evidenceItemIds: data.evidenceItemIds,
+  });
 
   const id = crypto.randomUUID();
 
@@ -57,7 +87,7 @@ export async function createFinding(input: z.infer<typeof createSchema>) {
     const [last] = await tx
       .select({ max: max(findings.sequence) })
       .from(findings)
-      .where(eq(findings.engagementId, data.engagementId));
+      .where(and(eq(findings.tenantId, tenantId), eq(findings.engagementId, data.engagementId)));
     const sequence = (last?.max ?? 0) + 1;
     const code = `FND-${String(sequence).padStart(3, '0')}`;
 
@@ -119,7 +149,13 @@ export async function signOffFinding(input: z.infer<typeof signOffSchema>) {
     await tx
       .update(findings)
       .set({ signedOffBy: session.user.id, signedOffAt: new Date(), updatedAt: new Date() })
-      .where(and(eq(findings.id, data.findingId), eq(findings.engagementId, data.engagementId)));
+      .where(
+        and(
+          eq(findings.id, data.findingId),
+          eq(findings.tenantId, tenantId),
+          eq(findings.engagementId, data.engagementId),
+        ),
+      );
     await tx.insert(auditLog).values({
       tenantId,
       engagementId: data.engagementId,
@@ -155,7 +191,13 @@ export async function updateFindingStatus(input: z.infer<typeof updateStatusSche
     const [finding] = await tx
       .select({ type: findings.type, signedOffAt: findings.signedOffAt })
       .from(findings)
-      .where(and(eq(findings.id, data.findingId), eq(findings.engagementId, data.engagementId)))
+      .where(
+        and(
+          eq(findings.id, data.findingId),
+          eq(findings.tenantId, tenantId),
+          eq(findings.engagementId, data.engagementId),
+        ),
+      )
       .limit(1);
     if (!finding) throw new Error('Finding not found');
     if (data.status === 'closed' && finding.type === 'non_conformance' && !finding.signedOffAt) {
@@ -168,7 +210,13 @@ export async function updateFindingStatus(input: z.infer<typeof updateStatusSche
         closedAt: data.status === 'closed' ? new Date() : null,
         updatedAt: new Date(),
       })
-      .where(and(eq(findings.id, data.findingId), eq(findings.engagementId, data.engagementId)));
+      .where(
+        and(
+          eq(findings.id, data.findingId),
+          eq(findings.tenantId, tenantId),
+          eq(findings.engagementId, data.engagementId),
+        ),
+      );
     await tx.insert(auditLog).values({
       tenantId,
       engagementId: data.engagementId,
@@ -203,13 +251,24 @@ export async function recordFindingRetest(input: z.infer<typeof retestSchema>) {
     tenantId,
     engagementId: data.engagementId,
   });
+  await assertEvidenceItemsInEngagement({
+    tenantId,
+    engagementId: data.engagementId,
+    evidenceItemIds: data.evidenceItemIds,
+  });
 
   const id = crypto.randomUUID();
   await db.transaction(async (tx) => {
     const [finding] = await tx
       .select({ id: findings.id })
       .from(findings)
-      .where(and(eq(findings.id, data.findingId), eq(findings.engagementId, data.engagementId)))
+      .where(
+        and(
+          eq(findings.id, data.findingId),
+          eq(findings.tenantId, tenantId),
+          eq(findings.engagementId, data.engagementId),
+        ),
+      )
       .limit(1);
     if (!finding) throw new Error('Finding not found');
     await tx.insert(findingRetests).values({
@@ -229,7 +288,13 @@ export async function recordFindingRetest(input: z.infer<typeof retestSchema>) {
         status: data.result === 'passed' ? 'awaiting_retest' : 'in_progress',
         updatedAt: new Date(),
       })
-      .where(and(eq(findings.id, data.findingId), eq(findings.engagementId, data.engagementId)));
+      .where(
+        and(
+          eq(findings.id, data.findingId),
+          eq(findings.tenantId, tenantId),
+          eq(findings.engagementId, data.engagementId),
+        ),
+      );
     await tx.insert(auditLog).values({
       tenantId,
       engagementId: data.engagementId,
@@ -264,13 +329,33 @@ export async function acceptFindingRisk(input: z.infer<typeof acceptRiskSchema>)
     tenantId,
     engagementId: data.engagementId,
   });
+  if (data.residualRiskId) {
+    const [risk] = await db
+      .select({ id: residualRisks.id })
+      .from(residualRisks)
+      .where(
+        and(
+          eq(residualRisks.id, data.residualRiskId),
+          eq(residualRisks.tenantId, tenantId),
+          eq(residualRisks.engagementId, data.engagementId),
+        ),
+      )
+      .limit(1);
+    if (!risk) throw new Error('Residual risk not found in this engagement');
+  }
 
   const id = crypto.randomUUID();
   await db.transaction(async (tx) => {
     const [finding] = await tx
       .select({ id: findings.id })
       .from(findings)
-      .where(and(eq(findings.id, data.findingId), eq(findings.engagementId, data.engagementId)))
+      .where(
+        and(
+          eq(findings.id, data.findingId),
+          eq(findings.tenantId, tenantId),
+          eq(findings.engagementId, data.engagementId),
+        ),
+      )
       .limit(1);
     if (!finding) throw new Error('Finding not found');
     await tx.insert(findingRiskAcceptances).values({
@@ -287,7 +372,13 @@ export async function acceptFindingRisk(input: z.infer<typeof acceptRiskSchema>)
     await tx
       .update(findings)
       .set({ status: 'accepted_risk', updatedAt: new Date(), closedAt: new Date() })
-      .where(and(eq(findings.id, data.findingId), eq(findings.engagementId, data.engagementId)));
+      .where(
+        and(
+          eq(findings.id, data.findingId),
+          eq(findings.tenantId, tenantId),
+          eq(findings.engagementId, data.engagementId),
+        ),
+      );
     await tx.insert(auditLog).values({
       tenantId,
       engagementId: data.engagementId,
@@ -330,6 +421,19 @@ export async function createRemediationAction(input: z.infer<typeof createRemedi
 
   const id = crypto.randomUUID();
   await db.transaction(async (tx) => {
+    const [finding] = await tx
+      .select({ id: findings.id })
+      .from(findings)
+      .where(
+        and(
+          eq(findings.id, data.findingId),
+          eq(findings.tenantId, tenantId),
+          eq(findings.engagementId, data.engagementId),
+        ),
+      )
+      .limit(1);
+    if (!finding) throw new Error('Finding not found');
+
     await tx.insert(remediationActions).values({
       id,
       findingId: data.findingId,
@@ -381,6 +485,11 @@ export async function updateRemediationAction(input: z.infer<typeof updateRemedi
   }
   if (data.proofEvidenceItemId !== undefined) patch.proofEvidenceItemId = data.proofEvidenceItemId;
   if (data.notes !== undefined) patch.notes = data.notes;
+  await assertEvidenceItemsInEngagement({
+    tenantId,
+    engagementId: data.engagementId,
+    evidenceItemIds: data.proofEvidenceItemId ? [data.proofEvidenceItemId] : [],
+  });
 
   await db.transaction(async (tx) => {
     await tx
@@ -389,6 +498,7 @@ export async function updateRemediationAction(input: z.infer<typeof updateRemedi
       .where(
         and(
           eq(remediationActions.id, data.remediationActionId),
+          eq(remediationActions.tenantId, tenantId),
           eq(remediationActions.engagementId, data.engagementId),
         ),
       );

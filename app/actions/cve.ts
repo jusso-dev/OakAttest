@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db/client';
@@ -75,12 +75,17 @@ export async function submitCveScan(input: z.infer<typeof submitSchema>) {
   try {
     pins = parseManifest(data.filename, data.content);
   } catch (err) {
-    await markFailed(scanId, (err as Error).message);
+    await markFailed({ scanId, tenantId, engagementId: data.engagementId, reason: (err as Error).message });
     throw err;
   }
 
   if (pins.length === 0) {
-    await markFailed(scanId, 'No package pins parsed from input');
+    await markFailed({
+      scanId,
+      tenantId,
+      engagementId: data.engagementId,
+      reason: 'No package pins parsed from input',
+    });
     throw new Error('No packages found in manifest');
   }
 
@@ -88,7 +93,7 @@ export async function submitCveScan(input: z.infer<typeof submitSchema>) {
   try {
     scanFindings = await scanPins(pins);
   } catch (err) {
-    await markFailed(scanId, (err as Error).message);
+    await markFailed({ scanId, tenantId, engagementId: data.engagementId, reason: (err as Error).message });
     throw err;
   }
 
@@ -108,7 +113,12 @@ export async function submitCveScan(input: z.infer<typeof submitSchema>) {
   const patchingControls = await db
     .select({ id: engagementControls.id, ismControlId: engagementControls.ismControlId, controlId: engagementControls.controlId })
     .from(engagementControls)
-    .where(eq(engagementControls.engagementId, data.engagementId));
+    .where(
+      and(
+        eq(engagementControls.tenantId, tenantId),
+        eq(engagementControls.engagementId, data.engagementId),
+      ),
+    );
   const patchingControlIds = patchingControls
     .filter((c) => /patch|vulnerab/i.test(c.controlId))
     .map((c) => c.ismControlId);
@@ -151,7 +161,13 @@ export async function submitCveScan(input: z.infer<typeof submitSchema>) {
         signedHash,
         signedAt: new Date(),
       })
-      .where(eq(cveScans.id, scanId));
+      .where(
+        and(
+          eq(cveScans.id, scanId),
+          eq(cveScans.tenantId, tenantId),
+          eq(cveScans.engagementId, data.engagementId),
+        ),
+      );
 
     // Auto-draft an observation per scan if there are any high/critical
     // findings. Promotion to non-conformance is a separate assessor action.
@@ -160,7 +176,7 @@ export async function submitCveScan(input: z.infer<typeof submitSchema>) {
       const seq = await tx
         .select()
         .from(findings)
-        .where(eq(findings.engagementId, data.engagementId));
+        .where(and(eq(findings.tenantId, tenantId), eq(findings.engagementId, data.engagementId)));
       const sequence = seq.length + 1;
       const code = `FND-${String(sequence).padStart(3, '0')}`;
       await tx.insert(findings).values({
@@ -204,16 +220,29 @@ export async function submitCveScan(input: z.infer<typeof submitSchema>) {
   return { scanId, critical, high, medium, low, total: scanFindings.length, signedHash };
 }
 
-async function markFailed(scanId: string, reason: string) {
+async function markFailed(input: {
+  scanId: string;
+  tenantId: string;
+  engagementId: string;
+  reason: string;
+}) {
   await db
     .update(cveScans)
-    .set({ status: 'failed', failureReason: reason, completedAt: new Date() })
-    .where(eq(cveScans.id, scanId));
+    .set({ status: 'failed', failureReason: input.reason, completedAt: new Date() })
+    .where(
+      and(
+        eq(cveScans.id, input.scanId),
+        eq(cveScans.tenantId, input.tenantId),
+        eq(cveScans.engagementId, input.engagementId),
+      ),
+    );
   await db.insert(auditLog).values({
+    tenantId: input.tenantId,
+    engagementId: input.engagementId,
     actorType: 'system',
     action: 'cve_scan.failed',
     resourceType: 'cve_scan',
-    resourceId: scanId,
-    afterJson: { reason } as never,
+    resourceId: input.scanId,
+    afterJson: { reason: input.reason } as never,
   });
 }

@@ -12,6 +12,7 @@ import { EvidenceReviewActions } from '@/components/evidence/EvidenceReviewActio
 import { engagements } from '@/db/schema/engagements';
 import { EnterpriseEvidenceGuidance } from '@/components/evidence/EnterpriseEvidenceGuidance';
 import { EnterpriseEvidenceCsvPanel } from '@/components/evidence/EnterpriseEvidenceCsvPanel';
+import { evidenceStorageState } from '@/lib/evidence/state';
 
 export default async function EvidencePage({
   params,
@@ -150,28 +151,31 @@ export default async function EvidencePage({
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((it) => (
-                    <tr key={it.id} className="border-b border-[var(--field-border)]">
-                      <td className="py-2 pr-3 text-slate-900">{it.filename}</td>
-                      <td className="py-2 pr-3 text-slate-600">v{it.version}</td>
-                      <td className="py-2 pr-3 font-mono text-xs text-slate-600">
-                        {it.sha256.slice(0, 16)}…
-                      </td>
-                      <td className="py-2 pr-3">
-                        <span className="rounded-full bg-[var(--oak-mist-strong)] px-2 py-0.5 text-xs text-slate-700">
-                          {it.reviewStatus}
-                        </span>
-                      </td>
-                      <td className="py-2 pr-3 text-right">
-                        {isAssessor && it.reviewStatus === 'pending' && (
-                          <EvidenceReviewActions
-                            engagementId={id}
-                            evidenceItemId={it.id}
-                          />
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {items.map((it) => {
+                    const storageState = evidenceStorageState(it);
+                    return (
+                      <tr key={it.id} className="border-b border-[var(--field-border)]">
+                        <td className="py-2 pr-3 text-slate-900">{it.filename}</td>
+                        <td className="py-2 pr-3 text-slate-600">v{it.version}</td>
+                        <td className="py-2 pr-3 font-mono text-xs text-slate-600">
+                          {it.sha256.slice(0, 16)}…
+                        </td>
+                        <td className="py-2 pr-3">
+                          <span className="rounded-full bg-[var(--oak-mist-strong)] px-2 py-0.5 text-xs text-slate-700">
+                            {storageState === 'finalised' ? it.reviewStatus : storageState}
+                          </span>
+                        </td>
+                        <td className="py-2 pr-3 text-right">
+                          {isAssessor && storageState === 'finalised' && it.reviewStatus === 'pending' && (
+                            <EvidenceReviewActions
+                              engagementId={id}
+                              evidenceItemId={it.id}
+                            />
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

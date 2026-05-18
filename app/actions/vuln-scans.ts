@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { eq, max } from 'drizzle-orm';
+import { and, eq, max } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db/client';
@@ -55,7 +55,12 @@ export async function importVulnScan(input: z.infer<typeof importSchema>) {
       controlId: engagementControls.controlId,
     })
     .from(engagementControls)
-    .where(eq(engagementControls.engagementId, data.engagementId));
+    .where(
+      and(
+        eq(engagementControls.tenantId, tenantId),
+        eq(engagementControls.engagementId, data.engagementId),
+      ),
+    );
   const patchingIds = patching
     .filter((c) => /patch|vulnerab/i.test(c.controlId))
     .map((c) => c.id);
@@ -66,7 +71,7 @@ export async function importVulnScan(input: z.infer<typeof importSchema>) {
       const [{ maxV }] = await tx
         .select({ maxV: max(findings.sequence) })
         .from(findings)
-        .where(eq(findings.engagementId, data.engagementId));
+        .where(and(eq(findings.tenantId, tenantId), eq(findings.engagementId, data.engagementId)));
       const sequence = (maxV ?? 0) + 1 + drafted;
       const code = `FND-${String(sequence).padStart(3, '0')}`;
       const findingId = crypto.randomUUID();

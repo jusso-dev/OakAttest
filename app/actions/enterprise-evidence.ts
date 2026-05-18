@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { auditLog } from '@/db/schema/audit';
 import { engagements } from '@/db/schema/engagements';
@@ -56,7 +56,12 @@ export async function analyseEnterpriseEvidenceCsv(input: z.infer<typeof analyse
     })
     .from(engagementControls)
     .innerJoin(ismControls, eq(ismControls.id, engagementControls.ismControlId))
-    .where(eq(engagementControls.engagementId, data.engagementId));
+    .where(
+      and(
+        eq(engagementControls.tenantId, engagement.tenantId),
+        eq(engagementControls.engagementId, data.engagementId),
+      ),
+    );
 
   const terms = Array.from(
     new Set([...summary.suggestedControlKeywords, ...summary.mappedStrategies].map((term) => term.toLowerCase())),

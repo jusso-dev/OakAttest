@@ -29,3 +29,22 @@ export function isMfaGraceExpired(enforcedAt: Date | null | undefined, policy?: 
   if (days <= 0) return true;
   return Date.now() > enforcedAt.getTime() + days * 24 * 60 * 60 * 1000;
 }
+
+export function shouldRequireMfaEnrollment(input: {
+  roles: Role[];
+  policy?: MfaPolicy | null;
+  enrolledAt?: Date | null;
+  twoFactorEnabled?: boolean | null;
+  enforcedAt?: Date | null;
+  now?: Date;
+}): boolean {
+  if (!isMfaRequiredForRoles(input.roles, input.policy)) return false;
+  if (input.enrolledAt || input.twoFactorEnabled) return false;
+
+  const graceDays = input.policy?.mfaGracePeriodDays ?? 0;
+  if (!input.enforcedAt) return graceDays <= 0;
+  if (graceDays <= 0) return true;
+
+  const now = input.now ?? new Date();
+  return now.getTime() > input.enforcedAt.getTime() + graceDays * 24 * 60 * 60 * 1000;
+}

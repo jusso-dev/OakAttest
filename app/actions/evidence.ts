@@ -21,8 +21,9 @@ import {
   buildEvidenceKey,
   presignUpload,
   presignDownload,
-  verifyObject,
+  verifyObjectChecksum,
 } from '@/lib/storage/s3';
+import { assertEvidenceFinalised } from '@/lib/evidence/state';
 
 async function tenantForEngagement(engagementId: string): Promise<string> {
   const [row] = await db
@@ -107,6 +108,21 @@ export async function startEvidenceUpload(input: z.infer<typeof startUploadSchem
     engagementId: data.engagementId,
   });
 
+  if (data.evidenceRequestId) {
+    const [request] = await db
+      .select({ id: evidenceRequests.id })
+      .from(evidenceRequests)
+      .where(
+        and(
+          eq(evidenceRequests.id, data.evidenceRequestId),
+          eq(evidenceRequests.tenantId, tenantId),
+          eq(evidenceRequests.engagementId, data.engagementId),
+        ),
+      )
+      .limit(1);
+    if (!request) throw new Error('Evidence request not found');
+  }
+
   const id = crypto.randomUUID();
   const key = buildEvidenceKey({
     tenantId,
@@ -123,6 +139,7 @@ export async function startEvidenceUpload(input: z.infer<typeof startUploadSchem
     .from(evidenceItems)
     .where(
       and(
+        eq(evidenceItems.tenantId, tenantId),
         eq(evidenceItems.engagementId, data.engagementId),
         eq(evidenceItems.filename, data.filename),
       ),
@@ -204,16 +221,54 @@ export async function finaliseEvidenceUpload(input: z.infer<typeof finaliseSchem
     .select({
       storageKey: evidenceItems.storageKey,
       sizeBytes: evidenceItems.sizeBytes,
+      quarantinedAt: evidenceItems.quarantinedAt,
     })
     .from(evidenceItems)
-    .where(and(eq(evidenceItems.id, data.evidenceItemId), eq(evidenceItems.engagementId, data.engagementId)))
+    .where(
+      and(
+        eq(evidenceItems.id, data.evidenceItemId),
+        eq(evidenceItems.tenantId, tenantId),
+        eq(evidenceItems.engagementId, data.engagementId),
+      ),
+    )
     .limit(1);
   if (!item) throw new Error('Evidence not found');
+  if (item.quarantinedAt) throw new Error('Evidence upload is quarantined and cannot be finalised.');
 
-  const verification = await verifyObject({
-    key: item.storageKey,
-    expectedSizeBytes: item.sizeBytes,
-  });
+  let verification: Awaited<ReturnType<typeof verifyObjectChecksum>>;
+  try {
+    verification = await verifyObjectChecksum({
+      key: item.storageKey,
+      expectedSizeBytes: item.sizeBytes,
+      expectedSha256: data.sha256,
+    });
+  } catch (err) {
+    await db.transaction(async (tx) => {
+      await tx
+        .update(evidenceItems)
+        .set({
+          quarantinedAt: new Date(),
+          quarantineReason: err instanceof Error ? err.message : 'Storage verification failed',
+        })
+        .where(
+          and(
+            eq(evidenceItems.id, data.evidenceItemId),
+            eq(evidenceItems.tenantId, tenantId),
+            eq(evidenceItems.engagementId, data.engagementId),
+          ),
+        );
+      await tx.insert(auditLog).values({
+        tenantId,
+        engagementId: data.engagementId,
+        actorUserId: session.user.id,
+        action: 'evidence.upload.quarantined',
+        resourceType: 'evidence_item',
+        resourceId: data.evidenceItemId,
+        afterJson: { reason: err instanceof Error ? err.message : 'Storage verification failed' } as never,
+      });
+    });
+    throw err;
+  }
 
   await db.transaction(async (tx) => {
     await tx
@@ -223,14 +278,17 @@ export async function finaliseEvidenceUpload(input: z.infer<typeof finaliseSchem
         description: data.description ?? null,
         storageVerifiedAt: new Date(),
         storageVerification: JSON.stringify({
-          method: 'storage_head_and_client_sha256',
+          method: 'storage_download_sha256',
           sizeBytes: verification.sizeBytes,
           etag: verification.etag,
         }),
+        quarantinedAt: null,
+        quarantineReason: null,
       })
       .where(
         and(
           eq(evidenceItems.id, data.evidenceItemId),
+          eq(evidenceItems.tenantId, tenantId),
           eq(evidenceItems.engagementId, data.engagementId),
         ),
       );
@@ -268,6 +326,23 @@ export async function reviewEvidence(input: z.infer<typeof reviewSchema>) {
   });
 
   await db.transaction(async (tx) => {
+    const [item] = await tx
+      .select({
+        storageVerifiedAt: evidenceItems.storageVerifiedAt,
+        quarantinedAt: evidenceItems.quarantinedAt,
+      })
+      .from(evidenceItems)
+      .where(
+        and(
+          eq(evidenceItems.id, data.evidenceItemId),
+          eq(evidenceItems.tenantId, tenantId),
+          eq(evidenceItems.engagementId, data.engagementId),
+        ),
+      )
+      .limit(1);
+    if (!item) throw new Error('Evidence not found');
+    assertEvidenceFinalised(item);
+
     await tx
       .update(evidenceItems)
       .set({
@@ -276,7 +351,13 @@ export async function reviewEvidence(input: z.infer<typeof reviewSchema>) {
         reviewedAt: new Date(),
         reviewNotes: data.notes ?? null,
       })
-      .where(and(eq(evidenceItems.id, data.evidenceItemId), eq(evidenceItems.engagementId, data.engagementId)));
+      .where(
+        and(
+          eq(evidenceItems.id, data.evidenceItemId),
+          eq(evidenceItems.tenantId, tenantId),
+          eq(evidenceItems.engagementId, data.engagementId),
+        ),
+      );
     await tx.insert(auditLog).values({
       tenantId,
       engagementId: data.engagementId,
@@ -306,13 +387,25 @@ export async function getEvidenceDownloadUrl(opts: {
   });
 
   const [item] = await db
-    .select({ key: evidenceItems.storageKey, engagementId: evidenceItems.engagementId })
+    .select({
+      key: evidenceItems.storageKey,
+      engagementId: evidenceItems.engagementId,
+      storageVerifiedAt: evidenceItems.storageVerifiedAt,
+      quarantinedAt: evidenceItems.quarantinedAt,
+    })
     .from(evidenceItems)
-    .where(and(eq(evidenceItems.id, opts.evidenceItemId), eq(evidenceItems.engagementId, opts.engagementId)))
+    .where(
+      and(
+        eq(evidenceItems.id, opts.evidenceItemId),
+        eq(evidenceItems.tenantId, tenantId),
+        eq(evidenceItems.engagementId, opts.engagementId),
+      ),
+    )
     .limit(1);
   if (!item || item.engagementId !== opts.engagementId) {
     throw new Error('Evidence not found');
   }
+  assertEvidenceFinalised(item);
 
   await db.insert(auditLog).values({
     tenantId,

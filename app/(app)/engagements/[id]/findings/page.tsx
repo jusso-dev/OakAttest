@@ -1,13 +1,14 @@
 import Link from 'next/link';
-import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
+import { desc, eq, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { findings, findingControls, remediationActions } from '@/db/schema/findings';
 import { engagementControls, ismControls } from '@/db/schema/ism';
-import { engagementMembers } from '@/db/schema/tenants';
+import { engagements } from '@/db/schema/engagements';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FindingCreateForm } from '@/components/findings/FindingCreateForm';
 import { FindingRow } from '@/components/findings/FindingRow';
 import { requirePageSession } from '@/lib/auth/session';
+import { rolesForUser } from '@/lib/rbac/require';
 
 export default async function FindingsPage({
   params,
@@ -25,6 +26,13 @@ export default async function FindingsPage({
   const type = readParam(query.type);
   const chapter = readParam(query.chapter);
   const subChapter = readParam(query.subChapter);
+
+  const [engagement] = await db
+    .select({ tenantId: engagements.tenantId })
+    .from(engagements)
+    .where(eq(engagements.id, id))
+    .limit(1);
+  if (!engagement) throw new Error('Engagement not found');
 
   const list = await db
     .select()
@@ -67,17 +75,11 @@ export default async function FindingsPage({
           .where(inArray(findingControls.findingId, list.map((finding) => finding.id)))
           .orderBy(ismControls.controlId);
 
-  const myRoleRows = await db
-    .select({ role: engagementMembers.role })
-    .from(engagementMembers)
-    .where(
-      and(
-        eq(engagementMembers.engagementId, id),
-        eq(engagementMembers.userId, session.user.id),
-        isNull(engagementMembers.deletedAt),
-      ),
-    );
-  const roles = myRoleRows.map((r) => r.role);
+  const roles = await rolesForUser({
+    userId: session.user.id,
+    tenantId: engagement.tenantId,
+    engagementId: id,
+  });
   const isAssessor = roles.includes('lead_assessor') || roles.includes('assessor');
   const isLead = roles.includes('lead_assessor');
   const isClient = roles.includes('client_admin') || roles.includes('client_contributor');

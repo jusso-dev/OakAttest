@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { and, eq, max, desc } from 'drizzle-orm';
+import { and, eq, max, desc, isNotNull, isNull } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import JSZip from 'jszip';
 import { db } from '@/lib/db/client';
@@ -66,7 +66,12 @@ export async function generateCertificationDraft(input: z.infer<typeof generateS
   const [client] = await db
     .select({ name: clientOrganisations.name })
     .from(clientOrganisations)
-    .where(eq(clientOrganisations.engagementId, data.engagementId))
+    .where(
+      and(
+        eq(clientOrganisations.tenantId, engagement.tenantId),
+        eq(clientOrganisations.engagementId, data.engagementId),
+      ),
+    )
     .limit(1);
 
   const findingRows = await db
@@ -76,7 +81,7 @@ export async function generateCertificationDraft(input: z.infer<typeof generateS
       status: findings.status,
     })
     .from(findings)
-    .where(eq(findings.engagementId, data.engagementId));
+    .where(and(eq(findings.tenantId, engagement.tenantId), eq(findings.engagementId, data.engagementId)));
 
   const bySeverity = { critical: 0, high: 0, medium: 0, low: 0 };
   let nonConformanceOpen = 0;
@@ -94,12 +99,22 @@ export async function generateCertificationDraft(input: z.infer<typeof generateS
       mitigation: residualRisks.mitigation,
     })
     .from(residualRisks)
-    .where(eq(residualRisks.engagementId, data.engagementId));
+    .where(
+      and(
+        eq(residualRisks.tenantId, engagement.tenantId),
+        eq(residualRisks.engagementId, data.engagementId),
+      ),
+    );
 
   const [{ maxV }] = await db
     .select({ maxV: max(certificationReports.version) })
     .from(certificationReports)
-    .where(eq(certificationReports.engagementId, data.engagementId));
+    .where(
+      and(
+        eq(certificationReports.tenantId, engagement.tenantId),
+        eq(certificationReports.engagementId, data.engagementId),
+      ),
+    );
   const nextVersion = (maxV ?? 0) + 1;
 
   const cert: CertificationData = {
@@ -188,7 +203,12 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
   const [report] = await db
     .select()
     .from(certificationReports)
-    .where(eq(certificationReports.id, data.reportId))
+    .where(
+      and(
+        eq(certificationReports.id, data.reportId),
+        eq(certificationReports.engagementId, data.engagementId),
+      ),
+    )
     .limit(1);
   if (!report || report.engagementId !== data.engagementId) {
     throw new Error('Report not found');
@@ -244,7 +264,7 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
   const findingRows = await db
     .select()
     .from(findings)
-    .where(eq(findings.engagementId, data.engagementId))
+    .where(and(eq(findings.tenantId, report.tenantId), eq(findings.engagementId, data.engagementId)))
     .orderBy(findings.sequence);
   zip.file(
     'findings-register.csv',
@@ -267,7 +287,14 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
   const evidenceRows = await db
     .select()
     .from(evidenceItems)
-    .where(eq(evidenceItems.engagementId, data.engagementId));
+    .where(
+      and(
+        eq(evidenceItems.tenantId, report.tenantId),
+        eq(evidenceItems.engagementId, data.engagementId),
+        isNotNull(evidenceItems.storageVerifiedAt),
+        isNull(evidenceItems.quarantinedAt),
+      ),
+    );
   zip.file(
     'evidence-index.csv',
     toCsv(
@@ -287,7 +314,13 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
   const [latestSsp] = await db
     .select()
     .from(sspExports)
-    .where(and(eq(sspExports.engagementId, data.engagementId), eq(sspExports.format, 'pdf')))
+    .where(
+      and(
+        eq(sspExports.tenantId, report.tenantId),
+        eq(sspExports.engagementId, data.engagementId),
+        eq(sspExports.format, 'pdf'),
+      ),
+    )
     .orderBy(desc(sspExports.version))
     .limit(1);
   if (latestSsp) {
@@ -300,7 +333,7 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
   const auditRows = await db
     .select()
     .from(auditLog)
-    .where(eq(auditLog.engagementId, data.engagementId))
+    .where(and(eq(auditLog.tenantId, report.tenantId), eq(auditLog.engagementId, data.engagementId)))
     .orderBy(auditLog.createdAt);
   zip.file(
     'audit-log.csv',
@@ -376,7 +409,13 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
         signatureValue,
         signatureAlgorithm,
       })
-      .where(eq(certificationReports.id, report.id));
+      .where(
+        and(
+          eq(certificationReports.id, report.id),
+          eq(certificationReports.tenantId, report.tenantId),
+          eq(certificationReports.engagementId, data.engagementId),
+        ),
+      );
 
     // Mark engagement as certified.
     await tx
@@ -386,7 +425,7 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
         phase: 'maintenance',
         certifiedAt: signedAt,
       })
-      .where(eq(engagements.id, data.engagementId));
+      .where(and(eq(engagements.id, data.engagementId), eq(engagements.tenantId, report.tenantId)));
 
     await tx.insert(auditLog).values({
       tenantId: report.tenantId,
@@ -421,7 +460,12 @@ export async function getCertificationDownloadUrl(opts: {
   const [report] = await db
     .select()
     .from(certificationReports)
-    .where(eq(certificationReports.id, opts.reportId))
+    .where(
+      and(
+        eq(certificationReports.id, opts.reportId),
+        eq(certificationReports.engagementId, opts.engagementId),
+      ),
+    )
     .limit(1);
   if (!report || report.engagementId !== opts.engagementId) throw new Error('Report not found');
 

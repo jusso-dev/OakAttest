@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import crypto from 'node:crypto';
-import { and, eq, lte } from 'drizzle-orm';
+import { and, eq, isNull, lte } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { engagements, clientOrganisations, systems } from '@/db/schema/engagements';
 import { engagementMembers } from '@/db/schema/tenants';
@@ -199,7 +199,7 @@ export async function updateEngagementState(input: z.infer<typeof stateSchema>) 
   const [engagement] = await db
     .select({ tenantId: engagements.tenantId, phase: engagements.phase, status: engagements.status })
     .from(engagements)
-    .where(eq(engagements.id, data.engagementId))
+    .where(and(eq(engagements.id, data.engagementId), isNull(engagements.deletedAt)))
     .limit(1);
   if (!engagement) throw new Error('Engagement not found');
 
@@ -218,7 +218,13 @@ export async function updateEngagementState(input: z.infer<typeof stateSchema>) 
         status: data.status,
         updatedAt: new Date(),
       })
-      .where(eq(engagements.id, data.engagementId));
+      .where(
+        and(
+          eq(engagements.id, data.engagementId),
+          eq(engagements.tenantId, engagement.tenantId),
+          isNull(engagements.deletedAt),
+        ),
+      );
 
     await tx.insert(auditLog).values({
       tenantId: engagement.tenantId,
@@ -247,7 +253,7 @@ export async function migrateEngagementIsmRevision(input: z.infer<typeof migrate
   const [engagement] = await db
     .select()
     .from(engagements)
-    .where(eq(engagements.id, data.engagementId))
+    .where(and(eq(engagements.id, data.engagementId), isNull(engagements.deletedAt)))
     .limit(1);
   if (!engagement) throw new Error('Engagement not found');
 
@@ -271,7 +277,12 @@ export async function migrateEngagementIsmRevision(input: z.infer<typeof migrate
   const existing = await db
     .select()
     .from(engagementControls)
-    .where(eq(engagementControls.engagementId, data.engagementId));
+    .where(
+      and(
+        eq(engagementControls.tenantId, engagement.tenantId),
+        eq(engagementControls.engagementId, data.engagementId),
+      ),
+    );
   const existingByControlId = new Map(existing.map((row) => [row.controlId, row]));
   const nextByControlId = new Map(nextControls.map((row) => [row.controlId, row]));
 
@@ -292,7 +303,13 @@ export async function migrateEngagementIsmRevision(input: z.infer<typeof migrate
               revision: next.revision,
               updatedAt: new Date(),
             })
-            .where(eq(engagementControls.id, current.id));
+            .where(
+              and(
+                eq(engagementControls.id, current.id),
+                eq(engagementControls.tenantId, engagement.tenantId),
+                eq(engagementControls.engagementId, data.engagementId),
+              ),
+            );
         }
       } else {
         added += 1;
@@ -317,14 +334,26 @@ export async function migrateEngagementIsmRevision(input: z.infer<typeof migrate
             applicabilityJustification: `Control was not present in migrated ISM revision ${data.toRevision}. Previous assessment material is retained for audit history. Migration reason: ${data.reason}`,
             updatedAt: new Date(),
           })
-          .where(eq(engagementControls.id, current.id));
+          .where(
+            and(
+              eq(engagementControls.id, current.id),
+              eq(engagementControls.tenantId, engagement.tenantId),
+              eq(engagementControls.engagementId, data.engagementId),
+            ),
+          );
       }
     }
 
     await tx
       .update(engagements)
       .set({ ismRevision: data.toRevision, updatedAt: new Date() })
-      .where(eq(engagements.id, data.engagementId));
+      .where(
+        and(
+          eq(engagements.id, data.engagementId),
+          eq(engagements.tenantId, engagement.tenantId),
+          isNull(engagements.deletedAt),
+        ),
+      );
     await tx.insert(auditLog).values({
       tenantId: engagement.tenantId,
       engagementId: data.engagementId,

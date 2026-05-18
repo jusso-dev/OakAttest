@@ -47,6 +47,7 @@ export async function decideApplicability(input: z.infer<typeof decideSchema>) {
     .where(
       and(
         eq(engagementControls.id, data.engagementControlId),
+        eq(engagementControls.tenantId, tenantId),
         eq(engagementControls.engagementId, data.engagementId),
       ),
     )
@@ -64,7 +65,13 @@ export async function decideApplicability(input: z.infer<typeof decideSchema>) {
         lastReviewedBy: session.user.id,
         updatedAt: new Date(),
       })
-      .where(eq(engagementControls.id, data.engagementControlId));
+      .where(
+        and(
+          eq(engagementControls.id, data.engagementControlId),
+          eq(engagementControls.tenantId, tenantId),
+          eq(engagementControls.engagementId, data.engagementId),
+        ),
+      );
     await tx.insert(auditLog).values({
       tenantId,
       engagementId: data.engagementId,
@@ -123,6 +130,7 @@ export async function writeImplementationStatement(input: z.infer<typeof stateme
       .where(
         and(
           eq(engagementControls.id, data.engagementControlId),
+          eq(engagementControls.tenantId, tenantId),
           eq(engagementControls.engagementId, data.engagementId),
         ),
       );
@@ -169,6 +177,7 @@ export async function updateControlAssessmentRecord(
       .where(
         and(
           eq(engagementControls.id, data.engagementControlId),
+          eq(engagementControls.tenantId, tenantId),
           eq(engagementControls.engagementId, data.engagementId),
         ),
       );
@@ -229,6 +238,7 @@ export async function bulkDecideApplicabilityControls(
     .where(
       and(
         eq(engagementControls.engagementId, data.engagementId),
+        eq(engagementControls.tenantId, tenantId),
         inArray(engagementControls.id, data.engagementControlIds),
       ),
     );
@@ -249,6 +259,7 @@ export async function bulkDecideApplicabilityControls(
       .where(
         and(
           eq(engagementControls.engagementId, data.engagementId),
+          eq(engagementControls.tenantId, tenantId),
           inArray(engagementControls.id, before.map((row) => row.id)),
         ),
       );
@@ -303,6 +314,7 @@ export async function bulkRemoveApplicabilityControls(
     .where(
       and(
         eq(engagementControls.engagementId, data.engagementId),
+        eq(engagementControls.tenantId, tenantId),
         inArray(engagementControls.id, data.engagementControlIds),
       ),
     );
@@ -315,6 +327,7 @@ export async function bulkRemoveApplicabilityControls(
       .where(
         and(
           eq(engagementControls.engagementId, data.engagementId),
+          eq(engagementControls.tenantId, tenantId),
           inArray(engagementControls.id, before.map((row) => row.id)),
         ),
       );

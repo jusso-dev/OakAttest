@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import crypto from 'node:crypto';
 import { db } from '@/lib/db/client';
@@ -27,7 +27,7 @@ export async function addResidualRisk(input: z.infer<typeof schema>) {
   const [eng] = await db
     .select({ tenantId: engagements.tenantId })
     .from(engagements)
-    .where(eq(engagements.id, data.engagementId))
+    .where(and(eq(engagements.id, data.engagementId), isNull(engagements.deletedAt)))
     .limit(1);
   if (!eng) throw new Error('Engagement not found');
 

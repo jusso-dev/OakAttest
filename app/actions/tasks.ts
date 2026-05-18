@@ -181,7 +181,13 @@ export async function updateEngagementTask(input: z.infer<typeof updateTaskSchem
   const [task] = await db
     .update(engagementTasks)
     .set(update)
-    .where(eq(engagementTasks.id, data.taskId))
+    .where(
+      and(
+        eq(engagementTasks.id, data.taskId),
+        eq(engagementTasks.tenantId, tenantId),
+        eq(engagementTasks.engagementId, data.engagementId),
+      ),
+    )
     .returning();
 
   await db.insert(auditLog).values({

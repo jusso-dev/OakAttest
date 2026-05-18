@@ -6,6 +6,8 @@ import {
   HeadObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import crypto from 'node:crypto';
+import { Readable } from 'node:stream';
 
 // S3-compatible client + presigned-URL helpers. The default region is suitable
 // for local Australian examples; production residency depends on the operator's
@@ -178,6 +180,73 @@ export async function verifyObject(opts: {
     sizeBytes,
     etag: result.ETag?.replaceAll('"', '') ?? null,
   };
+}
+
+export async function verifyObjectChecksum(opts: {
+  key: string;
+  expectedSha256: string;
+  expectedSizeBytes?: number;
+}): Promise<{
+  bucket: string;
+  key: string;
+  sha256: string;
+  sizeBytes: number;
+  etag: string | null;
+}> {
+  const config = readStorageConfig();
+  const head = await verifyObject({
+    key: opts.key,
+    expectedSizeBytes: opts.expectedSizeBytes,
+  });
+  const result = await client().send(new GetObjectCommand({ Bucket: config.bucket, Key: opts.key }));
+  if (!result.Body) throw new Error('Uploaded object is empty or unreadable');
+
+  const hash = crypto.createHash('sha256');
+  let sizeBytes = 0;
+  for await (const chunk of toAsyncIterable(result.Body)) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    sizeBytes += buffer.byteLength;
+    hash.update(buffer);
+  }
+
+  if (opts.expectedSizeBytes !== undefined && sizeBytes !== opts.expectedSizeBytes) {
+    throw new Error(`Uploaded object size mismatch: expected ${opts.expectedSizeBytes}, got ${sizeBytes}`);
+  }
+
+  const sha256 = hash.digest('hex');
+  if (sha256 !== opts.expectedSha256.toLowerCase()) {
+    throw new Error('Uploaded object checksum mismatch');
+  }
+
+  return {
+    bucket: config.bucket,
+    key: opts.key,
+    sha256,
+    sizeBytes,
+    etag: head.etag,
+  };
+}
+
+function toAsyncIterable(body: unknown): AsyncIterable<Uint8Array> {
+  if (body instanceof Readable) return body;
+  if (
+    body &&
+    typeof body === 'object' &&
+    Symbol.asyncIterator in body
+  ) {
+    return body as AsyncIterable<Uint8Array>;
+  }
+  if (
+    body &&
+    typeof body === 'object' &&
+    'transformToByteArray' in body &&
+    typeof (body as { transformToByteArray: unknown }).transformToByteArray === 'function'
+  ) {
+    return (async function* () {
+      yield await (body as { transformToByteArray: () => Promise<Uint8Array> }).transformToByteArray();
+    })();
+  }
+  throw new Error('Unsupported storage response body');
 }
 
 // Upload a Buffer directly from the server (used for generated PDFs and
