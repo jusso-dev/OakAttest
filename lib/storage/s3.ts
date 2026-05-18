@@ -116,7 +116,7 @@ export function buildEssentialEightReportKey(opts: {
   engagementId: string;
   version: number;
 }): string {
-  return `tenants/${opts.tenantId}/engagements/${opts.engagementId}/essential-eight/v${opts.version}.json`;
+  return `tenants/${opts.tenantId}/engagements/${opts.engagementId}/essential-eight/v${opts.version}.pdf`;
 }
 
 export async function presignUpload(opts: {

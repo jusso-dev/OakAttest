@@ -16,6 +16,7 @@ import { findings, findingRetests, findingRiskAcceptances } from '@/db/schema/fi
 import { evidenceItems } from '@/db/schema/evidence';
 import { auditLog } from '@/db/schema/audit';
 import { sspExports } from '@/db/schema/ssp';
+import { essentialEightReports } from '@/db/schema/essential-eight';
 import { requireSession } from '@/lib/auth/session';
 import { requirePermission } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
@@ -394,6 +395,23 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
     zip.file('system-security-plan.pdf-reference.txt', sspReference);
   }
 
+  const [latestE8Report] = await db
+    .select()
+    .from(essentialEightReports)
+    .where(
+      and(
+        eq(essentialEightReports.tenantId, report.tenantId),
+        eq(essentialEightReports.engagementId, data.engagementId),
+      ),
+    )
+    .orderBy(desc(essentialEightReports.version))
+    .limit(1);
+  let e8Reference: string | null = null;
+  if (latestE8Report) {
+    e8Reference = `Essential Eight report stored at: ${latestE8Report.storageBucket}/${latestE8Report.storageKey}\nSHA-256: ${latestE8Report.sha256}\nVersion: ${latestE8Report.version}\n`;
+    zip.file('essential-eight-report.pdf-reference.txt', e8Reference);
+  }
+
   // Audit log CSV (this engagement only).
   const auditRows = await db
     .select()
@@ -420,6 +438,9 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
     { filename: 'evidence-index.csv', body: evidenceCsv },
     ...(sspReference
       ? [{ filename: 'system-security-plan.pdf-reference.txt', body: sspReference }]
+      : []),
+    ...(e8Reference
+      ? [{ filename: 'essential-eight-report.pdf-reference.txt', body: e8Reference }]
       : []),
     { filename: 'audit-log.csv', body: auditCsv },
   ];

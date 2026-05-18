@@ -182,7 +182,7 @@ viewport captures so the README remains readable.
 - IRAP engagement workflow covering scoping, evidence, fieldwork, findings,
   certification, and maintenance.
 - Essential Eight profile, maturity assessment, history, evidence fields, and
-  generated report tracking within each engagement.
+  versioned PDF assessment reports within each engagement.
 - Assessment coverage dashboard that highlights blockers across controls,
   evidence, findings, SSP material, Essential Eight, and certification.
 - Burl AI helper popup and dedicated workspace for ISM questions, PDF evidence

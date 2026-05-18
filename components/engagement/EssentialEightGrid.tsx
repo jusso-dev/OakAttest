@@ -95,7 +95,7 @@ export function EssentialEightGrid({
             </p>
           </div>
           <Button variant="primary" disabled={Boolean(busy)} onClick={exportReport}>
-            {busy === 'report' ? 'Generating…' : 'Export E8 report'}
+            {busy === 'report' ? 'Generating…' : 'Export E8 PDF'}
           </Button>
         </div>
         {overall.blockers.length > 0 && (
@@ -151,7 +151,7 @@ export function EssentialEightGrid({
 
       {reports.length > 0 && (
         <div className="rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-4">
-          <p className="text-sm font-semibold text-slate-950">Generated reports</p>
+          <p className="text-sm font-semibold text-slate-950">Generated PDF reports</p>
           <ul className="mt-2 divide-y divide-slate-100 text-sm">
             {reports.map((report) => (
               <li key={report.id} className="flex items-center justify-between py-2">
