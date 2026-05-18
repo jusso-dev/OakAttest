@@ -283,6 +283,9 @@ Important environment variables:
 - `BETTER_AUTH_SECRET`: local or production auth secret.
 - `EMAIL_FROM`: sender for invite and magic-link emails.
 - `RESEND_API_KEY`: optional, otherwise emails are logged in development.
+- `CRON_SECRET`: shared secret for externally-triggered scheduled sync routes.
+- `CRON_TIMEZONE`: timezone for in-process scheduled jobs. Defaults to `Australia/Sydney`.
+- `ISM_RELEASE_SYNC_CRON`: daily ISM release sync schedule. Defaults to `0 3 * * *`.
 - `OAK_AI_PROVIDER`: optional AI provider selector. Currently `bedrock`.
 - `OAK_AI_BEDROCK_MODEL_ID`: Bedrock model or inference profile ID for Burl.
 - `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`,
