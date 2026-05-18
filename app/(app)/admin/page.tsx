@@ -161,8 +161,8 @@ export default async function AdminPage({
         <CardHeader>
           <CardTitle>Certification signing</CardTitle>
           <CardDescription>
-            Register an AWS KMS asymmetric RSA signing key for certification bundles. New
-            registrations rotate the previous active key while preserving historical verification.
+            Optionally register an AWS KMS asymmetric RSA signing key for certification bundles.
+            Without a tenant key, OakAttest uses the deployment-managed signing secret.
           </CardDescription>
         </CardHeader>
         <CardContent>

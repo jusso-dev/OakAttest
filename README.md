@@ -51,15 +51,12 @@ model ID, selected engagement, message count, and attachment summary.
 
 ## Certification Signing
 
-Production certification bundles are signed with a tenant-registered AWS KMS
-asymmetric RSA key. Tenant owners register the key ARN in **Tenant admin →
-Certification signing**; OakAttest stores the KMS ARN, public key, and
-fingerprint, then signs bundle hashes with RSA-PSS SHA-256.
-
-For local development only, certification signing can fall back to a
-tenant-scoped HMAC when no KMS key is registered. Production deployments reject
-that fallback unless `ALLOW_DEV_CERTIFICATION_SIGNING=true` is set explicitly.
-Do not enable that override for real certification artefacts.
+Certification bundles are signed by default with a deployment-managed signing
+secret (`CERTIFICATION_SIGNING_SECRET`, falling back to `BETTER_AUTH_SECRET`).
+Tenant owners can optionally register an AWS KMS asymmetric RSA key in **Tenant
+admin → Certification signing** for stronger key isolation. When a tenant KMS
+key exists, OakAttest stores the KMS ARN, public key, and fingerprint, then
+signs bundle hashes with RSA-PSS SHA-256.
 
 ## Product Screenshots
 
@@ -301,9 +298,10 @@ Important environment variables:
 - `OAK_AI_PROVIDER`: optional AI provider selector. Currently `bedrock`.
 - `OAK_AI_BEDROCK_MODEL_ID`: Bedrock model or inference profile ID for Burl.
 - `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`,
-  `AWS_SESSION_TOKEN`: AWS credentials used by Bedrock and AWS KMS signing.
-- `ALLOW_DEV_CERTIFICATION_SIGNING`: local-only override for HMAC certification
-  signatures when no tenant KMS key is registered.
+  `AWS_SESSION_TOKEN`: AWS credentials used by Bedrock and optional AWS KMS
+  signing.
+- `CERTIFICATION_SIGNING_SECRET`: optional deployment-managed certification
+  signing secret. Falls back to `BETTER_AUTH_SECRET` when unset.
 - `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_ENDPOINT`,
   `R2_REGION`: Cloudflare R2 object storage.
 - `S3_*`: optional AWS S3-compatible fallback settings.

@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   KMS_REPORT_ALGORITHM,
+  MANAGED_HMAC_REPORT_ALGORITHM,
   certificationSignaturePayload,
   fingerprintPublicKey,
   signCertificationBundle,
@@ -64,16 +65,24 @@ describe('certification signing', () => {
     expect(verification.status).toBe('valid');
   });
 
-  it('rejects development HMAC signing in production unless explicitly allowed', async () => {
+  it('uses deployment-managed signing when no tenant KMS key is configured', async () => {
     vi.stubEnv('NODE_ENV', 'production');
-    vi.stubEnv('ALLOW_DEV_CERTIFICATION_SIGNING', 'false');
+    vi.stubEnv('CERTIFICATION_SIGNING_SECRET', 'test-certification-signing-secret');
 
-    await expect(
-      signCertificationBundle({
-        tenantId: 'tenant-1',
-        bundleHash,
-      }),
-    ).rejects.toThrow(/requires an active tenant AWS KMS/);
+    const signature = await signCertificationBundle({
+      tenantId: 'tenant-1',
+      bundleHash,
+    });
+
+    expect(signature.signatureAlgorithm).toBe(MANAGED_HMAC_REPORT_ALGORITHM);
+    const verification = verifyCertificationSignature({
+      tenantId: 'tenant-1',
+      bundleHash,
+      signatureValue: signature.signatureValue,
+      signatureAlgorithm: signature.signatureAlgorithm,
+      signingKey: { fingerprint: signature.keyFingerprint },
+    });
+    expect(verification.valid).toBe(true);
   });
 
   it('warns but verifies historical signatures after key rotation', () => {

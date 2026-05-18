@@ -33,8 +33,8 @@ import {
   toCertificationReadinessSnapshot,
 } from '@/lib/certification/readiness';
 import {
-  DEV_REPORT_ALGORITHM,
   KMS_REPORT_ALGORITHM,
+  MANAGED_HMAC_REPORT_ALGORITHM,
   signCertificationBundle,
 } from '@/lib/security/signing';
 
@@ -454,8 +454,8 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
       `Signed: ${signedAt.toISOString()}`,
       `Signed by: ${session.user.email}`,
       `Verification: ${verifyUrl}`,
-      `Signature algorithm: ${signingKey?.kmsKeyArn ? KMS_REPORT_ALGORITHM : DEV_REPORT_ALGORITHM}`,
-      `Signing key fingerprint: ${signingKey?.fingerprint ?? 'development-fallback'}`,
+      `Signature algorithm: ${signingKey?.kmsKeyArn ? KMS_REPORT_ALGORITHM : MANAGED_HMAC_REPORT_ALGORITHM}`,
+      `Signing key fingerprint: ${signingKey?.fingerprint ?? 'deployment-managed'}`,
       '',
       'Files:',
       ...manifestRows.map((row) => `${sha256(row.body)}  ${row.filename}`),

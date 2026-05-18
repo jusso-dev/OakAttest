@@ -8,6 +8,7 @@ import {
 
 export const KMS_SIGNATURE_ALGORITHM = 'RSASSA_PSS_SHA_256';
 export const KMS_REPORT_ALGORITHM = 'aws-kms-rsa-pss-sha256';
+export const MANAGED_HMAC_REPORT_ALGORITHM = 'managed-hmac-sha256';
 export const DEV_REPORT_ALGORITHM = 'hmac-sha256-dev';
 
 export type SignatureResult = {
@@ -92,18 +93,14 @@ export async function signCertificationBundle(opts: {
     };
   }
 
-  if (!allowDevCertificationSigning()) {
-    throw new Error('Certification signing requires an active tenant AWS KMS asymmetric signing key.');
-  }
-
-  const secret = process.env.BETTER_AUTH_SECRET ?? 'dev';
+  const { secret, algorithm, keyFingerprint } = managedSigningSecret(opts.tenantId);
   return {
     signatureValue: crypto
       .createHmac('sha256', `${secret}:${opts.tenantId}`)
       .update(certificationSignaturePayload(opts.bundleHash))
       .digest('hex'),
-    signatureAlgorithm: DEV_REPORT_ALGORITHM,
-    keyFingerprint: fingerprint(`${opts.tenantId}:dev`),
+    signatureAlgorithm: algorithm,
+    keyFingerprint,
   };
 }
 
@@ -143,17 +140,21 @@ export function verifyCertificationSignature(opts: {
 
   assertBundleHash(opts.bundleHash);
 
-  if (opts.signatureAlgorithm === DEV_REPORT_ALGORITHM) {
-    if (!allowDevCertificationSigning()) {
+  if (
+    opts.signatureAlgorithm === MANAGED_HMAC_REPORT_ALGORITHM ||
+    opts.signatureAlgorithm === DEV_REPORT_ALGORITHM
+  ) {
+    if (opts.signatureAlgorithm === DEV_REPORT_ALGORITHM && !allowDevCertificationSigning()) {
       return {
         status: 'unsupported_algorithm',
         valid: false,
-        message: 'Development HMAC signatures are not accepted in this deployment.',
+        message: 'Legacy development HMAC signatures are not accepted in this deployment.',
         keyFingerprint: opts.signingKey?.fingerprint ?? fingerprint(`${opts.tenantId}:dev`),
       };
     }
+    const { secret, keyFingerprint } = managedSigningSecret(opts.tenantId);
     const expected = crypto
-      .createHmac('sha256', `${process.env.BETTER_AUTH_SECRET ?? 'dev'}:${opts.tenantId}`)
+      .createHmac('sha256', `${secret}:${opts.tenantId}`)
       .update(certificationSignaturePayload(opts.bundleHash))
       .digest('hex');
     const valid = timingSafeEqual(expected, opts.signatureValue);
@@ -161,9 +162,9 @@ export function verifyCertificationSignature(opts: {
       status: valid ? 'valid' : 'invalid',
       valid,
       message: valid
-        ? 'Development signature matches the stored bundle hash.'
-        : 'Development signature does not match the stored bundle hash.',
-      keyFingerprint: opts.signingKey?.fingerprint ?? fingerprint(`${opts.tenantId}:dev`),
+        ? 'Managed signature matches the stored bundle hash.'
+        : 'Managed signature does not match the stored bundle hash.',
+      keyFingerprint: opts.signingKey?.fingerprint ?? keyFingerprint,
     };
   }
 
@@ -241,6 +242,29 @@ function allowDevCertificationSigning(): boolean {
     process.env.NODE_ENV !== 'production' ||
     process.env.ALLOW_DEV_CERTIFICATION_SIGNING === 'true'
   );
+}
+
+function managedSigningSecret(tenantId: string): {
+  secret: string;
+  algorithm: typeof MANAGED_HMAC_REPORT_ALGORITHM | typeof DEV_REPORT_ALGORITHM;
+  keyFingerprint: string;
+} {
+  const secret = process.env.CERTIFICATION_SIGNING_SECRET ?? process.env.BETTER_AUTH_SECRET;
+  if (secret) {
+    return {
+      secret,
+      algorithm: MANAGED_HMAC_REPORT_ALGORITHM,
+      keyFingerprint: fingerprint(`${tenantId}:managed:${secret}`),
+    };
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Set CERTIFICATION_SIGNING_SECRET or BETTER_AUTH_SECRET before signing certification bundles.');
+  }
+  return {
+    secret: 'dev',
+    algorithm: DEV_REPORT_ALGORITHM,
+    keyFingerprint: fingerprint(`${tenantId}:dev`),
+  };
 }
 
 function assertBundleHash(bundleHash: string): void {

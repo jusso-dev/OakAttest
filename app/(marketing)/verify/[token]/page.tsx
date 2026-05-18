@@ -6,7 +6,7 @@ import { engagements } from '@/db/schema/engagements';
 import { tenants } from '@/db/schema/tenants';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BrandLogo } from '@/components/BrandLogo';
-import { verifyCertificationSignature } from '@/lib/security/signing';
+import { MANAGED_HMAC_REPORT_ALGORITHM, verifyCertificationSignature } from '@/lib/security/signing';
 
 export const metadata = { title: 'Verify · OakAttest' };
 
@@ -135,6 +135,7 @@ export default async function VerifyPage({
           </div>
           <Row label="Signing key status">
             {signingKeyStatus({
+              algorithm: report.signatureAlgorithm,
               rotatedAt: report.keyRotatedAt,
               revokedAt: report.keyRevokedAt,
               hasKey: Boolean(report.keyId),
@@ -180,14 +181,17 @@ function signatureStatusLabel(status: ReturnType<typeof verifyCertificationSigna
 }
 
 function signingKeyStatus({
+  algorithm,
   hasKey,
   rotatedAt,
   revokedAt,
 }: {
+  algorithm: string | null;
   hasKey: boolean;
   rotatedAt: Date | null;
   revokedAt: Date | null;
 }) {
+  if (algorithm === MANAGED_HMAC_REPORT_ALGORITHM) return 'Deployment-managed';
   if (!hasKey) return 'Not found';
   if (revokedAt) return `Revoked ${new Date(revokedAt).toLocaleDateString('en-AU')}`;
   if (rotatedAt) return `Rotated ${new Date(rotatedAt).toLocaleDateString('en-AU')}`;
