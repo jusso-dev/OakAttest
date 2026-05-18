@@ -47,6 +47,16 @@ export default async function EssentialEightPage({
     .where(eq(essentialEightReports.engagementId, id))
     .orderBy(desc(essentialEightReports.version));
 
+  const evidenceOptions = await db
+    .select({
+      id: evidenceItems.id,
+      filename: evidenceItems.filename,
+      reviewStatus: evidenceItems.reviewStatus,
+      sha256: evidenceItems.sha256,
+    })
+    .from(evidenceItems)
+    .where(eq(evidenceItems.engagementId, id));
+
   const mappedControls = await db
     .select({
       ismControlId: ismControls.id,
@@ -119,10 +129,12 @@ export default async function EssentialEightPage({
               sha256: report.sha256,
               generatedAt: report.generatedAt.toISOString(),
             }))}
+            evidenceOptions={evidenceOptions}
             strategies={ESSENTIAL_EIGHT_STRATEGIES.map((s) => ({
               ...s,
               current: byStrategy[s.key]?.currentMaturity ?? 'ml0',
               target: byStrategy[s.key]?.targetMaturity ?? targetMaturity,
+              evidenceRefs: byStrategy[s.key]?.evidenceRefs ?? [],
               remediationPlan: byStrategy[s.key]?.remediationPlan ?? '',
               assessmentMethods: byStrategy[s.key]?.assessmentMethods ?? '',
               assessmentObjects: byStrategy[s.key]?.assessmentObjects ?? '',
@@ -130,6 +142,7 @@ export default async function EssentialEightPage({
               evidenceQuality: byStrategy[s.key]?.evidenceQuality ?? '',
               evidenceLimitations: byStrategy[s.key]?.evidenceLimitations ?? '',
               assessorConclusion: byStrategy[s.key]?.assessorConclusion ?? '',
+              exceptions: byStrategy[s.key]?.exceptions ?? [],
               mappedControls: mappedByStrategy.get(s.key) ?? [],
             }))}
           />

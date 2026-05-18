@@ -17,6 +17,7 @@ type Strategy = {
   label: string;
   current: string;
   target: string;
+  evidenceRefs: string[];
   remediationPlan: string;
   assessmentMethods?: string;
   assessmentObjects?: string;
@@ -24,7 +25,21 @@ type Strategy = {
   evidenceQuality?: string;
   evidenceLimitations?: string;
   assessorConclusion?: string;
+  exceptions?: Array<{
+    scope?: string;
+    justification?: string;
+    owner?: string;
+    compensatingControls?: string;
+    conclusion?: string;
+  }>;
   mappedControls?: EssentialEightMappedControl[];
+};
+
+type EvidenceOption = {
+  id: string;
+  filename: string;
+  reviewStatus: string;
+  sha256: string;
 };
 
 const LEVELS = ['ml0', 'ml1', 'ml2', 'ml3'];
@@ -35,12 +50,14 @@ export function EssentialEightGrid({
   profile,
   overall,
   reports,
+  evidenceOptions,
 }: {
   engagementId: string;
   strategies: Strategy[];
   profile: { targetMaturity: string; scope: string; approach: string; limitations: string };
   overall: { achieved: string; blockers: Array<{ label: string; current: string; target: string }> };
   reports: Array<{ id: string; version: number; sha256: string; generatedAt: string }>;
+  evidenceOptions: EvidenceOption[];
 }) {
   const router = useRouter();
   const [targetMaturity, setTargetMaturity] = useState(profile.targetMaturity);
@@ -146,7 +163,7 @@ export function EssentialEightGrid({
 
       <div className="grid gap-3 sm:grid-cols-2">
         {strategies.map((s) => (
-          <StrategyCard key={s.key} engagementId={engagementId} strategy={s} />
+          <StrategyCard key={s.key} engagementId={engagementId} strategy={s} evidenceOptions={evidenceOptions} />
         ))}
       </div>
 
@@ -175,9 +192,11 @@ export function EssentialEightGrid({
 function StrategyCard({
   engagementId,
   strategy,
+  evidenceOptions,
 }: {
   engagementId: string;
   strategy: Strategy;
+  evidenceOptions: EvidenceOption[];
 }) {
   const router = useRouter();
   const [current, setCurrent] = useState(strategy.current);
@@ -189,6 +208,13 @@ function StrategyCard({
   const [quality, setQuality] = useState(strategy.evidenceQuality ?? '');
   const [limitations, setLimitations] = useState(strategy.evidenceLimitations ?? '');
   const [conclusion, setConclusion] = useState(strategy.assessorConclusion ?? '');
+  const [evidenceRefs, setEvidenceRefs] = useState<string[]>(strategy.evidenceRefs ?? []);
+  const firstException = strategy.exceptions?.[0];
+  const [exceptionScope, setExceptionScope] = useState(firstException?.scope ?? '');
+  const [exceptionJustification, setExceptionJustification] = useState(firstException?.justification ?? '');
+  const [exceptionOwner, setExceptionOwner] = useState(firstException?.owner ?? '');
+  const [compensatingControls, setCompensatingControls] = useState(firstException?.compensatingControls ?? '');
+  const [exceptionConclusion, setExceptionConclusion] = useState(firstException?.conclusion ?? '');
   const [busy, setBusy] = useState(false);
 
   async function save() {
@@ -206,6 +232,14 @@ function StrategyCard({
         evidenceQuality: quality as never || undefined,
         evidenceLimitations: limitations || undefined,
         assessorConclusion: conclusion || undefined,
+        evidenceRefs,
+        exceptions: buildException({
+          scope: exceptionScope,
+          justification: exceptionJustification,
+          owner: exceptionOwner,
+          compensatingControls,
+          conclusion: exceptionConclusion,
+        }),
       });
       router.refresh();
     } finally {
@@ -268,6 +302,41 @@ function StrategyCard({
       </div>
       <textarea rows={2} placeholder="Evidence limitations" value={limitations} onChange={(e) => setLimitations(e.target.value)} className="mt-3 w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm" />
       <textarea rows={2} placeholder="Assessor conclusion" value={conclusion} onChange={(e) => setConclusion(e.target.value)} className="mt-3 w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm" />
+      {evidenceOptions.length > 0 && (
+        <div className="mt-3 rounded-md border border-[var(--field-border)] p-2">
+          <p className="text-xs font-medium uppercase text-slate-600">Linked E8 evidence</p>
+          <div className="mt-2 max-h-32 space-y-1 overflow-auto pr-1">
+            {evidenceOptions.slice(0, 12).map((evidence) => (
+              <label key={evidence.id} className="flex items-center gap-2 text-xs text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={evidenceRefs.includes(evidence.id)}
+                  onChange={(event) => {
+                    setEvidenceRefs((current) =>
+                      event.target.checked
+                        ? [...new Set([...current, evidence.id])]
+                        : current.filter((id) => id !== evidence.id),
+                    );
+                  }}
+                />
+                <span className="truncate">
+                  {evidence.filename} ({evidence.reviewStatus})
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="mt-3 rounded-md border border-[var(--field-border)] p-2">
+        <p className="text-xs font-medium uppercase text-slate-600">Exception or compensating control</p>
+        <div className="mt-2 grid gap-2">
+          <input value={exceptionScope} onChange={(e) => setExceptionScope(e.target.value)} placeholder="Exception scope" className="h-9 rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3 text-sm" />
+          <input value={exceptionOwner} onChange={(e) => setExceptionOwner(e.target.value)} placeholder="Exception owner" className="h-9 rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3 text-sm" />
+          <textarea rows={2} value={exceptionJustification} onChange={(e) => setExceptionJustification(e.target.value)} placeholder="Justification" className="w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm" />
+          <textarea rows={2} value={compensatingControls} onChange={(e) => setCompensatingControls(e.target.value)} placeholder="Compensating controls" className="w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm" />
+          <textarea rows={2} value={exceptionConclusion} onChange={(e) => setExceptionConclusion(e.target.value)} placeholder="Assessor exception conclusion" className="w-full rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-2 text-sm" />
+        </div>
+      </div>
       {strategy.mappedControls && strategy.mappedControls.length > 0 && (
         <div className="mt-3 rounded-md bg-[var(--oak-mist)] p-2">
           <p className="text-xs font-medium uppercase text-slate-600">Mapped ISM controls</p>
@@ -332,4 +401,23 @@ function StrategyCard({
       </div>
     </div>
   );
+}
+
+function buildException(input: {
+  scope: string;
+  justification: string;
+  owner: string;
+  compensatingControls: string;
+  conclusion: string;
+}) {
+  if (!Object.values(input).some((value) => value.trim().length > 0)) return undefined;
+  return [
+    {
+      scope: input.scope || undefined,
+      justification: input.justification || undefined,
+      owner: input.owner || undefined,
+      compensatingControls: input.compensatingControls || undefined,
+      conclusion: input.conclusion || undefined,
+    },
+  ];
 }

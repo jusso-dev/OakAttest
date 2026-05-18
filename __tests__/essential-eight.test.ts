@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { calculateEssentialEightOverall, formatMaturity } from '@/lib/essential-eight';
+import { validateEssentialEightAssessment } from '@/lib/essential-eight-validation';
 
 describe('Essential Eight package maturity', () => {
   it('uses the lowest maturity across all eight strategies', () => {
@@ -54,5 +55,32 @@ describe('Essential Eight package maturity', () => {
       'user_application_hardening',
       'multi_factor_authentication',
     ]);
+  });
+
+  it('requires a defensible conclusion before marking target maturity achieved', () => {
+    expect(() =>
+      validateEssentialEightAssessment({
+        currentMaturity: 'ml2',
+        targetMaturity: 'ml2',
+        evidenceQuality: 'good',
+        assessorConclusion: '',
+      }),
+    ).toThrow(/Assessor conclusion/);
+    expect(() =>
+      validateEssentialEightAssessment({
+        currentMaturity: 'ml2',
+        targetMaturity: 'ml2',
+        evidenceQuality: 'insufficient',
+        assessorConclusion: 'Meets the criterion.',
+      }),
+    ).toThrow(/Evidence quality/);
+    expect(() =>
+      validateEssentialEightAssessment({
+        currentMaturity: 'ml1',
+        targetMaturity: 'ml2',
+        evidenceQuality: 'insufficient',
+        assessorConclusion: '',
+      }),
+    ).not.toThrow();
   });
 });
