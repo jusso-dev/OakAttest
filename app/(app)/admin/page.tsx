@@ -2,7 +2,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { tenantInvitations, tenantMembers, tenants } from '@/db/schema/tenants';
 import { users } from '@/db/schema/auth';
-import { getSession } from '@/lib/auth/session';
+import { requirePageSession } from '@/lib/auth/session';
 import { resolveActiveTenant } from '@/lib/auth/active-tenant';
 import { requirePermission, PermissionDeniedError } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
@@ -19,7 +19,7 @@ export default async function AdminPage({
 }: {
   searchParams?: Promise<{ invite?: string }>;
 }) {
-  const session = (await getSession())!;
+  const session = await requirePageSession();
   const params = await searchParams;
   const tenant = await resolveActiveTenant(session.user.id);
   if (!tenant) redirect('/onboarding');

@@ -10,12 +10,15 @@ import {
   Globe,
   CalendarCheck,
   Database,
+  Bot,
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react';
 import { BrandLogo } from '@/components/BrandLogo';
+import { BurlAssistant } from '@/components/burl/BurlAssistant';
 import { SignOutButton } from '@/components/SignOutButton';
 import { cn } from '@/lib/utils';
+import type { BurlEngagementOption } from '@/lib/burl/context';
 
 export function AppShell({
   children,
@@ -23,12 +26,14 @@ export function AppShell({
   userName,
   userRole,
   canUseTenantAdmin,
+  burlEngagements,
 }: {
   children: React.ReactNode;
   tenantName: string;
   userName: string;
   userRole: string;
   canUseTenantAdmin: boolean;
+  burlEngagements: BurlEngagementOption[];
 }) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -95,6 +100,7 @@ export function AppShell({
         </div>
         <nav className="flex flex-col gap-1 text-sm">
           <SidebarLink href="/dashboard" icon={LayoutDashboard} label="Dashboard" collapsed={collapsed} />
+          <SidebarLink href="/burl" icon={Bot} label="Burl" collapsed={collapsed} />
           {canUseTenantAdmin && (
             <>
               <SidebarLink href="/admin/compliance" icon={CalendarCheck} label="Compliance" collapsed={collapsed} />
@@ -124,6 +130,7 @@ export function AppShell({
         </div>
       </aside>
       <main className="flex-1 min-w-0 p-6 md:p-10">{children}</main>
+      <BurlAssistant mode="popup" engagements={burlEngagements} />
     </div>
   );
 }

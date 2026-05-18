@@ -49,6 +49,38 @@ async function screenshot(page: Page, name: string) {
   });
 }
 
+async function installBurlScreenshotMock(page: Page) {
+  let responseIndex = 0;
+  await page.route('**/api/burl/chat/stream', async (route) => {
+    responseIndex += 1;
+    const body =
+      responseIndex === 1
+        ? `## Visible engagements\n\nYou can currently see one engagement in this tenant:\n\n| Engagement | Phase | Status | ISM revision |\n| --- | --- | --- | --- |\n| ${persona.engagementName} | Scoping | Draft | 2025.03 |\n\nThis is the only engagement in the current OakAttest context. Select it before asking for detailed evidence or control mapping.`
+        : `## Suggested evidence mapping\n\nBurl treated **entra-mfa-registration-export.pdf** as uploaded evidence for assessor review.\n\n| ISM control | Confidence | Why it may apply | Assessor check |\n| --- | --- | --- | --- |\n| ISM-0974 | High | Shows MFA registration state and default methods for users in scope. | Confirm export date, tenant ID, privileged-user coverage and exclusions. |\n| ISM-1546 | Medium | Supports user access management and privileged account sampling. | Check that admin accounts and break-glass accounts are included. |\n| ISM-1690 | Medium | Supports monitoring of authentication posture and conditional access coverage. | Validate report period and any excluded groups. |\n\n**Limitations:** this is a mapping suggestion only. The assessor still confirms scope, sample coverage, implementation and evidence quality before linking controls.`;
+
+    await route.fulfill({
+      status: 200,
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'X-Burl-Attachment':
+          responseIndex === 1
+            ? ''
+            : encodeURIComponent(
+                JSON.stringify({
+                  filename: 'entra-mfa-registration-export.pdf',
+                  mimeType: 'application/pdf',
+                  sizeBytes: 92000,
+                  extractedCharacters: 1840,
+                  truncated: false,
+                }),
+              ),
+      },
+      body,
+    });
+  });
+}
+
 async function goto(page: Page, path: string) {
   await page.goto(`${baseUrl}${path}`);
   await page.waitForLoadState('networkidle');
@@ -190,6 +222,7 @@ async function main() {
     deviceScaleFactor: 1,
   });
   const page = await context.newPage();
+  await installBurlScreenshotMock(page);
 
   await goto(page, '/sign-up');
   await page.getByLabel('Full name').fill(persona.name);
@@ -289,6 +322,27 @@ async function main() {
 
   await goto(page, '/admin/compliance');
   await screenshot(page, '16-ongoing-compliance');
+
+  await goto(page, '/burl');
+  await page.getByLabel('Use context from').selectOption(engagementId);
+  await page
+    .getByPlaceholder('Ask about evidence, ISM controls, or attach a PDF...')
+    .fill('What engagements can I see in this tenant, and which one should I use for evidence mapping?');
+  await page.keyboard.press('Enter');
+  await page.getByText('Visible engagements').waitFor({ timeout: 20_000 });
+  await screenshot(page, '17-burl-engagement-questions');
+
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'entra-mfa-registration-export.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4\n% OakAttest screenshot fixture\n'),
+  });
+  await page
+    .getByPlaceholder('Ask about evidence, ISM controls, or attach a PDF...')
+    .fill('Map this uploaded PDF evidence to likely ISM controls and show the assessor checks.');
+  await page.keyboard.press('Enter');
+  await page.getByText('Suggested evidence mapping').waitFor({ timeout: 20_000 });
+  await screenshot(page, '18-burl-pdf-evidence-mapping');
 
   await browser.close();
 }

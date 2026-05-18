@@ -4,7 +4,7 @@ import { db } from '@/lib/db/client';
 import { engagements } from '@/db/schema/engagements';
 import { certificationReports } from '@/db/schema/certification';
 import { tenants } from '@/db/schema/tenants';
-import { getSession } from '@/lib/auth/session';
+import { requirePageSession } from '@/lib/auth/session';
 import { resolveActiveTenant } from '@/lib/auth/active-tenant';
 import { requirePermission } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
@@ -20,7 +20,7 @@ export const metadata = { title: 'Ongoing compliance · OakAttest' };
 // have a 2-year recertification cycle; SECRET and TOP_SECRET have shorter
 // intervals defined by the assessor firm's policy.
 export default async function CompliancePage() {
-  const session = (await getSession())!;
+  const session = await requirePageSession();
   const tenant = await resolveActiveTenant(session.user.id);
   if (!tenant) redirect('/onboarding');
   await requirePermission(ACTIONS.complianceView, {

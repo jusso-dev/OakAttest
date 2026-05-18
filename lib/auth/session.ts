@@ -1,4 +1,5 @@
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { auth } from './auth';
 
 // Server-side session resolution. Pages and Server Actions call this to
@@ -15,6 +16,12 @@ export async function requireSession() {
   if (!session) {
     throw new AuthRequiredAtRouteError();
   }
+  return session;
+}
+
+export async function requirePageSession() {
+  const session = await getSession();
+  if (!session) redirect('/signin');
   return session;
 }
 

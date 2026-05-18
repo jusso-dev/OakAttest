@@ -2,7 +2,7 @@ import { desc } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db/client';
 import { ismImports } from '@/db/schema/ism';
-import { getSession } from '@/lib/auth/session';
+import { requirePageSession } from '@/lib/auth/session';
 import { resolveActiveTenant } from '@/lib/auth/active-tenant';
 import { requirePermission, PermissionDeniedError } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
@@ -11,8 +11,9 @@ import { NewEngagementForm } from './NewEngagementForm';
 export const metadata = { title: 'New engagement · OakAttest' };
 
 export default async function NewEngagementPage() {
-  const session = (await getSession())!;
-  const tenant = (await resolveActiveTenant(session.user.id))!;
+  const session = await requirePageSession();
+  const tenant = await resolveActiveTenant(session.user.id);
+  if (!tenant) redirect('/onboarding');
 
   try {
     await requirePermission(ACTIONS.engagementCreate, {

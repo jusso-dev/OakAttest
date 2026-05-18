@@ -1,10 +1,11 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { and, asc, desc, eq, inArray, isNull, ne } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { engagements } from '@/db/schema/engagements';
 import { engagementTasks } from '@/db/schema/tasks';
 import { users } from '@/db/schema/auth';
-import { getSession } from '@/lib/auth/session';
+import { requirePageSession } from '@/lib/auth/session';
 import { resolveActiveTenant } from '@/lib/auth/active-tenant';
 import { engagementMembers } from '@/db/schema/tenants';
 import {
@@ -21,8 +22,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 export const metadata = { title: 'Dashboard · OakAttest' };
 
 export default async function DashboardPage() {
-  const session = (await getSession())!;
-  const tenant = (await resolveActiveTenant(session.user.id))!;
+  const session = await requirePageSession();
+  const tenant = await resolveActiveTenant(session.user.id);
+  if (!tenant) redirect('/onboarding');
 
   const rows =
     tenant.access === 'tenant'

@@ -1,0 +1,126 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Burl OakAttest Mascot Transparent Vector</title>
+  <desc id="desc">Original oak-burl acorn shield mascot icon with transparent background.</desc>
+  <defs>
+    <linearGradient id="wood" x1="300" y1="280" x2="760" y2="830" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E2B978"/>
+      <stop offset="0.45" stop-color="#B77F3F"/>
+      <stop offset="1" stop-color="#6E4828"/>
+    </linearGradient>
+    <linearGradient id="cap" x1="230" y1="150" x2="805" y2="350" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8B5D2E"/>
+      <stop offset="1" stop-color="#4C321F"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="212" y1="255" x2="815" y2="839" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#304634"/>
+      <stop offset="1" stop-color="#17261D"/>
+    </linearGradient>
+    <linearGradient id="leaf" x1="570" y1="150" x2="810" y2="350" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#496445"/>
+      <stop offset="1" stop-color="#223622"/>
+    </linearGradient>
+    <filter id="softShadow" x="130" y="80" width="780" height="840" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="22" stdDeviation="24" flood-color="#000000" flood-opacity="0.18"/>
+    </filter>
+    <clipPath id="faceClip">
+      <path d="M512 239C635 239 745 289 794 364C812 391 808 470 779 568C745 684 665 792 512 854C359 792 279 684 245 568C216 470 212 391 230 364C279 289 389 239 512 239Z"/>
+    </clipPath>
+  </defs>
+
+  <g filter="url(#softShadow)">
+    <!-- acorn cap -->
+    <path d="M224 298C250 192 361 135 512 135C663 135 774 192 800 298C723 322 624 336 512 336C400 336 301 322 224 298Z" fill="url(#cap)"/>
+    <path d="M476 142C500 96 555 89 575 134C588 164 564 191 523 201C491 208 462 169 476 142Z" fill="#6B4527"/>
+
+    <!-- cap scale texture -->
+    <g opacity="0.32" stroke="#2F1F15" stroke-width="7" stroke-linecap="round">
+      <path d="M282 279C301 245 321 223 343 211"/>
+      <path d="M346 300C366 250 392 218 424 202"/>
+      <path d="M421 315C438 260 468 220 512 198"/>
+      <path d="M507 321C523 259 558 219 604 202"/>
+      <path d="M593 313C615 259 650 226 695 213"/>
+      <path d="M676 296C704 259 731 235 757 226"/>
+    </g>
+    <g opacity="0.25" fill="#C18A4E">
+      <circle cx="307" cy="258" r="18"/>
+      <circle cx="382" cy="229" r="15"/>
+      <circle cx="466" cy="211" r="17"/>
+      <circle cx="553" cy="211" r="15"/>
+      <circle cx="638" cy="229" r="17"/>
+      <circle cx="715" cy="258" r="18"/>
+    </g>
+
+    <!-- outer shield/acorn rim -->
+    <path d="M512 230C641 230 758 282 811 362C833 395 829 480 797 586C759 711 671 826 512 890C353 826 265 711 227 586C195 480 191 395 213 362C266 282 383 230 512 230Z" fill="url(#rim)"/>
+
+    <!-- wood face -->
+    <path d="M512 263C622 263 718 307 761 373C777 398 773 470 747 559C716 664 643 762 512 819C381 762 308 664 277 559C251 470 247 398 263 373C306 307 402 263 512 263Z" fill="url(#wood)"/>
+
+    <!-- center subtle shield facet -->
+    <path d="M512 278C587 333 635 438 635 558C635 655 590 741 512 800C434 741 389 655 389 558C389 438 437 333 512 278Z" fill="#D39A56" opacity="0.28"/>
+    <path d="M512 280V800" stroke="#5B351F" stroke-width="4" opacity="0.24" stroke-linecap="round"/>
+
+    <!-- oak leaf detail -->
+    <path d="M613 239C648 168 727 125 803 137C785 166 810 181 844 173C835 210 863 222 894 221C871 250 886 276 918 289C883 304 882 334 909 354C870 360 852 386 866 420C830 406 802 426 795 463C767 432 735 435 714 468C702 429 673 420 640 441C657 404 640 377 600 371C632 347 632 315 599 291C633 287 642 266 613 239Z" fill="url(#leaf)"/>
+    <path d="M626 356C690 293 758 243 831 194" stroke="#A6B58A" stroke-width="8" stroke-linecap="round" opacity="0.75"/>
+    <path d="M704 294L713 393" stroke="#8DA176" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+    <path d="M759 255L828 329" stroke="#8DA176" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+
+    <!-- knot eyes -->
+    <g>
+      <circle cx="403" cy="474" r="43" fill="#7A4A25"/>
+      <circle cx="403" cy="474" r="28" fill="#4A2E1C"/>
+      <circle cx="403" cy="474" r="10" fill="#1D1712"/>
+      <path d="M371 472C385 442 421 435 438 462" stroke="#C79254" stroke-width="6" stroke-linecap="round" opacity="0.7"/>
+      <path d="M374 500C398 522 429 507 439 480" stroke="#2E1D12" stroke-width="5" stroke-linecap="round" opacity="0.65"/>
+    </g>
+    <g>
+      <circle cx="620" cy="474" r="43" fill="#7A4A25"/>
+      <circle cx="620" cy="474" r="28" fill="#4A2E1C"/>
+      <circle cx="620" cy="474" r="10" fill="#1D1712"/>
+      <path d="M588 472C602 442 638 435 655 462" stroke="#C79254" stroke-width="6" stroke-linecap="round" opacity="0.7"/>
+      <path d="M591 500C615 522 646 507 656 480" stroke="#2E1D12" stroke-width="5" stroke-linecap="round" opacity="0.65"/>
+    </g>
+
+    <!-- calm mouth -->
+    <path d="M455 565C485 594 539 594 569 565" stroke="#3C291B" stroke-width="13" stroke-linecap="round"/>
+    <path d="M455 558C485 587 539 587 569 558" stroke="#E3B879" stroke-width="5" stroke-linecap="round" opacity="0.35"/>
+
+    <!-- wood grain lines -->
+    <g clip-path="url(#faceClip)" opacity="0.32" stroke="#3F2818" stroke-width="5" stroke-linecap="round">
+      <path d="M319 377C380 336 448 320 512 326C584 333 651 358 704 405"/>
+      <path d="M304 436C371 393 450 376 520 386C595 397 662 426 724 478"/>
+      <path d="M301 516C369 486 443 474 513 489C596 506 664 553 715 615"/>
+      <path d="M336 641C401 600 466 589 526 607C588 626 637 671 673 733"/>
+      <path d="M397 722C445 692 492 684 538 701C575 715 604 743 629 781"/>
+      <path d="M261 598C302 590 330 607 348 640"/>
+      <path d="M724 396C690 424 680 460 696 505"/>
+      <path d="M358 351C328 399 326 450 352 504"/>
+    </g>
+
+    <!-- small burl knots -->
+    <g opacity="0.65">
+      <circle cx="350" cy="617" r="26" fill="#7B4B28"/>
+      <circle cx="350" cy="617" r="12" fill="#3A2417"/>
+      <path d="M330 613C338 596 359 591 371 606" stroke="#C18B51" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="584" cy="642" r="16" fill="#704323"/>
+      <circle cx="584" cy="642" r="7" fill="#342116"/>
+      <circle cx="474" cy="360" r="14" fill="#704323"/>
+      <circle cx="474" cy="360" r="6" fill="#342116"/>
+    </g>
+
+    <!-- moss accent -->
+    <path d="M257 587C283 604 313 616 349 625C344 664 368 705 394 742C343 702 302 650 276 589L257 587Z" fill="#48611F" opacity="0.9"/>
+    <g fill="#6E842D" opacity="0.85">
+      <circle cx="283" cy="595" r="12"/>
+      <circle cx="307" cy="617" r="10"/>
+      <circle cx="335" cy="634" r="11"/>
+      <circle cx="359" cy="673" r="9"/>
+      <circle cx="381" cy="715" r="8"/>
+    </g>
+
+    <!-- soft highlights -->
+    <path d="M290 389C336 317 427 286 512 289" stroke="#FFE2A4" stroke-width="14" stroke-linecap="round" opacity="0.22"/>
+    <path d="M758 380C765 411 760 486 738 560" stroke="#111B13" stroke-width="10" stroke-linecap="round" opacity="0.18"/>
+  </g>
+</svg>

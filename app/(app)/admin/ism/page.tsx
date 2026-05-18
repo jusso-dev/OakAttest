@@ -2,7 +2,7 @@ import { count, desc } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db/client';
 import { engagementControls, ismControls, ismImports } from '@/db/schema/ism';
-import { getSession } from '@/lib/auth/session';
+import { requirePageSession } from '@/lib/auth/session';
 import { resolveActiveTenant } from '@/lib/auth/active-tenant';
 import { requirePermission, PermissionDeniedError } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
@@ -13,7 +13,7 @@ import { IsmImportPanel } from '@/components/admin/IsmImportPanel';
 export const metadata = { title: 'ISM imports · OakAttest' };
 
 export default async function IsmImportsPage() {
-  const session = (await getSession())!;
+  const session = await requirePageSession();
   const tenant = await resolveActiveTenant(session.user.id);
   if (!tenant) redirect('/onboarding');
 

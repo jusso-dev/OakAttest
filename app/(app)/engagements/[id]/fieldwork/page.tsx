@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { InterviewForm } from '@/components/fieldwork/InterviewForm';
 import { InterviewRow } from '@/components/fieldwork/InterviewRow';
 import { VulnScanUpload } from '@/components/fieldwork/VulnScanUpload';
-import { getSession } from '@/lib/auth/session';
+import { requirePageSession } from '@/lib/auth/session';
 import { rolesForUser } from '@/lib/rbac/require';
 import { engagements } from '@/db/schema/engagements';
 
@@ -16,7 +16,7 @@ export default async function FieldworkPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = (await getSession())!;
+  const session = await requirePageSession();
 
   const [engagement] = await db
     .select({ tenantId: engagements.tenantId })

@@ -6,7 +6,7 @@ import { engagementMembers } from '@/db/schema/tenants';
 import { users } from '@/db/schema/auth';
 import { sspExports } from '@/db/schema/ssp';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getSession } from '@/lib/auth/session';
+import { requirePageSession } from '@/lib/auth/session';
 import { rolesForUser } from '@/lib/rbac/require';
 import { ACTIONS, isPermitted } from '@/lib/rbac/matrix';
 import { InviteMemberForm } from '@/components/engagement/InviteMemberForm';
@@ -24,7 +24,7 @@ export default async function OverviewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = (await getSession())!;
+  const session = await requirePageSession();
 
   const [engagement] = await db
     .select()

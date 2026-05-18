@@ -7,7 +7,7 @@ import { engagementMembers } from '@/db/schema/tenants';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FindingCreateForm } from '@/components/findings/FindingCreateForm';
 import { FindingRow } from '@/components/findings/FindingRow';
-import { getSession } from '@/lib/auth/session';
+import { requirePageSession } from '@/lib/auth/session';
 
 export default async function FindingsPage({
   params,
@@ -18,7 +18,7 @@ export default async function FindingsPage({
 }) {
   const { id } = await params;
   const query = await searchParams;
-  const session = (await getSession())!;
+  const session = await requirePageSession();
   const q = readParam(query.q).trim();
   const status = readParam(query.status);
   const severity = readParam(query.severity);

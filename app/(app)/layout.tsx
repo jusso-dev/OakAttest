@@ -137,6 +137,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       userName={session.user.name ?? session.user.email}
       userRole={userRole}
       canUseTenantAdmin={tenant.access === 'tenant'}
+      burlEngagements={engagementList.map((engagement) => ({
+        id: engagement.id,
+        name: engagement.name,
+        reference: engagement.reference,
+      }))}
     >
       {children}
       <CommandPalette items={paletteItems} />

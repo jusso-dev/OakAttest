@@ -6,7 +6,7 @@ import { CertificationDraftForm } from '@/components/engagement/CertificationDra
 import { CertificationRow } from '@/components/engagement/CertificationRow';
 import { ResidualRiskForm } from '@/components/engagement/ResidualRiskForm';
 import { AuthorisationPackagePanel } from '@/components/engagement/AuthorisationPackagePanel';
-import { getSession } from '@/lib/auth/session';
+import { requirePageSession } from '@/lib/auth/session';
 import { rolesForUser } from '@/lib/rbac/require';
 import { engagements } from '@/db/schema/engagements';
 import { getCertificationReadiness } from '@/lib/certification/readiness';
@@ -17,7 +17,7 @@ export default async function CertificationPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = (await getSession())!;
+  const session = await requirePageSession();
 
   const [engagement] = await db
     .select({ tenantId: engagements.tenantId })

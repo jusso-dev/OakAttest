@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db/client';
 import { tenants } from '@/db/schema/tenants';
-import { getSession } from '@/lib/auth/session';
+import { requirePageSession } from '@/lib/auth/session';
 import { resolveActiveTenant } from '@/lib/auth/active-tenant';
 import { requirePermission, PermissionDeniedError } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
@@ -13,7 +13,7 @@ import { BrandingForm } from '@/components/admin/BrandingForm';
 export const metadata = { title: 'Branding · OakAttest' };
 
 export default async function BrandingPage() {
-  const session = (await getSession())!;
+  const session = await requirePageSession();
   const tenant = await resolveActiveTenant(session.user.id);
   if (!tenant) redirect('/onboarding');
 

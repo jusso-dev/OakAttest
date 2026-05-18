@@ -16,7 +16,7 @@ import { redirect } from 'next/navigation';
 import { db } from '@/lib/db/client';
 import { auditLog } from '@/db/schema/audit';
 import { users } from '@/db/schema/auth';
-import { getSession } from '@/lib/auth/session';
+import { requirePageSession } from '@/lib/auth/session';
 import { resolveActiveTenant } from '@/lib/auth/active-tenant';
 import { requirePermission, PermissionDeniedError } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
@@ -44,7 +44,7 @@ export default async function AuditLogPage({
     pageSize?: string;
   }>;
 }) {
-  const session = (await getSession())!;
+  const session = await requirePageSession();
   const tenant = await resolveActiveTenant(session.user.id);
   if (!tenant) redirect('/onboarding');
 
@@ -122,6 +122,8 @@ export default async function AuditLogPage({
       actorName: users.name,
       actorIp: auditLog.actorIp,
       message: auditLog.message,
+      beforeJson: auditLog.beforeJson,
+      afterJson: auditLog.afterJson,
     })
     .from(auditLog)
     .leftJoin(users, eq(users.id, auditLog.actorUserId))
@@ -335,7 +337,7 @@ export default async function AuditLogPage({
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.id} className="border-b border-[var(--field-border)]">
+                  <tr key={r.id} className="border-b border-[var(--field-border)] align-top">
                     <td className="py-2 pr-3 whitespace-nowrap text-slate-600">
                       {new Date(r.createdAt).toLocaleString('en-AU')}
                     </td>
@@ -354,8 +356,31 @@ export default async function AuditLogPage({
                     <td className="py-2 pr-3 font-mono text-xs text-slate-600">
                       {r.actorIp ?? '—'}
                     </td>
-                    <td className="max-w-[280px] truncate py-2 pr-3 text-slate-700">
-                      {r.message ?? '—'}
+                    <td className="max-w-[420px] py-2 pr-3 text-slate-700">
+                      <details className="group">
+                        <summary className="flex cursor-pointer list-none items-start gap-2 rounded-md px-2 py-1 hover:bg-[var(--oak-mist)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--oak-shield)]">
+                          <span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded border border-[var(--field-border)] text-[10px] text-slate-600 group-open:hidden">
+                            +
+                          </span>
+                          <span className="mt-0.5 hidden h-4 w-4 shrink-0 items-center justify-center rounded border border-[var(--field-border)] text-[10px] text-slate-600 group-open:inline-flex">
+                            -
+                          </span>
+                          <span className="min-w-0 flex-1 truncate">{r.message ?? 'View audit context'}</span>
+                        </summary>
+                        <div className="mt-2 space-y-3 rounded-md border border-[var(--field-border)] bg-[var(--background)] p-3">
+                          <AuditContextBlock label="Full message" value={r.message ?? 'No message recorded.'} />
+                          <div className="grid gap-3 lg:grid-cols-2">
+                            <AuditContextBlock label="Before" value={formatAuditJson(r.beforeJson)} />
+                            <AuditContextBlock label="After" value={formatAuditJson(r.afterJson)} />
+                          </div>
+                          <div className="grid gap-2 text-xs text-slate-700 sm:grid-cols-2">
+                            <AuditMeta label="Audit ID" value={r.id} />
+                            <AuditMeta label="Resource ID" value={r.resourceId ?? 'not recorded'} />
+                            <AuditMeta label="Engagement ID" value={r.engagementId ?? 'not recorded'} />
+                            <AuditMeta label="Actor user ID" value={r.actorUserId ?? 'not recorded'} />
+                          </div>
+                        </div>
+                      </details>
                     </td>
                   </tr>
                 ))}
@@ -442,6 +467,35 @@ function PageLink({
       {children}
     </Link>
   );
+}
+
+function AuditContextBlock({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="mb-1 text-xs font-medium uppercase text-slate-600">{label}</p>
+      <pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] p-3 font-mono text-xs leading-5 text-slate-800">
+        {value}
+      </pre>
+    </div>
+  );
+}
+
+function AuditMeta({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-2 py-1">
+      <span className="font-medium text-slate-950">{label}</span>
+      <span className="ml-2 break-all font-mono text-slate-700">{value}</span>
+    </div>
+  );
+}
+
+function formatAuditJson(value: unknown) {
+  if (value === null || value === undefined) return 'not recorded';
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
 }
 
 function auditHref(params: Record<string, string>) {

@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db/client';
 import { tenantIpAllowlist } from '@/db/schema/auth';
-import { getSession } from '@/lib/auth/session';
+import { requirePageSession } from '@/lib/auth/session';
 import { resolveActiveTenant } from '@/lib/auth/active-tenant';
 import { requirePermission, PermissionDeniedError } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
@@ -12,7 +12,7 @@ import { IpAllowlistManager } from '@/components/admin/IpAllowlistManager';
 export const metadata = { title: 'IP allowlist · OakAttest' };
 
 export default async function IpAllowlistPage() {
-  const session = (await getSession())!;
+  const session = await requirePageSession();
   const tenant = await resolveActiveTenant(session.user.id);
   if (!tenant) redirect('/onboarding');
 

@@ -6,7 +6,7 @@ import { engagements } from '@/db/schema/engagements';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BoundaryEditor } from '@/components/engagement/BoundaryEditor';
 import { ApplicabilityWorksheet } from '@/components/engagement/ApplicabilityWorksheet';
-import { getSession } from '@/lib/auth/session';
+import { requirePageSession } from '@/lib/auth/session';
 import { rolesForUser } from '@/lib/rbac/require';
 
 export default async function ScopePage({
@@ -15,7 +15,7 @@ export default async function ScopePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = (await getSession())!;
+  const session = await requirePageSession();
 
   const [engagement] = await db
     .select()
