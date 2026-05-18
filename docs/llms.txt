@@ -2,7 +2,7 @@
 
 > Open-source IRAP assessment software for Australian assessor firms and client organisations.
 
-OakAttest is a self-hostable workspace for running IRAP assessment work against the Australian Government Information Security Manual (ISM). It supports scoping, assessment boundaries, ISM applicability, evidence collection, fieldwork, findings, residual risk, certification records, SSP bundle exports and ongoing compliance maintenance.
+OakAttest is a self-hostable workspace for running IRAP assessment work against the Australian Government Information Security Manual (ISM). It supports scoping, assessment boundaries, ISM applicability, evidence collection, fieldwork, Essential Eight assessment, findings, residual risk, certification records, SSP bundle exports and ongoing compliance maintenance.
 
 ## Core Topics
 
@@ -13,8 +13,10 @@ OakAttest is a self-hostable workspace for running IRAP assessment work against 
 - Assessment boundary diagrams and Cloud IRAP context
 - System Security Plan (SSP) artefacts and SSP Annex data
 - Evidence collection, review, findings and residual risk
+- Microsoft 365 and Google Workspace evidence exports mapped to ISM review
 - OFFICIAL: Sensitive and PROTECTED assessment workflows
 - Essential Eight visibility and Australian Government cyber security evidence
+- Certification readiness, reassessment scheduling and ongoing compliance
 - Self-hosted assessment tooling with audit history
 
 ## Primary Users

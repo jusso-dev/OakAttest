@@ -1,6 +1,6 @@
 # OakAttest: Open-source IRAP Assessment Workspace
 
-OakAttest is an open-source IRAP assessment workspace for ASD-registered assessor firms and the client organisations they assess. It is designed for Australian cyber security assessment work and supports the assessment lifecycle from organisation setup through scoping, evidence collection, fieldwork, findings, certification and ongoing compliance maintenance.
+OakAttest is an open-source IRAP assessment workspace for ASD-registered assessor firms and the client organisations they assess. It is designed for Australian cyber security assessment work and supports the assessment lifecycle from organisation setup through scoping, evidence collection, fieldwork, Essential Eight assessment, findings, certification and ongoing compliance maintenance.
 
 ## What OakAttest Does
 
@@ -9,17 +9,24 @@ OakAttest helps teams manage practical IRAP assessment work:
 - Organisation-first onboarding for assessor firms.
 - Tenant roles and engagement-scoped client access.
 - IRAP engagement workflow covering scoping, evidence, fieldwork, findings, certification and maintenance.
+- Assessment coverage dashboard for blockers across controls, evidence, findings, SSP material, Essential Eight and certification.
+- Essential Eight target maturity profiles, strategy assessment records, evidence fields, history and report tracking.
 - ACSC ISM OSCAL import support for current releases, selected releases, bundled local seed data and unused revision removal.
+- ISM revision compare and migration prompts for engagements pinned to older releases.
 - ISM control applicability worksheet with chapter, sub-chapter, status and search filters.
 - Per-control CAF assessment record fields for assessment methods, assessment objects, evidence quality and evidence limitations.
+- Versioned SSP section editing with assessor comments and implementation statement history.
 - React Flow system boundary drawer with typed components, boundary boxes, edge persistence and exported boundary PNGs.
 - Cloud IRAP engagement mode for AWS, Azure and Google Cloud workloads up to PROTECTED.
 - Evidence request, upload, review and CVE/SBOM import workflows.
+- Enterprise evidence guidance and CSV analysis for Microsoft 365 Secure Score, Microsoft Entra authentication methods, Microsoft Purview Compliance Manager, Microsoft Defender Vulnerability Management, Google Workspace security exports and Google audit exports.
 - Vulnerability scan import for Nessus, Rapid7, Qualys and generic CSV.
-- Findings register linked to ISM controls, with chapter/sub-chapter filters, status filters, severity and remediation actions.
+- Findings register linked to ISM controls, with chapter/sub-chapter filters, status filters, severity, remediation actions, retests and risk acceptance.
 - Residual risk capture using a likelihood and impact matrix.
+- Certification readiness checks before signing.
 - SSP bundle export as a zip containing PDF, Excel workbook and boundary diagram image.
 - Versioned generated files with R2/S3 storage support and admin delete flow.
+- Tenant MFA, retention and reassessment policy settings.
 - Append-only audit log with search, filters, sorting and pagination.
 
 ## IRAP and ISM Search Context

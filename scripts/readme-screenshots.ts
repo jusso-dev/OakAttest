@@ -269,6 +269,27 @@ async function main() {
   await goto(page, overviewUrl.replace('/overview', '/certification').replace(baseUrl, ''));
   await screenshot(page, '12-certification');
 
+  await goto(page, overviewUrl.replace('/overview', '/essential-eight').replace(baseUrl, ''));
+  await screenshot(page, '13-essential-eight');
+
+  await goto(page, overviewUrl.replace('/overview', '/evidence').replace(baseUrl, ''));
+  await screenshot(page, '14-enterprise-evidence');
+
+  await goto(page, overviewUrl.replace('/overview', '/coverage').replace(baseUrl, ''));
+  await screenshot(page, '15-assessment-coverage');
+
+  await db
+    .update(engagements)
+    .set({
+      status: 'completed',
+      phase: 'maintenance',
+      certifiedAt: daysFromNow(-28),
+    })
+    .where(eq(engagements.id, engagementId));
+
+  await goto(page, '/admin/compliance');
+  await screenshot(page, '16-ongoing-compliance');
+
   await browser.close();
 }
 

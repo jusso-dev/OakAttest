@@ -93,33 +93,73 @@ viewport captures so the README remains readable.
   <img src="docs/screenshots/12-certification.png" alt="Certification" width="900" />
 </details>
 
+<details>
+  <summary><strong>Essential Eight</strong></summary>
+  <br />
+  <img src="docs/screenshots/13-essential-eight.png" alt="Essential Eight" width="900" />
+</details>
+
+<details>
+  <summary><strong>Enterprise evidence guidance</strong></summary>
+  <br />
+  <img src="docs/screenshots/14-enterprise-evidence.png" alt="Enterprise evidence guidance" width="900" />
+</details>
+
+<details>
+  <summary><strong>Assessment coverage</strong></summary>
+  <br />
+  <img src="docs/screenshots/15-assessment-coverage.png" alt="Assessment coverage" width="900" />
+</details>
+
+<details>
+  <summary><strong>Ongoing compliance</strong></summary>
+  <br />
+  <img src="docs/screenshots/16-ongoing-compliance.png" alt="Ongoing compliance" width="900" />
+</details>
+
 ## Core Capabilities
 
 - Organisation-first onboarding for assessor firms, with tenant roles and
   engagement-scoped client access.
 - IRAP engagement workflow covering scoping, evidence, fieldwork, findings,
   certification, and maintenance.
+- Essential Eight profile, maturity assessment, history, evidence fields, and
+  generated report tracking within each engagement.
+- Assessment coverage dashboard that highlights blockers across controls,
+  evidence, findings, SSP material, Essential Eight, and certification.
 - Engagement task board with owners, due dates, overdue/due-today signals,
   dashboard notifications, and collapsible engagement task summaries.
 - ACSC ISM OSCAL import panel for current releases, selected releases, bundled
-  local seed data, and unused revision removal.
+  local seed data, unused revision removal, and revision compare/migration
+  prompts for pinned engagements.
 - Applicability worksheet with ISM chapter, sub-chapter, status, and search
   filters, plus bulk applicability decisions and bulk removal.
 - Per-control CAF assessment record fields for assessment methods, assessment
   objects, evidence quality, and evidence limitations.
+- Versioned SSP section editing with assessor comments and implementation
+  statement history.
 - React Flow system boundary drawer with typed components, boundary boxes,
   edge persistence, and exported boundary PNGs with service icons.
 - Cloud IRAP engagement mode for AWS, Azure, and Google Cloud workloads up to
   PROTECTED, with conservative inherited-provider controls marked not applicable
   and justified for assessor review.
 - Evidence request, upload, review, and CVE/SBOM import workflows.
+- Enterprise platform evidence guidance and CSV analysis for Microsoft 365
+  Secure Score, Entra authentication methods, Purview Compliance Manager,
+  Defender Vulnerability Management, Google Workspace security exports, and
+  Google audit exports, with suggested ISM and Essential Eight mappings.
 - Vulnerability scan import for Nessus, Rapid7, Qualys, and generic CSV.
 - Findings register linked to ISM controls, with chapter/sub-chapter filters,
-  status filters, severity, and remediation actions.
+  status filters, severity, remediation actions, risk acceptance, and retest
+  records.
 - Residual risk capture using a 5x5 likelihood and impact matrix.
+- Certification readiness checks before signing, including unresolved blockers
+  and residual-risk prompts.
 - SSP bundle export as a zip containing PDF, Excel workbook, and the boundary
   diagram image.
 - Versioned generated files with R2/S3 storage support and admin delete flow.
+- Tenant security policy settings for MFA enforcement, evidence retention, and
+  reassessment cadence by classification.
 - Append-only audit log with search, filters, sorting, and pagination.
 
 ## IRAP Workflow Coverage
@@ -234,7 +274,8 @@ The script writes PNGs to `docs/screenshots/` and creates:
 - a Cloud IRAP engagement
 - screenshots of signup, terms, onboarding, tenant admin, ISM import, new
   engagement, scope/applicability, task board, overview, dashboard, findings,
-  and certification
+  certification, Essential Eight, enterprise evidence guidance, coverage, and
+  ongoing compliance
 
 ## Project Layout
 
