@@ -7,6 +7,7 @@ import {
   pdf,
 } from '@react-pdf/renderer';
 import type { Classification } from '@/db/schema/enums';
+import type { CertificationReadinessSnapshot } from '@/lib/certification/readiness';
 
 const styles = StyleSheet.create({
   page: { padding: 48, fontSize: 10, fontFamily: 'Helvetica', color: '#0f172a' },
@@ -58,6 +59,7 @@ export type CertificationData = {
   recommendation: 'recommended' | 'recommended_with_conditions' | 'not_recommended';
   conditions: string | null;
   validUntil: string | null;
+  readiness: CertificationReadinessSnapshot | null;
   signedBy: { name: string; email: string } | null;
   signedAt: string | null;
   bundleHash: string | null;
@@ -134,6 +136,26 @@ export function CertificationDocument({ data }: { data: CertificationData }) {
         )}
         {data.validUntil && (
           <Text style={styles.body}>Re-assessment due by: {data.validUntil}</Text>
+        )}
+
+        {data.readiness && (
+          <>
+            <Text style={styles.sectionTitle}>6. Readiness Snapshot</Text>
+            <Text style={styles.body}>
+              Captured: {data.readiness.capturedAt} · Ready to sign:{' '}
+              {data.readiness.readyToSign ? 'yes' : 'no'}
+            </Text>
+            {data.readiness.blockers.length > 0 && (
+              <Text style={styles.body}>
+                Blockers: {data.readiness.blockers.map((item) => `${item.label} (${item.count})`).join('; ')}
+              </Text>
+            )}
+            {data.readiness.warnings.length > 0 && (
+              <Text style={styles.body}>
+                Warnings: {data.readiness.warnings.map((item) => `${item.label} (${item.count})`).join('; ')}
+              </Text>
+            )}
+          </>
         )}
 
         <View style={styles.signatureBox}>

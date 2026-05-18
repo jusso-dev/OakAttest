@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { generateCertificationDraft } from '@/app/actions/certification';
 import { useUnsavedChanges } from '@/components/engagement/UnsavedChangesGuard';
+import type { CertificationReadiness } from '@/lib/certification/readiness';
 
 const schema = z.object({
   scope: z.string().min(10).max(8000),
@@ -21,7 +22,13 @@ const schema = z.object({
 
 type Values = z.infer<typeof schema>;
 
-export function CertificationDraftForm({ engagementId }: { engagementId: string }) {
+export function CertificationDraftForm({
+  engagementId,
+  readiness,
+}: {
+  engagementId: string;
+  readiness: CertificationReadiness;
+}) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
   const {
@@ -53,6 +60,19 @@ export function CertificationDraftForm({ engagementId }: { engagementId: string 
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+      {(readiness.blockers.length > 0 || readiness.warnings.length > 0) && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+          <p className="font-medium">Readiness snapshot will be included in the draft.</p>
+          {readiness.blockers.length > 0 && (
+            <p className="mt-1">
+              Signing is blocked by {readiness.blockers.length} hard readiness item(s).
+            </p>
+          )}
+          {readiness.warnings.length > 0 && (
+            <p className="mt-1">{readiness.warnings.length} warning item(s) should be resolved or documented.</p>
+          )}
+        </div>
+      )}
       <div className="space-y-1.5">
         <Label htmlFor="scope">Scope</Label>
         <textarea

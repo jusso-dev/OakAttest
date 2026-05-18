@@ -122,7 +122,7 @@ export default async function CertificationPage({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CertificationDraftForm engagementId={id} />
+            <CertificationDraftForm engagementId={id} readiness={readiness} />
           </CardContent>
         </Card>
       )}

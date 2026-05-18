@@ -27,7 +27,10 @@ import {
 } from '@/lib/storage/s3';
 import { renderCertificationPdf, type CertificationData } from '@/lib/pdf/certification';
 import { resolveBranding } from '@/lib/branding';
-import { getCertificationReadiness } from '@/lib/certification/readiness';
+import {
+  getCertificationReadiness,
+  toCertificationReadinessSnapshot,
+} from '@/lib/certification/readiness';
 import { signCertificationBundle } from '@/lib/security/signing';
 
 const generateSchema = z.object({
@@ -55,6 +58,7 @@ export async function generateCertificationDraft(input: z.infer<typeof generateS
     tenantId: engagement.tenantId,
     engagementId: data.engagementId,
   });
+  const readiness = await getCertificationReadiness(data.engagementId);
 
   const [tenant] = await db
     .select({ name: tenants.name, branding: tenants.branding })
@@ -142,6 +146,7 @@ export async function generateCertificationDraft(input: z.infer<typeof generateS
     recommendation: data.recommendation,
     conditions: data.conditions ?? null,
     validUntil: data.validUntil ?? null,
+    readiness: toCertificationReadinessSnapshot(readiness),
     signedBy: null,
     signedAt: null,
     bundleHash: null,
@@ -184,7 +189,7 @@ export async function generateCertificationDraft(input: z.infer<typeof generateS
     });
   });
 
-  return { id, version: nextVersion };
+  return { id, version: nextVersion, readiness };
 }
 
 const signSchema = z.object({
@@ -249,6 +254,7 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
   const signedAt = new Date();
   const signed: CertificationData = {
     ...snapshot,
+    readiness: toCertificationReadinessSnapshot(readiness),
     signedBy: { name: session.user.name ?? '', email: session.user.email ?? '' },
     signedAt: signedAt.toISOString(),
     bundleHash: 'pending',
