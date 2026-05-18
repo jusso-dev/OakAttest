@@ -4,13 +4,14 @@ import { engagements, clientOrganisations, systems } from '@/db/schema/engagemen
 import { engagementControls, ismImports } from '@/db/schema/ism';
 import { engagementMembers } from '@/db/schema/tenants';
 import { users } from '@/db/schema/auth';
-import { sspExports } from '@/db/schema/ssp';
+import { sspExports, sspSectionComments, sspSections } from '@/db/schema/ssp';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { requirePageSession } from '@/lib/auth/session';
 import { rolesForUser } from '@/lib/rbac/require';
 import { ACTIONS, isPermitted } from '@/lib/rbac/matrix';
 import { InviteMemberForm } from '@/components/engagement/InviteMemberForm';
 import { SspExportPanel } from '@/components/engagement/SspExportPanel';
+import { SspCollaborationPanel } from '@/components/engagement/SspCollaborationPanel';
 import { RoleAccessGuide } from '@/components/admin/RoleAccessGuide';
 import { CveSubmitForm } from '@/components/evidence/CveSubmitForm';
 import { VulnScanUpload } from '@/components/fieldwork/VulnScanUpload';
@@ -66,6 +67,30 @@ export default async function OverviewPage({
     .where(eq(sspExports.engagementId, id))
     .orderBy(desc(sspExports.version))
     .limit(5);
+
+  const sspSectionRows = await db
+    .select()
+    .from(sspSections)
+    .where(eq(sspSections.engagementId, id))
+    .orderBy(sspSections.sectionKey);
+
+  const sspCommentRows = await db
+    .select({
+      id: sspSectionComments.id,
+      sectionId: sspSectionComments.sectionId,
+      sectionKey: sspSections.sectionKey,
+      parentCommentId: sspSectionComments.parentCommentId,
+      body: sspSectionComments.body,
+      status: sspSectionComments.status,
+      authorName: users.name,
+      authorEmail: users.email,
+      createdAt: sspSectionComments.createdAt,
+    })
+    .from(sspSectionComments)
+    .innerJoin(sspSections, eq(sspSections.id, sspSectionComments.sectionId))
+    .leftJoin(users, eq(users.id, sspSectionComments.createdBy))
+    .where(eq(sspSectionComments.engagementId, id))
+    .orderBy(sspSectionComments.createdAt);
 
   const [latestIsm] = await db
     .select({ revision: ismImports.revision, completedAt: ismImports.completedAt })
@@ -218,6 +243,39 @@ export default async function OverviewPage({
               <RoleAccessGuide />
             </div>
           </details>
+        </CardContent>
+      </Card>
+
+      <Card className="md:col-span-2">
+        <CardHeader>
+          <CardTitle>SSP collaboration</CardTitle>
+          <CardDescription>
+            Draft, review, comment on, and approve SSP sections before export.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SspCollaborationPanel
+            engagementId={id}
+            sections={sspSectionRows.map((section) => ({
+              id: section.id,
+              sectionKey: section.sectionKey,
+              content: section.content,
+              autoSummary: section.autoSummary,
+              reviewStatus: section.reviewStatus,
+              lastEditedAt: section.lastEditedAt.toISOString(),
+            }))}
+            comments={sspCommentRows.map((comment) => ({
+              id: comment.id,
+              sectionId: comment.sectionId,
+              sectionKey: comment.sectionKey,
+              parentCommentId: comment.parentCommentId,
+              body: comment.body,
+              status: comment.status,
+              authorName: comment.authorName,
+              authorEmail: comment.authorEmail,
+              createdAt: comment.createdAt.toISOString(),
+            }))}
+          />
         </CardContent>
       </Card>
 

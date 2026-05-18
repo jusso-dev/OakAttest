@@ -35,6 +35,7 @@ import { renderSspXlsx } from '@/lib/xlsx/ssp';
 import { renderBoundaryPng } from '@/lib/boundary/render';
 import { boundaryGraphSchema } from '@/lib/boundary/schema';
 import { resolveBranding } from '@/lib/branding';
+import { canTransitionSspStatus, type SspReviewStatus } from '@/lib/ssp/collaboration';
 
 const generateSchema = z.object({
   engagementId: z.string().uuid(),
@@ -624,12 +625,19 @@ export async function saveSspSection(input: z.infer<typeof sectionSchema>) {
 
   await db.transaction(async (tx) => {
     let sectionId = existing?.id;
+    const nextStatus = data.reviewStatus ?? existing?.reviewStatus ?? 'draft';
+    if (
+      existing &&
+      !canTransitionSspStatus(existing.reviewStatus as SspReviewStatus, nextStatus as SspReviewStatus)
+    ) {
+      throw new Error(`Cannot move SSP section from ${existing.reviewStatus} to ${nextStatus}.`);
+    }
     if (existing) {
       await tx
         .update(sspSections)
         .set({
           content: data.content,
-          reviewStatus: data.reviewStatus ?? existing.reviewStatus,
+          reviewStatus: nextStatus,
           lastEditedBy: session.user.id,
           lastEditedAt: new Date(),
         })
@@ -646,7 +654,7 @@ export async function saveSspSection(input: z.infer<typeof sectionSchema>) {
         tenantId: eng.tenantId,
         sectionKey: data.sectionKey,
         content: data.content,
-        reviewStatus: data.reviewStatus ?? 'draft',
+        reviewStatus: nextStatus,
         lastEditedBy: session.user.id,
       }).returning({ id: sspSections.id });
       sectionId = inserted.id;
@@ -661,7 +669,7 @@ export async function saveSspSection(input: z.infer<typeof sectionSchema>) {
       tenantId: eng.tenantId,
       version: (maxV ?? 0) + 1,
       content: data.content,
-      reviewStatus: data.reviewStatus ?? existing?.reviewStatus ?? 'draft',
+      reviewStatus: nextStatus,
       editedBy: session.user.id,
     });
     await tx.insert(auditLog).values({
@@ -670,10 +678,11 @@ export async function saveSspSection(input: z.infer<typeof sectionSchema>) {
       actorUserId: session.user.id,
       action: 'ssp.section.save',
       resourceType: 'ssp_section',
-      afterJson: { sectionKey: data.sectionKey, length: data.content.length } as never,
+      afterJson: { sectionKey: data.sectionKey, length: data.content.length, reviewStatus: nextStatus } as never,
     });
   });
 
+  revalidatePath(`/engagements/${data.engagementId}/overview`);
   return { ok: true };
 }
 
