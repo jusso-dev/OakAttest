@@ -24,7 +24,7 @@ export default async function BurlPage() {
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
       <header className="flex flex-col gap-4 border-b border-[var(--field-border)] pb-6 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-4">
-          <BurlAvatar className="h-16 w-16" priority variant="mascot" />
+          <BurlAvatar className="h-16 w-16" priority />
           <div>
             <h1 className="text-2xl font-semibold tracking-normal text-slate-950">Burl</h1>
             <p className="mt-1 max-w-2xl text-sm text-slate-700">
