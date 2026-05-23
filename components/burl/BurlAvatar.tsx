@@ -4,11 +4,9 @@ import { cn } from '@/lib/utils';
 export function BurlAvatar({
   className,
   priority,
-  variant = 'logo',
 }: {
   className?: string;
   priority?: boolean;
-  variant?: 'logo' | 'mascot';
 }) {
   return (
     <span
@@ -18,12 +16,12 @@ export function BurlAvatar({
       )}
     >
       <Image
-        src={variant === 'mascot' ? '/burl-oakattest-mascot-transparent.svg' : '/burl-logo.png'}
+        src="/burl-oakattest-mascot-transparent.svg"
         alt="Burl"
         width={96}
         height={96}
         priority={priority}
-        className={cn('h-full w-full', variant === 'mascot' ? 'object-contain p-1' : 'object-cover')}
+        className="h-full w-full object-contain p-1"
       />
     </span>
   );

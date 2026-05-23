@@ -17,7 +17,7 @@ decision.
 
 ## Burl AI Helper
 
-<img src="public/burl-logo-background-removed-transparent.png" alt="Burl oak assistant logo" width="120" />
+<img src="public/burl-oakattest-mascot-transparent.svg" alt="Burl oak assistant logo" width="120" />
 
 Burl is OakAttest's oak-based AI helper for evidence and ISM questions. It is
 available as a bottom-right assistant popup throughout the authenticated product
