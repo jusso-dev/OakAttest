@@ -220,11 +220,18 @@ export default async function AdminPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Billing</CardTitle>
-          <CardDescription>Billing integration is stubbed for milestone 1.</CardDescription>
+          <CardTitle>Subscription</CardTitle>
+          <CardDescription>
+            View Marketplace subscription state, grace window, and audit history.
+          </CardDescription>
         </CardHeader>
-        <CardContent className="text-sm text-slate-600">
-          Coming soon.
+        <CardContent>
+          <a
+            href="/admin/subscription"
+            className="inline-flex h-9 items-center justify-center rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-4 text-sm font-medium text-slate-900 hover:bg-[var(--oak-mist)]"
+          >
+            Open subscription panel
+          </a>
         </CardContent>
       </Card>
     </div>

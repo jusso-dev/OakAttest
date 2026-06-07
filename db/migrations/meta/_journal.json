@@ -71,6 +71,13 @@
       "when": 1779099023846,
       "tag": "0009_amused_captain_flint",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1780792996056,
+      "tag": "0010_subscriptions",
+      "breakpoints": true
     }
   ]
 }

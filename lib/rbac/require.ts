@@ -6,11 +6,22 @@ import {
   type Role,
   isPermitted,
 } from './matrix';
+import { resolveEntitlement, type Entitlement } from '@/lib/billing/entitlement';
+import { MUTATING_ACTIONS } from '@/lib/billing/actions';
 
 export class PermissionDeniedError extends Error {
   constructor(public action: Action, public reason: string) {
     super(`Permission denied for ${action}: ${reason}`);
     this.name = 'PermissionDeniedError';
+  }
+}
+
+export class SubscriptionBlockedError extends Error {
+  constructor(public action: Action, public entitlement: Entitlement) {
+    super(
+      `Subscription gate blocked ${action}: ${entitlement.reason}`,
+    );
+    this.name = 'SubscriptionBlockedError';
   }
 }
 
@@ -77,6 +88,10 @@ export async function rolesForUser(ctx: AuthContext): Promise<Role[]> {
 //
 // Throws on denial. Callers should let the error propagate so the route
 // renders a 403; do not swallow.
+//
+// Mutating actions also pass through the subscription entitlement gate
+// (`lib/billing/entitlement.ts`). Reads never hit the gate. Self-installed
+// deployments (no subscription row) are treated as `allow` and never gated.
 export async function requirePermission(action: Action, ctx: AuthContext): Promise<Role[]> {
   if (!ctx.userId) throw new AuthRequiredError();
   const roles = await rolesForUser(ctx);
@@ -90,5 +105,13 @@ export async function requirePermission(action: Action, ctx: AuthContext): Promi
       `no role among [${roles.join(', ')}] permits this action`,
     );
   }
+
+  if (MUTATING_ACTIONS.has(action)) {
+    const entitlement = await resolveEntitlement(ctx.tenantId);
+    if (entitlement.state === 'block') {
+      throw new SubscriptionBlockedError(action, entitlement);
+    }
+  }
+
   return roles;
 }
