@@ -14,7 +14,9 @@ import { recordAudit } from '@/lib/audit/log';
 // subscription row keyed by a new `marketplaceSubscriptionId` — Microsoft does
 // not reissue a cancelled subscription.
 const TRANSITIONS: Record<SubscriptionStatus, ReadonlySet<SubscriptionStatus>> = {
-  pending: new Set(['active', 'cancelled']),
+  pending: new Set(['active', 'trial', 'cancelled']),
+  provisioning: new Set(['active', 'trial', 'cancelled']),
+  trial: new Set(['active', 'suspended', 'cancelled']),
   active: new Set(['suspended', 'cancelled']),
   // Suspended is the entry point for the grace window. The transition to
   // `grace` happens at write time if `graceEndsAt` is in the future; webhooks

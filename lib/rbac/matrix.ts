@@ -19,6 +19,20 @@ export type EngagementRole =
 
 export type Role = TenantRole | EngagementRole;
 
+// Partner (MSP) roles. A partner sits above tenants; partner members manage many
+// client tenants. `rolesForUser` maps a partner role to a standard tenant role
+// (partner_owner→tenant_owner, partner_admin→assessor_admin) so this matrix and
+// the IRAP independence guard apply unchanged. Partner-scoped provisioning
+// actions are enforced via `requirePartnerRole` in `lib/auth/partner.ts`.
+export type PartnerRole = 'partner_owner' | 'partner_admin';
+
+// Maps a partner (MSP) role to the standard tenant role it grants over the
+// partner's client tenants. Pure — exercised by unit tests and used by
+// `rolesForUser`.
+export function partnerRoleToTenantRole(role: PartnerRole): TenantRole {
+  return role === 'partner_owner' ? 'tenant_owner' : 'assessor_admin';
+}
+
 export const ASSESSOR_ROLES: ReadonlySet<EngagementRole> = new Set([
   'lead_assessor',
   'assessor',

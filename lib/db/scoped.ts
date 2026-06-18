@@ -1,4 +1,4 @@
-import { and, eq, SQL } from 'drizzle-orm';
+import { and, eq, sql, SQL } from 'drizzle-orm';
 import { db } from './client';
 import * as schema from '@/db/schema';
 
@@ -28,4 +28,23 @@ export function withTenant<T extends SQL>(tenantId: string, tenantColumn: SQL, e
 // `eq(<table>.tenantId, ctx.tenantId)` in every predicate.
 export function scopedDb(_ctx: ScopedContext) {
   return { db, schema };
+}
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+// Tenant-scoped transaction for Postgres Row-Level Security. Sets the
+// `app.current_tenant_id` GUC (SET LOCAL, via set_config) for the life of the
+// transaction so the RLS policies in `db/migrations/post/rls_policies.sql`
+// filter every tenant_id-bearing table to this tenant. Route tenant-scoped
+// reads/writes through this to get DB-enforced isolation on top of the
+// application predicates (defence-in-depth). Until a query is migrated onto
+// this helper the policies are permissive for it (see the SQL header).
+export async function runWithTenantScope<T>(
+  tenantId: string,
+  fn: (tx: Tx) => Promise<T>,
+): Promise<T> {
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select set_config('app.current_tenant_id', ${tenantId}, true)`);
+    return fn(tx);
+  });
 }

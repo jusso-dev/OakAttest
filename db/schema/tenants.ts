@@ -9,6 +9,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { tenantRoleEnum, engagementRoleEnum } from './enums';
 import { users } from './auth';
+import { partners } from './partners';
 
 // A tenant is an assessor firm. Maps 1:1 to BetterAuth's organization concept;
 // we keep our own table so application code does not have to thread BetterAuth
@@ -17,6 +18,11 @@ export const tenants = pgTable(
   'tenants',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    // The MSP that manages this client tenant. Null for self-managed tenants
+    // (direct customers) and self-installed deployments. See partners.ts.
+    partnerId: uuid('partner_id').references(() => partners.id, {
+      onDelete: 'set null',
+    }),
     slug: text('slug').notNull(),
     name: text('name').notNull(),
     abn: text('abn'),
@@ -45,7 +51,10 @@ export const tenants = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
   },
-  (t) => [uniqueIndex('tenants_slug_uq').on(t.slug)],
+  (t) => [
+    uniqueIndex('tenants_slug_uq').on(t.slug),
+    index('tenants_partner_idx').on(t.partnerId),
+  ],
 );
 
 // User membership in an assessor firm. A user may belong to many tenants

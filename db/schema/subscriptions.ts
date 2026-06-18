@@ -27,6 +27,11 @@ export const subscriptionStatusEnum = pgEnum('subscription_status', [
   'suspended',
   'grace',
   'cancelled',
+  // Added for the multi-plan SaaS model. `provisioning` is a synonym of
+  // `pending` (acknowledged, activation incomplete); `trial` allows writes
+  // like `active`. Appended (not reordered) so the migration is additive.
+  'trial',
+  'provisioning',
 ]);
 
 export type SubscriptionStatus =
@@ -45,17 +50,24 @@ export const subscriptions = pgTable(
     tenantId: uuid('tenant_id')
       .notNull()
       .references(() => tenants.id, { onDelete: 'cascade' }),
-    // Microsoft Marketplace subscription ID (UUID from Partner Center). Stored
-    // as text so we can swap or shim providers without a migration.
-    marketplaceSubscriptionId: text('marketplace_subscription_id').notNull(),
+    // Legacy Azure Marketplace subscription ID. Nullable now that manual
+    // onboarding and other providers are supported; prefer externalProvider +
+    // externalSubscriptionId for new rows.
+    marketplaceSubscriptionId: text('marketplace_subscription_id'),
+    // Billing provider for this subscription. 'manual' for MSP-onboarded
+    // tenants (no marketplace webhook). Generic for future 'pax8'|'azure'|'aws'.
+    externalProvider: text('external_provider').notNull().default('manual'),
+    // Provider-side subscription/order id (Pax8 order, Azure sub id, …).
+    externalSubscriptionId: text('external_subscription_id'),
     // The user who completed the Marketplace landing page (issue #41). Becomes
     // the first `tenant_owner`. Nullable for cases where the purchase predates
     // the user account (rare, but Microsoft permits delegated-admin purchases).
     purchaserUserId: uuid('purchaser_user_id').references(() => users.id, {
       onDelete: 'set null',
     }),
-    // Marketplace plan ID (e.g. "starter", "team", "firm"). Plan entitlements
-    // are resolved by name in `lib/billing/plans.ts`.
+    // Plan code referencing `plans.code` (ESSENTIAL | PROFESSIONAL | ENTERPRISE).
+    // Entitlements and limits are resolved in `lib/licensing`. Text-by-value
+    // (not FK) so a subscription survives plan-catalogue edits and syncs.
     planId: text('plan_id').notNull(),
     status: subscriptionStatusEnum('status').notNull().default('pending'),
     // Per-seat or per-assessment quantity. Defaults to 1 for flat-plan
@@ -86,6 +98,7 @@ export const subscriptions = pgTable(
     uniqueIndex('subscriptions_marketplace_id_uq').on(
       t.marketplaceSubscriptionId,
     ),
+    uniqueIndex('subscriptions_external_id_uq').on(t.externalSubscriptionId),
     index('subscriptions_status_idx').on(t.status),
   ],
 );

@@ -1,10 +1,12 @@
 import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { tenantMembers, engagementMembers } from '@/db/schema/tenants';
+import { partnerRoleForTenant } from '@/lib/auth/partner';
 import {
   type Action,
   type Role,
   isPermitted,
+  partnerRoleToTenantRole,
 } from './matrix';
 import { resolveEntitlement, type Entitlement } from '@/lib/billing/entitlement';
 import { MUTATING_ACTIONS } from '@/lib/billing/actions';
@@ -58,6 +60,17 @@ export async function rolesForUser(ctx: AuthContext): Promise<Role[]> {
     )
     .limit(1);
   if (tenantRow[0]) roles.push(tenantRow[0].role as Role);
+
+  // Partner (MSP) members get effective management of every client tenant under
+  // their partner. Map the partner role to a standard tenant role so the matrix
+  // and the IRAP independence guard apply unchanged. Additive only.
+  if (!roles.includes('tenant_owner')) {
+    const partnerRole = await partnerRoleForTenant(ctx.userId, ctx.tenantId);
+    if (partnerRole) {
+      const mapped = partnerRoleToTenantRole(partnerRole);
+      if (!roles.includes(mapped)) roles.push(mapped);
+    }
+  }
 
   if (ctx.engagementId) {
     const engagementRow = await db

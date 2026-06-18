@@ -17,6 +17,12 @@ import { CLASSIFICATION_RANK, type Classification } from '@/db/schema/enums';
 import { requireSession } from '@/lib/auth/session';
 import { ACTIONS } from '@/lib/rbac/matrix';
 import { requirePermission } from '@/lib/rbac/require';
+import {
+  requireCanCreateEntity,
+  refreshTenantUsage,
+  requireFeature,
+  featureForFramework,
+} from '@/lib/licensing';
 import { isValidAbn, normalizeAbn } from '@/lib/abn';
 import {
   CLOUD_PROVIDERS,
@@ -82,8 +88,23 @@ export async function createEngagement(input: z.infer<typeof createSchema>) {
     tenantId: data.tenantId,
   });
 
+  // Plan limit: a "business entity" is an assessment engagement.
+  await requireCanCreateEntity(data.tenantId);
+
   const classification = data.classification as Classification;
   const classificationRank = CLASSIFICATION_RANK[classification];
+
+  // Plan feature gate (interim mapping until framework_id — Track C). An
+  // OFFICIAL standard assessment is Essential-Eight-grade (every plan has it);
+  // a cloud_irap assessment or anything above OFFICIAL is ISM/IRAP-grade
+  // (Enterprise `ISM` feature). Throws PlanUpgradeRequiredError on denial.
+  // See docs/frameworks/multi-framework-plan.md.
+  const frameworkKey =
+    data.assessmentType === 'cloud_irap' || classification !== 'OFFICIAL'
+      ? 'ism'
+      : 'essential-eight';
+  await requireFeature(data.tenantId, featureForFramework(frameworkKey));
+
   const engagementId = crypto.randomUUID();
   const hdrs = await headers();
 
@@ -192,6 +213,7 @@ export async function createEngagement(input: z.infer<typeof createSchema>) {
     });
   });
 
+  await refreshTenantUsage(data.tenantId);
   revalidatePath('/dashboard');
   return { id: engagementId };
 }

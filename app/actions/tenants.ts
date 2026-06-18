@@ -15,6 +15,7 @@ import { auditLog } from '@/db/schema/audit';
 import { requireSession } from '@/lib/auth/session';
 import { ACTIONS, isPermitted, type Role } from '@/lib/rbac/matrix';
 import { PermissionDeniedError, requirePermission } from '@/lib/rbac/require';
+import { requireCanCreateUser } from '@/lib/licensing';
 import { recordAudit } from '@/lib/audit/log';
 import { sendTenantInviteEmail } from '@/emails/send';
 import { writeActiveTenantCookie } from '@/lib/auth/active-tenant';
@@ -189,6 +190,9 @@ export async function inviteTenantMember(input: z.infer<typeof inviteSchema>) {
     userId: session.user.id,
     tenantId: data.tenantId,
   });
+
+  // Plan seat limit — early signal so admins don't over-invite past the cap.
+  await requireCanCreateUser(data.tenantId);
 
   // Only an owner can invite another owner.
   if (data.role === 'tenant_owner') {

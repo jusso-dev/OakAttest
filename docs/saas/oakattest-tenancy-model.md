@@ -4,6 +4,13 @@ Status: authoritative for engineering. Maps to issue #39 (EPIC 4 — OakAttest S
 
 This document defines how assessor firms, clients, engagements, and the underlying assessment artefacts are isolated, owned, invited, billed, and offboarded. Every rule below MUST be enforceable in code; sections cite the existing tables and modules that implement them.
 
+> **Amendment (2026-06-18): partner layer.** A `partners` table (the MSP) now sits ABOVE
+> `tenants` (`tenants.partner_id`). MSP staff (`partner_members`) access every tenant under
+> their partner, and each tenant carries its own plan/limits. This adds a new isolation
+> primitive; its authoritative spec is `docs/saas/licensing-and-plans.md`. §1–§4 and §11
+> below still describe tenant/engagement isolation, which is unchanged — partner access is an
+> additional grant layered on top, not a relaxation of the tenant boundary.
+
 ---
 
 ## 1. Entities and hierarchy

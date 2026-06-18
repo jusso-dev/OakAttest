@@ -11,6 +11,7 @@ export type Entitlement = {
   reason:
     | 'no_subscription'
     | 'active'
+    | 'trial'
     | 'pending_provisioning'
     | 'grace_open'
     | 'grace_expired'
@@ -58,6 +59,18 @@ export function decideEntitlement(
       }
       return { state: 'block', reason: 'grace_expired', subscription: row, graceEndsAt: grace };
     }
+
+    case 'provisioning':
+      // Synonym of `pending`: acknowledged, activation not yet complete.
+      return {
+        state: 'allow',
+        reason: 'pending_provisioning',
+        subscription: row,
+        graceEndsAt: null,
+      };
+
+    case 'trial':
+      return { state: 'allow', reason: 'trial', subscription: row, graceEndsAt: null };
 
     case 'cancelled':
       return { state: 'block', reason: 'cancelled', subscription: row, graceEndsAt: null };
