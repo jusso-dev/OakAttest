@@ -9,6 +9,8 @@ function sub(overrides: Partial<Subscription>): Subscription {
     id: 'sub-1',
     tenantId: 'tenant-1',
     marketplaceSubscriptionId: 'mp-1',
+    externalProvider: 'manual',
+    externalSubscriptionId: null,
     purchaserUserId: null,
     planId: 'starter',
     status: 'active',

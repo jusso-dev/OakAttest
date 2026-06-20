@@ -8,7 +8,9 @@ import type { SubscriptionStatus } from '@/db/schema/subscriptions';
 // the explicit case list.
 
 const TRANSITIONS: Record<SubscriptionStatus, ReadonlySet<SubscriptionStatus>> = {
-  pending: new Set(['active', 'cancelled']),
+  pending: new Set(['active', 'trial', 'cancelled']),
+  provisioning: new Set(['active', 'trial', 'cancelled']),
+  trial: new Set(['active', 'suspended', 'cancelled']),
   active: new Set(['suspended', 'cancelled']),
   suspended: new Set(['grace', 'active', 'cancelled']),
   grace: new Set(['active', 'suspended', 'cancelled']),
@@ -43,6 +45,18 @@ describe('subscription state machine', () => {
     expect(allowed('grace', 'active')).toBe(true);
     expect(allowed('grace', 'suspended')).toBe(true);
     expect(allowed('grace', 'cancelled')).toBe(true);
+  });
+
+  it('trial can convert, suspend, or cancel', () => {
+    expect(allowed('trial', 'active')).toBe(true);
+    expect(allowed('trial', 'suspended')).toBe(true);
+    expect(allowed('trial', 'cancelled')).toBe(true);
+  });
+
+  it('provisioning can activate or start a trial', () => {
+    expect(allowed('provisioning', 'active')).toBe(true);
+    expect(allowed('provisioning', 'trial')).toBe(true);
+    expect(allowed('provisioning', 'suspended')).toBe(false);
   });
 
   it('cancelled is terminal', () => {

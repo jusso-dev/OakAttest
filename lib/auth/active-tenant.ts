@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { eq, and, isNull, sql } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { tenantMembers, engagementMembers, tenants } from '@/db/schema/tenants';
+import { partnerMembers } from '@/db/schema/partners';
 import { engagements } from '@/db/schema/engagements';
 
 // Active tenant is stored in a cookie set after the user picks one via the
@@ -79,6 +80,27 @@ export async function resolveActiveTenant(userId: string): Promise<{
       )
       .limit(1);
     if (engagementScoped[0]) return engagementScoped[0];
+
+    // Partner (MSP) member accessing a client tenant under their partner.
+    const partnerScoped = await db
+      .select({
+        tenantId: tenants.id,
+        tenantSlug: tenants.slug,
+        tenantName: tenants.name,
+        access: sql<'tenant'>`'tenant'`,
+      })
+      .from(tenants)
+      .innerJoin(partnerMembers, eq(partnerMembers.partnerId, tenants.partnerId))
+      .where(
+        and(
+          eq(tenants.id, cookieTenantId),
+          eq(partnerMembers.userId, userId),
+          isNull(partnerMembers.deletedAt),
+          isNull(tenants.deletedAt),
+        ),
+      )
+      .limit(1);
+    if (partnerScoped[0]) return partnerScoped[0];
   }
 
   const fallback = await db
@@ -99,6 +121,26 @@ export async function resolveActiveTenant(userId: string): Promise<{
     )
     .limit(1);
   if (fallback[0]) return fallback[0];
+
+  // Partner (MSP) members default to the first client tenant under their partner.
+  const partnerFallback = await db
+    .select({
+      tenantId: tenants.id,
+      tenantSlug: tenants.slug,
+      tenantName: tenants.name,
+      access: sql<'tenant'>`'tenant'`,
+    })
+    .from(tenants)
+    .innerJoin(partnerMembers, eq(partnerMembers.partnerId, tenants.partnerId))
+    .where(
+      and(
+        eq(partnerMembers.userId, userId),
+        isNull(partnerMembers.deletedAt),
+        isNull(tenants.deletedAt),
+      ),
+    )
+    .limit(1);
+  if (partnerFallback[0]) return partnerFallback[0];
 
   const engagementFallback = await db
     .select({

@@ -8,6 +8,8 @@ import { resolveActiveTenant } from '@/lib/auth/active-tenant';
 import { requirePermission, PermissionDeniedError } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
 import { resolveEntitlement } from '@/lib/billing/entitlement';
+import { resolveEntitlements } from '@/lib/licensing';
+import { PlanChangeForm } from '@/components/admin/PlanChangeForm';
 import {
   Card,
   CardContent,
@@ -55,6 +57,7 @@ export default async function SubscriptionAdminPage() {
 
   const entitlement = await resolveEntitlement(tenant.tenantId);
   const sub = entitlement.subscription;
+  const lic = await resolveEntitlements(tenant.tenantId);
 
   const history = await db
     .select({
@@ -84,6 +87,50 @@ export default async function SubscriptionAdminPage() {
         <p className="text-xs uppercase text-slate-600">Tenant admin · Subscription</p>
         <h1 className="mt-1 text-2xl font-semibold text-slate-900">Marketplace subscription</h1>
       </header>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Plan &amp; usage</CardTitle>
+          <CardDescription>
+            {lic.planName
+              ? `Current plan: ${lic.planName}.`
+              : 'No subscription — self-installed / unlimited.'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <UsageStat label="Users" used={lic.usage.userCount} max={lic.limits.maxUsers} />
+            <UsageStat label="Entities" used={lic.usage.entityCount} max={lic.limits.maxEntities} />
+            <UsageStat
+              label="Storage"
+              used={Math.round((lic.usage.storageBytes / 1_000_000_000) * 100) / 100}
+              max={lic.limits.maxStorageGb}
+              unit=" GB"
+            />
+          </div>
+          {lic.features.size > 0 && (
+            <div>
+              <p className="text-xs uppercase text-slate-600">Included features</p>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {[...lic.features].sort().map((f) => (
+                  <span
+                    key={f}
+                    className="rounded bg-[var(--oak-mist)] px-2 py-0.5 text-xs text-[var(--oak-shield)]"
+                  >
+                    {f}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          <div>
+            <p className="text-xs uppercase text-slate-600">Change plan</p>
+            <div className="mt-1.5">
+              <PlanChangeForm tenantId={tenant.tenantId} current={lic.planCode} />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -208,6 +255,29 @@ export default async function SubscriptionAdminPage() {
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function UsageStat({
+  label,
+  used,
+  max,
+  unit = '',
+}: {
+  label: string;
+  used: number;
+  max: number | null;
+  unit?: string;
+}) {
+  return (
+    <div className="rounded-md border border-[var(--field-border)] p-3">
+      <p className="text-xs uppercase text-slate-600">{label}</p>
+      <p className="mt-1 text-slate-900">
+        {used}
+        {unit}{' '}
+        <span className="text-slate-500">/ {max === null ? '∞' : `${max}${unit}`}</span>
+      </p>
     </div>
   );
 }

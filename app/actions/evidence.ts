@@ -16,6 +16,7 @@ import { auditLog } from '@/db/schema/audit';
 import { requireSession } from '@/lib/auth/session';
 import { requirePermission } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
+import { requireCanStore, refreshTenantUsage } from '@/lib/licensing';
 import {
   STORAGE_BUCKET,
   buildEvidenceKey,
@@ -108,6 +109,9 @@ export async function startEvidenceUpload(input: z.infer<typeof startUploadSchem
     engagementId: data.engagementId,
   });
 
+  // Plan storage limit — checked before reserving the upload.
+  await requireCanStore(tenantId, data.sizeBytes);
+
   if (data.evidenceRequestId) {
     const [request] = await db
       .select({ id: evidenceRequests.id })
@@ -188,6 +192,7 @@ export async function startEvidenceUpload(input: z.infer<typeof startUploadSchem
     });
   });
 
+  await refreshTenantUsage(tenantId);
   return {
     evidenceItemId: id,
     uploadUrl: presigned.url,

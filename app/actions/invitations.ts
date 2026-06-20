@@ -13,6 +13,7 @@ import { auditLog } from '@/db/schema/audit';
 import { requireSession } from '@/lib/auth/session';
 import { requirePermission } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
+import { requireCanCreateUser, refreshTenantUsage } from '@/lib/licensing';
 import { sendEngagementInviteEmail } from '@/emails/send';
 import { writeActiveTenantCookie } from '@/lib/auth/active-tenant';
 
@@ -46,6 +47,9 @@ export async function inviteToEngagement(input: z.infer<typeof inviteSchema>) {
     tenantId: engagement.tenantId,
     engagementId: data.engagementId,
   });
+
+  // Plan seat limit — early signal before issuing an invite.
+  await requireCanCreateUser(engagement.tenantId);
 
   const canInviteAssessor =
     inviterRoles.includes('tenant_owner') ||
@@ -121,6 +125,9 @@ export async function acceptEngagementInvitation(input: z.infer<typeof acceptSch
     throw new Error('This invitation is addressed to a different email');
   }
 
+  // Plan seat limit — client-side users count toward the tenant's seats.
+  await requireCanCreateUser(invitation.tenantId);
+
   await db.transaction(async (tx) => {
     await tx
       .insert(engagementMembers)
@@ -148,6 +155,7 @@ export async function acceptEngagementInvitation(input: z.infer<typeof acceptSch
     });
   });
 
+  await refreshTenantUsage(invitation.tenantId);
   await writeActiveTenantCookie(invitation.tenantId);
   return { engagementId: invitation.engagementId };
 }
@@ -167,6 +175,9 @@ export async function acceptTenantInvitation(input: z.infer<typeof acceptTenantS
   if (invitation.revokedAt) throw new Error('Invitation has been revoked');
   if (invitation.acceptedAt) throw new Error('Invitation already accepted');
   if (invitation.expiresAt < new Date()) throw new Error('Invitation has expired');
+
+  // Plan seat limit (authoritative at the point the seat is consumed).
+  await requireCanCreateUser(invitation.tenantId);
 
   await db.transaction(async (tx) => {
     await tx
@@ -193,6 +204,7 @@ export async function acceptTenantInvitation(input: z.infer<typeof acceptTenantS
     });
   });
 
+  await refreshTenantUsage(invitation.tenantId);
   await writeActiveTenantCookie(invitation.tenantId);
   return { tenantId: invitation.tenantId };
 }

@@ -28,6 +28,14 @@ export const tenantRoleEnum = pgEnum('tenant_role', [
   'assessor_admin',
 ]);
 
+// Partner-scope roles (an MSP that manages many client tenants). A partner
+// sits ABOVE tenants; a partner member can act across every tenant the partner
+// owns. See `db/schema/partners.ts`.
+export const partnerRoleEnum = pgEnum('partner_role', [
+  'partner_owner',
+  'partner_admin',
+]);
+
 // Engagement-scope roles. Mixed assessor- and client-side because both
 // participate in the same engagement; permission checks branch on role.
 export const engagementRoleEnum = pgEnum('engagement_role', [

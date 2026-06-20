@@ -103,6 +103,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             href: '/admin/ip-allowlist',
           },
           {
+            id: 'admin-subscription',
+            label: 'Subscription',
+            description: 'Plan, usage and limits',
+            href: '/admin/subscription',
+          },
+          {
+            id: 'partner',
+            label: 'MSP console',
+            description: 'Client tenants and plans',
+            href: '/partner',
+          },
+          {
             id: 'new-engagement',
             label: 'New engagement',
             description: 'Start a new IRAP assessment',

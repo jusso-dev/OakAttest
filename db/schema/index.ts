@@ -15,3 +15,6 @@ export * from './certification';
 export * from './cve';
 export * from './invitations';
 export * from './subscriptions';
+export * from './partners';
+export * from './plans';
+export * from './usage';
