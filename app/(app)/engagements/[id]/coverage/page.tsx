@@ -51,7 +51,7 @@ export default async function CoveragePage({
         <CardHeader>
           <CardTitle>Assessment coverage</CardTitle>
           <CardDescription>
-            Live blockers across controls, evidence, findings, SSP, Essential Eight, and certification.
+            Live blockers across controls, evidence, findings, SSP, and certification.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-3">

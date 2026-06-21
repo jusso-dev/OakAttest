@@ -45,7 +45,7 @@ function overviewRows(data: SspData): Row[] {
     pair('Engagement', data.engagement.name),
     pair('Reference', data.engagement.reference ?? ''),
     pair('Classification', data.engagement.classification.replace('_', ':')),
-    pair('ISM revision', data.engagement.ismRevision),
+    pair('ISM revision', data.engagement.frameworkRevision),
     pair('Phase', data.engagement.phase),
     pair('Status', data.engagement.status),
     pair('Exported at', new Date(data.exportedAt).toLocaleString('en-AU')),

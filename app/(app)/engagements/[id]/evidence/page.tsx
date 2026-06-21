@@ -2,7 +2,7 @@ import { desc, eq } from 'drizzle-orm';
 import Link from 'next/link';
 import { db } from '@/lib/db/client';
 import { evidenceRequests, evidenceItems } from '@/db/schema/evidence';
-import { engagementControls, ismControls } from '@/db/schema/ism';
+import { engagementControls, frameworkControls } from '@/db/schema/frameworks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { requirePageSession } from '@/lib/auth/session';
 import { rolesForUser } from '@/lib/rbac/require';
@@ -43,12 +43,12 @@ export default async function EvidencePage({
 
   const controls = await db
     .select({
-      id: engagementControls.ismControlId,
+      id: engagementControls.frameworkControlId,
       controlId: engagementControls.controlId,
-      description: ismControls.description,
+      description: frameworkControls.description,
     })
     .from(engagementControls)
-    .innerJoin(ismControls, eq(ismControls.id, engagementControls.ismControlId))
+    .innerJoin(frameworkControls, eq(frameworkControls.id, engagementControls.frameworkControlId))
     .where(eq(engagementControls.engagementId, id))
     .orderBy(engagementControls.controlId);
 

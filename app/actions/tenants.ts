@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { eq } from 'drizzle-orm';
+import { and, count, eq, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import crypto from 'node:crypto';
@@ -15,7 +15,7 @@ import { auditLog } from '@/db/schema/audit';
 import { requireSession } from '@/lib/auth/session';
 import { ACTIONS, isPermitted, type Role } from '@/lib/rbac/matrix';
 import { PermissionDeniedError, requirePermission } from '@/lib/rbac/require';
-import { requireCanCreateUser } from '@/lib/licensing';
+import { requireCanCreateUser, refreshTenantUsage } from '@/lib/licensing';
 import { recordAudit } from '@/lib/audit/log';
 import { sendTenantInviteEmail } from '@/emails/send';
 import { writeActiveTenantCookie } from '@/lib/auth/active-tenant';
@@ -148,7 +148,8 @@ export async function updateTenantCompliancePolicy(input: z.infer<typeof complia
   const session = await requireSession();
   const data = compliancePolicySchema.parse(input);
 
-  await requirePermission(ACTIONS.complianceView, {
+  // Writing the compliance policy is a tenant-management action, not a read.
+  await requirePermission(ACTIONS.tenantManage, {
     userId: session.user.id,
     tenantId: data.tenantId,
   });
@@ -267,3 +268,130 @@ async function rolesForTenant(userId: string, tenantId: string): Promise<Role[]>
 // Re-export the helper so the rbac role check uses the same code path the
 // permission test exercises.
 export { isPermitted };
+
+// Count active tenant_owner members — used to prevent removing/demoting the
+// last owner, which would orphan the tenant.
+async function activeOwnerCount(tenantId: string): Promise<number> {
+  const [row] = await db
+    .select({ value: count() })
+    .from(tenantMembers)
+    .where(
+      and(
+        eq(tenantMembers.tenantId, tenantId),
+        eq(tenantMembers.role, 'tenant_owner'),
+        isNull(tenantMembers.deletedAt),
+      ),
+    );
+  return row?.value ?? 0;
+}
+
+const changeRoleSchema = z.object({
+  tenantId: z.string().uuid(),
+  userId: z.string().uuid(),
+  role: z.enum(['tenant_owner', 'assessor_admin']),
+});
+
+export async function changeTenantMemberRole(input: z.infer<typeof changeRoleSchema>) {
+  const session = await requireSession();
+  const data = changeRoleSchema.parse(input);
+  await requirePermission(ACTIONS.tenantManage, {
+    userId: session.user.id,
+    tenantId: data.tenantId,
+  });
+
+  const [member] = await db
+    .select({ role: tenantMembers.role })
+    .from(tenantMembers)
+    .where(
+      and(
+        eq(tenantMembers.tenantId, data.tenantId),
+        eq(tenantMembers.userId, data.userId),
+        isNull(tenantMembers.deletedAt),
+      ),
+    )
+    .limit(1);
+  if (!member) throw new Error('Member not found');
+  if (member.role === data.role) return { ok: true };
+
+  // Don't demote the last owner.
+  if (member.role === 'tenant_owner' && data.role !== 'tenant_owner') {
+    if ((await activeOwnerCount(data.tenantId)) <= 1) {
+      throw new Error('Cannot demote the last tenant owner. Promote another owner first.');
+    }
+  }
+
+  await db
+    .update(tenantMembers)
+    .set({ role: data.role })
+    .where(
+      and(
+        eq(tenantMembers.tenantId, data.tenantId),
+        eq(tenantMembers.userId, data.userId),
+        isNull(tenantMembers.deletedAt),
+      ),
+    );
+  await recordAudit({
+    tenantId: data.tenantId,
+    actorUserId: session.user.id,
+    action: 'tenant.member.role_change',
+    resourceType: 'tenant_member',
+    resourceId: data.userId,
+    beforeJson: { role: member.role },
+    afterJson: { role: data.role },
+  });
+  revalidatePath('/admin');
+  return { ok: true };
+}
+
+const removeMemberSchema = z.object({
+  tenantId: z.string().uuid(),
+  userId: z.string().uuid(),
+});
+
+export async function removeTenantMember(input: z.infer<typeof removeMemberSchema>) {
+  const session = await requireSession();
+  const data = removeMemberSchema.parse(input);
+  await requirePermission(ACTIONS.tenantManage, {
+    userId: session.user.id,
+    tenantId: data.tenantId,
+  });
+
+  const [member] = await db
+    .select({ role: tenantMembers.role })
+    .from(tenantMembers)
+    .where(
+      and(
+        eq(tenantMembers.tenantId, data.tenantId),
+        eq(tenantMembers.userId, data.userId),
+        isNull(tenantMembers.deletedAt),
+      ),
+    )
+    .limit(1);
+  if (!member) throw new Error('Member not found');
+  if (member.role === 'tenant_owner' && (await activeOwnerCount(data.tenantId)) <= 1) {
+    throw new Error('Cannot remove the last tenant owner. Assign another owner first.');
+  }
+
+  await db
+    .update(tenantMembers)
+    .set({ deletedAt: new Date() })
+    .where(
+      and(
+        eq(tenantMembers.tenantId, data.tenantId),
+        eq(tenantMembers.userId, data.userId),
+        isNull(tenantMembers.deletedAt),
+      ),
+    );
+  // Drop their engagement memberships in this tenant too.
+  await recordAudit({
+    tenantId: data.tenantId,
+    actorUserId: session.user.id,
+    action: 'tenant.member.remove',
+    resourceType: 'tenant_member',
+    resourceId: data.userId,
+    beforeJson: { role: member.role },
+  });
+  await refreshTenantUsage(data.tenantId);
+  revalidatePath('/admin');
+  return { ok: true };
+}

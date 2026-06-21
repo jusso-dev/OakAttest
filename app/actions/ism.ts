@@ -6,17 +6,17 @@ import { count, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { db } from '@/lib/db/client';
-import { engagementControls, ismControls, ismImports } from '@/db/schema/ism';
+import { engagementControls, frameworkControls, frameworkImports } from '@/db/schema/frameworks';
 import { requireSession } from '@/lib/auth/session';
 import { resolveActiveTenant } from '@/lib/auth/active-tenant';
 import { requirePermission } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
-import { importIsmCatalogue } from '@/lib/ism/import';
+import { importFrameworkCatalogue } from '@/lib/frameworks/import';
 import {
   fetchIsmCatalog,
   latestIsmCatalogUrl,
   releaseIsmCatalogUrl,
-} from '@/lib/ism/sources';
+} from '@/lib/frameworks/sources';
 import { recordAudit } from '@/lib/audit/log';
 
 export type IsmActionState = {
@@ -44,7 +44,7 @@ async function importFromSource(opts: {
   actorUserId: string;
   tenantId: string;
 }) {
-  const result = await importIsmCatalogue({
+  const result = await importFrameworkCatalogue({
     source: opts.source,
     data: opts.data,
     sourceUrl: opts.sourceUrl,
@@ -55,7 +55,7 @@ async function importFromSource(opts: {
     tenantId: opts.tenantId,
     actorUserId: opts.actorUserId,
     action: 'ism.import',
-    resourceType: 'ism_revision',
+    resourceType: 'framework_revision',
     resourceId: result.revision,
     afterJson: {
       sourceUrl: opts.sourceUrl,
@@ -64,7 +64,7 @@ async function importFromSource(opts: {
     },
   });
 
-  revalidatePath('/admin/ism');
+  revalidatePath('/admin/frameworks');
   revalidatePath('/engagements/new');
   return {
     ok: true,
@@ -165,8 +165,8 @@ export async function removeIsmRevision(
 
     try {
       await db.transaction(async (tx) => {
-        await tx.delete(ismImports).where(eq(ismImports.revision, data.revision));
-        await tx.delete(ismControls).where(eq(ismControls.revision, data.revision));
+        await tx.delete(frameworkImports).where(eq(frameworkImports.revision, data.revision));
+        await tx.delete(frameworkControls).where(eq(frameworkControls.revision, data.revision));
       });
     } catch {
       return {
@@ -180,11 +180,11 @@ export async function removeIsmRevision(
       tenantId,
       actorUserId: session.user.id,
       action: 'ism.remove_revision',
-      resourceType: 'ism_revision',
+      resourceType: 'framework_revision',
       resourceId: data.revision,
     });
 
-    revalidatePath('/admin/ism');
+    revalidatePath('/admin/frameworks');
     revalidatePath('/engagements/new');
     return { ok: true, message: `Removed ISM revision ${data.revision}.` };
   } catch (err) {

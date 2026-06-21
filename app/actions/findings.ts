@@ -107,7 +107,7 @@ export async function createFinding(input: z.infer<typeof createSchema>) {
     });
     if (data.ismControlIds?.length) {
       await tx.insert(findingControls).values(
-        data.ismControlIds.map((cid) => ({ findingId: id, ismControlId: cid })),
+        data.ismControlIds.map((cid) => ({ findingId: id, frameworkControlId: cid })),
       );
     }
     if (data.evidenceItemIds?.length) {

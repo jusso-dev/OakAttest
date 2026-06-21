@@ -5,7 +5,7 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { auditLog } from '@/db/schema/audit';
 import { engagements } from '@/db/schema/engagements';
-import { engagementControls, ismControls } from '@/db/schema/ism';
+import { engagementControls, frameworkControls } from '@/db/schema/frameworks';
 import { parseEnterpriseEvidenceCsv } from '@/lib/evidence/enterprise-csv';
 import { requireSession } from '@/lib/auth/session';
 import { requirePermission } from '@/lib/rbac/require';
@@ -47,15 +47,15 @@ export async function analyseEnterpriseEvidenceCsv(input: z.infer<typeof analyse
   const summary = parseEnterpriseEvidenceCsv(data.filename, data.content);
   const controls = await db
     .select({
-      id: engagementControls.ismControlId,
+      id: engagementControls.frameworkControlId,
       controlId: engagementControls.controlId,
-      description: ismControls.description,
-      topic: ismControls.topic,
-      section: ismControls.section,
-      essentialEightMapping: ismControls.essentialEightMapping,
+      description: frameworkControls.description,
+      topic: frameworkControls.topic,
+      section: frameworkControls.section,
+      essentialEightMapping: frameworkControls.essentialEightMapping,
     })
     .from(engagementControls)
-    .innerJoin(ismControls, eq(ismControls.id, engagementControls.ismControlId))
+    .innerJoin(frameworkControls, eq(frameworkControls.id, engagementControls.frameworkControlId))
     .where(
       and(
         eq(engagementControls.tenantId, engagement.tenantId),

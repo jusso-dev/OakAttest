@@ -4,11 +4,14 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import crypto from 'node:crypto';
-import { and, eq, isNull, lte } from 'drizzle-orm';
+import { and, eq, isNull, lte, or } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { engagements, clientOrganisations, systems } from '@/db/schema/engagements';
+import { clients, clientMissingFields } from '@/db/schema/clients';
 import { engagementMembers } from '@/db/schema/tenants';
-import { ismControls, engagementControls } from '@/db/schema/ism';
+import { frameworkControls, engagementControls } from '@/db/schema/frameworks';
+import { resolveFrameworkId } from '@/lib/frameworks/registry';
+import { notifyEngagementWatchers } from '@/lib/engagement-watch';
 import { evidenceItemControls, evidenceRequestControls } from '@/db/schema/evidence';
 import { findingControls } from '@/db/schema/findings';
 import { interviewControls } from '@/db/schema/interviews';
@@ -23,7 +26,6 @@ import {
   requireFeature,
   featureForFramework,
 } from '@/lib/licensing';
-import { isValidAbn, normalizeAbn } from '@/lib/abn';
 import {
   CLOUD_PROVIDERS,
   ASSESSMENT_TYPES,
@@ -39,20 +41,10 @@ const createSchema = z.object({
   classification: z.enum(['OFFICIAL', 'OFFICIAL_SENSITIVE', 'PROTECTED', 'SECRET', 'TOP_SECRET']),
   assessmentType: z.enum(ASSESSMENT_TYPES).default('standard'),
   cloudProvider: z.enum(CLOUD_PROVIDERS).default('none'),
-  ismRevision: z.string().min(1),
-  clientOrganisation: z.object({
-    name: z.string().min(2),
-    abn: z.preprocess(
-      (value) => (typeof value === 'string' ? value : ''),
-      z
-        .string()
-        .transform(normalizeAbn)
-        .refine((value) => value === '' || isValidAbn(value), 'Enter a valid ABN')
-        .transform((value) => value || undefined),
-    ),
-    primaryContactName: z.string().optional(),
-    primaryContactEmail: z.string().email().optional(),
-  }),
+  frameworkKey: z.string().min(1).default('ism'),
+  frameworkRevision: z.string().min(1),
+  // The registry client this engagement is for (selected, not freeform).
+  clientId: z.string().uuid(),
   system: z.object({
     name: z.string().min(2),
     description: z.string().optional(),
@@ -94,16 +86,38 @@ export async function createEngagement(input: z.infer<typeof createSchema>) {
   const classification = data.classification as Classification;
   const classificationRank = CLASSIFICATION_RANK[classification];
 
-  // Plan feature gate (interim mapping until framework_id — Track C). An
-  // OFFICIAL standard assessment is Essential-Eight-grade (every plan has it);
-  // a cloud_irap assessment or anything above OFFICIAL is ISM/IRAP-grade
-  // (Enterprise `ISM` feature). Throws PlanUpgradeRequiredError on denial.
-  // See docs/frameworks/multi-framework-plan.md.
-  const frameworkKey =
-    data.assessmentType === 'cloud_irap' || classification !== 'OFFICIAL'
-      ? 'ism'
-      : 'essential-eight';
-  await requireFeature(data.tenantId, featureForFramework(frameworkKey));
+  // Plan feature gate. For ISM, an OFFICIAL standard assessment is
+  // Essential-Eight-grade (every plan has it) while cloud_irap or anything above
+  // OFFICIAL is ISM/IRAP-grade (Enterprise `ISM` feature). Other frameworks gate
+  // on their own feature (NIST → NIST, SOC 2 → SOC2, ISO → ISO27001).
+  const featureFrameworkKey =
+    data.frameworkKey === 'ism'
+      ? data.assessmentType === 'cloud_irap' || classification !== 'OFFICIAL'
+        ? 'ism'
+        : 'essential-eight'
+      : data.frameworkKey;
+  await requireFeature(data.tenantId, featureForFramework(featureFrameworkKey));
+
+  // The catalogue this engagement draws controls from. Only ISM ships a global
+  // catalogue today; the selector defaults to it.
+  const frameworkId = await resolveFrameworkId(data.frameworkKey);
+
+  // Resolve the selected client from the registry and require complete details
+  // before an engagement can start.
+  const [client] = await db
+    .select()
+    .from(clients)
+    .where(
+      and(eq(clients.id, data.clientId), eq(clients.tenantId, data.tenantId), isNull(clients.deletedAt)),
+    )
+    .limit(1);
+  if (!client) throw new Error('Selected client not found.');
+  const missing = clientMissingFields(client);
+  if (missing.length > 0) {
+    throw new Error(
+      `Client "${client.name}" is missing ${missing.join(', ')}. Update the client record before starting an engagement.`,
+    );
+  }
 
   const engagementId = crypto.randomUUID();
   const hdrs = await headers();
@@ -116,20 +130,25 @@ export async function createEngagement(input: z.infer<typeof createSchema>) {
       reference: data.reference ?? null,
       classification,
       classificationRank,
-      ismRevision: data.ismRevision,
+      frameworkId,
+      frameworkRevision: data.frameworkRevision,
       status: 'draft',
       phase: 'scoping',
       assessmentType: data.assessmentType,
       cloudProvider: data.assessmentType === 'cloud_irap' ? data.cloudProvider : 'none',
     });
 
+    // Snapshot the client's details onto the engagement, linked back to the
+    // registry client.
     await tx.insert(clientOrganisations).values({
       engagementId,
       tenantId: data.tenantId,
-      name: data.clientOrganisation.name,
-      abn: data.clientOrganisation.abn ?? null,
-      primaryContactName: data.clientOrganisation.primaryContactName ?? null,
-      primaryContactEmail: data.clientOrganisation.primaryContactEmail ?? null,
+      clientId: client.id,
+      name: client.name,
+      abn: client.businessNumber ?? null,
+      primaryContactName: client.primaryContactName ?? null,
+      primaryContactEmail: client.primaryContactEmail ?? null,
+      address: client.address ?? null,
     });
 
     await tx.insert(systems).values({
@@ -146,11 +165,18 @@ export async function createEngagement(input: z.infer<typeof createSchema>) {
     // at the pinned ISM revision.
     const applicable = await tx
       .select()
-      .from(ismControls)
+      .from(frameworkControls)
       .where(
         and(
-          eq(ismControls.revision, data.ismRevision),
-          lte(ismControls.minClassificationRank, classificationRank),
+          eq(frameworkControls.frameworkId, frameworkId),
+          eq(frameworkControls.revision, data.frameworkRevision),
+          lte(frameworkControls.minClassificationRank, classificationRank),
+          // Global catalogue rows (tenant_id NULL) plus this tenant's own
+          // client-imported rows (SOC 2 / ISO 27001).
+          or(
+            isNull(frameworkControls.tenantId),
+            eq(frameworkControls.tenantId, data.tenantId),
+          ),
         ),
       );
 
@@ -170,7 +196,8 @@ export async function createEngagement(input: z.infer<typeof createSchema>) {
         applicable.map((c) => ({
           engagementId,
           tenantId: data.tenantId,
-          ismControlId: c.id,
+          frameworkId,
+          frameworkControlId: c.id,
           controlId: c.controlId,
           revision: c.revision,
           status: providerInheritedIds.has(c.id) ? ('not_applicable' as const) : ('not_started' as const),
@@ -204,7 +231,7 @@ export async function createEngagement(input: z.infer<typeof createSchema>) {
       afterJson: {
         name: data.name,
         classification,
-        ismRevision: data.ismRevision,
+        frameworkRevision: data.frameworkRevision,
         controlCount: applicable.length,
         assessmentType: data.assessmentType,
         cloudProvider: data.cloudProvider,
@@ -216,6 +243,61 @@ export async function createEngagement(input: z.infer<typeof createSchema>) {
   await refreshTenantUsage(data.tenantId);
   revalidatePath('/dashboard');
   return { id: engagementId };
+}
+
+const detailsSchema = z.object({
+  engagementId: z.string().uuid(),
+  name: z.string().min(2).max(200),
+  reference: z.string().max(60).optional(),
+});
+
+// Edit core engagement details (name, reference). Assessor-side update.
+export async function updateEngagementDetails(input: z.infer<typeof detailsSchema>) {
+  const session = await requireSession();
+  const data = detailsSchema.parse(input);
+  const [engagement] = await db
+    .select({ tenantId: engagements.tenantId, name: engagements.name, reference: engagements.reference })
+    .from(engagements)
+    .where(and(eq(engagements.id, data.engagementId), isNull(engagements.deletedAt)))
+    .limit(1);
+  if (!engagement) throw new Error('Engagement not found');
+
+  await requirePermission(ACTIONS.engagementUpdate, {
+    userId: session.user.id,
+    tenantId: engagement.tenantId,
+    engagementId: data.engagementId,
+  });
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(engagements)
+      .set({ name: data.name, reference: data.reference ?? null, updatedAt: new Date() })
+      .where(eq(engagements.id, data.engagementId));
+    await tx.insert(auditLog).values({
+      tenantId: engagement.tenantId,
+      engagementId: data.engagementId,
+      actorType: 'user',
+      actorUserId: session.user.id,
+      action: 'engagement.update_details',
+      resourceType: 'engagement',
+      resourceId: data.engagementId,
+      beforeJson: { name: engagement.name, reference: engagement.reference } as never,
+      afterJson: { name: data.name, reference: data.reference ?? null } as never,
+    });
+  });
+
+  void notifyEngagementWatchers({
+    engagementId: data.engagementId,
+    tenantId: engagement.tenantId,
+    actorUserId: session.user.id,
+    type: 'engagement_updated',
+    title: 'Engagement details updated',
+    body: `Name: ${data.name}`,
+  }).catch(() => {});
+
+  revalidatePath(`/engagements/${data.engagementId}/overview`);
+  revalidatePath('/dashboard');
+  return { ok: true };
 }
 
 export async function updateEngagementState(input: z.infer<typeof stateSchema>) {
@@ -266,6 +348,15 @@ export async function updateEngagementState(input: z.infer<typeof stateSchema>) 
     });
   });
 
+  void notifyEngagementWatchers({
+    engagementId: data.engagementId,
+    tenantId: engagement.tenantId,
+    actorUserId: session.user.id,
+    type: 'engagement_updated',
+    title: 'Engagement status updated',
+    body: `Phase ${data.phase} · status ${data.status}`,
+  }).catch(() => {});
+
   revalidatePath('/dashboard');
   revalidatePath(`/engagements/${data.engagementId}`);
   revalidatePath(`/engagements/${data.engagementId}/overview`);
@@ -290,11 +381,16 @@ export async function migrateEngagementIsmRevision(input: z.infer<typeof migrate
 
   const nextControls = await db
     .select()
-    .from(ismControls)
+    .from(frameworkControls)
     .where(
       and(
-        eq(ismControls.revision, data.toRevision),
-        lte(ismControls.minClassificationRank, engagement.classificationRank),
+        eq(frameworkControls.frameworkId, engagement.frameworkId),
+        eq(frameworkControls.revision, data.toRevision),
+        lte(frameworkControls.minClassificationRank, engagement.classificationRank),
+        or(
+          isNull(frameworkControls.tenantId),
+          eq(frameworkControls.tenantId, engagement.tenantId),
+        ),
       ),
     );
   if (nextControls.length === 0) throw new Error('No controls found for target revision');
@@ -319,16 +415,16 @@ export async function migrateEngagementIsmRevision(input: z.infer<typeof migrate
     for (const next of nextControls) {
       const current = existingByControlId.get(next.controlId);
       if (current) {
-        if (current.revision !== data.toRevision || current.ismControlId !== next.id) {
+        if (current.revision !== data.toRevision || current.frameworkControlId !== next.id) {
           updated += 1;
           await preserveControlLinksForRevisionMigration(tx, {
-            fromIsmControlId: current.ismControlId,
+            fromIsmControlId: current.frameworkControlId,
             toIsmControlId: next.id,
           });
           await tx
             .update(engagementControls)
             .set({
-              ismControlId: next.id,
+              frameworkControlId: next.id,
               revision: next.revision,
               updatedAt: new Date(),
             })
@@ -345,7 +441,8 @@ export async function migrateEngagementIsmRevision(input: z.infer<typeof migrate
         await tx.insert(engagementControls).values({
           engagementId: data.engagementId,
           tenantId: engagement.tenantId,
-          ismControlId: next.id,
+          frameworkId: engagement.frameworkId,
+          frameworkControlId: next.id,
           controlId: next.controlId,
           revision: next.revision,
         });
@@ -375,7 +472,7 @@ export async function migrateEngagementIsmRevision(input: z.infer<typeof migrate
 
     await tx
       .update(engagements)
-      .set({ ismRevision: data.toRevision, updatedAt: new Date() })
+      .set({ frameworkRevision: data.toRevision, updatedAt: new Date() })
       .where(
         and(
           eq(engagements.id, data.engagementId),
@@ -390,8 +487,8 @@ export async function migrateEngagementIsmRevision(input: z.infer<typeof migrate
       action: 'engagement.ism_migrate',
       resourceType: 'engagement',
       resourceId: data.engagementId,
-      beforeJson: { ismRevision: engagement.ismRevision } as never,
-      afterJson: { ismRevision: data.toRevision, updated, added, removed, reason: data.reason } as never,
+      beforeJson: { frameworkRevision: engagement.frameworkRevision } as never,
+      afterJson: { frameworkRevision: data.toRevision, updated, added, removed, reason: data.reason } as never,
     });
   });
 
@@ -408,43 +505,43 @@ async function preserveControlLinksForRevisionMigration(
     tx
       .select({ evidenceItemId: evidenceItemControls.evidenceItemId })
       .from(evidenceItemControls)
-      .where(eq(evidenceItemControls.ismControlId, opts.fromIsmControlId)),
+      .where(eq(evidenceItemControls.frameworkControlId, opts.fromIsmControlId)),
     tx
       .select({ evidenceRequestId: evidenceRequestControls.evidenceRequestId })
       .from(evidenceRequestControls)
-      .where(eq(evidenceRequestControls.ismControlId, opts.fromIsmControlId)),
+      .where(eq(evidenceRequestControls.frameworkControlId, opts.fromIsmControlId)),
     tx
       .select({ findingId: findingControls.findingId })
       .from(findingControls)
-      .where(eq(findingControls.ismControlId, opts.fromIsmControlId)),
+      .where(eq(findingControls.frameworkControlId, opts.fromIsmControlId)),
     tx
       .select({ interviewId: interviewControls.interviewId })
       .from(interviewControls)
-      .where(eq(interviewControls.ismControlId, opts.fromIsmControlId)),
+      .where(eq(interviewControls.frameworkControlId, opts.fromIsmControlId)),
   ]);
 
   if (evidenceLinks.length > 0) {
     await tx
       .insert(evidenceItemControls)
-      .values(evidenceLinks.map((link) => ({ ...link, ismControlId: opts.toIsmControlId })))
+      .values(evidenceLinks.map((link) => ({ ...link, frameworkControlId: opts.toIsmControlId })))
       .onConflictDoNothing();
   }
   if (requestLinks.length > 0) {
     await tx
       .insert(evidenceRequestControls)
-      .values(requestLinks.map((link) => ({ ...link, ismControlId: opts.toIsmControlId })))
+      .values(requestLinks.map((link) => ({ ...link, frameworkControlId: opts.toIsmControlId })))
       .onConflictDoNothing();
   }
   if (findingLinks.length > 0) {
     await tx
       .insert(findingControls)
-      .values(findingLinks.map((link) => ({ ...link, ismControlId: opts.toIsmControlId })))
+      .values(findingLinks.map((link) => ({ ...link, frameworkControlId: opts.toIsmControlId })))
       .onConflictDoNothing();
   }
   if (interviewLinks.length > 0) {
     await tx
       .insert(interviewControls)
-      .values(interviewLinks.map((link) => ({ ...link, ismControlId: opts.toIsmControlId })))
+      .values(interviewLinks.map((link) => ({ ...link, frameworkControlId: opts.toIsmControlId })))
       .onConflictDoNothing();
   }
 }

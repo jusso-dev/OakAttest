@@ -9,6 +9,7 @@ import { engagementInvitations } from '@/db/schema/invitations';
 import { tenantInvitations, engagementMembers, tenantMembers } from '@/db/schema/tenants';
 import { engagements } from '@/db/schema/engagements';
 import { tenants } from '@/db/schema/tenants';
+import { partners, partnerInvitations } from '@/db/schema/partners';
 import { auditLog } from '@/db/schema/audit';
 import { requireSession } from '@/lib/auth/session';
 import { requirePermission } from '@/lib/rbac/require';
@@ -254,6 +255,21 @@ export async function getInvitationDetails(token: string) {
       .where(eq(tenants.id, ten.tenantId))
       .limit(1);
     return { kind: 'tenant' as const, ...ten, tenantName: tenant?.name };
+  }
+  const [part] = await db
+    .select()
+    .from(partnerInvitations)
+    .where(eq(partnerInvitations.token, token))
+    .limit(1);
+  if (part) {
+    const [partner] = await db
+      .select({ name: partners.name })
+      .from(partners)
+      .where(eq(partners.id, part.partnerId))
+      .limit(1);
+    // `tenantName` carries the partner (MSP) name so the accept page renders a
+    // single template across invitation kinds.
+    return { kind: 'partner' as const, ...part, tenantName: partner?.name };
   }
   return null;
 }

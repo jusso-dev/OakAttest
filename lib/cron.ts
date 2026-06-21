@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { syncAvailableIsmReleases } from '@/lib/ism/sync';
+import { syncAvailableIsmReleases } from '@/lib/frameworks/sync';
 
 export type JobStatus = {
   name: string;

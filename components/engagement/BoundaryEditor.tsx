@@ -30,6 +30,7 @@ import {
   Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ConfirmButton } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { saveBoundaryDraft, lockBoundary } from '@/app/actions/boundary';
@@ -424,9 +425,17 @@ export function BoundaryEditor({
               {busy ? 'Saving…' : 'Save version'}
             </Button>
             {canLock && !locked && (
-              <Button size="sm" variant="outline" onClick={onLock} disabled={busy}>
-                Lock for assessment
-              </Button>
+              <ConfirmButton
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                triggerLabel="Lock for assessment"
+                title="Lock the system boundary?"
+                description="Locking finalises the boundary and moves the engagement into the evidence phase. The boundary can no longer be edited. This cannot be undone."
+                confirmLabel="Lock boundary"
+                confirmVariant="primary"
+                onConfirm={onLock}
+              />
             )}
           </div>
           {message && <p className="mt-3 text-xs text-slate-600">{message}</p>}

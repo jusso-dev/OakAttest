@@ -12,7 +12,7 @@ import { interviewStatusEnum } from './enums';
 import { engagements } from './engagements';
 import { tenants } from './tenants';
 import { users } from './auth';
-import { ismControls } from './ism';
+import { frameworkControls } from './frameworks';
 
 // Fieldwork: interviews and walkthroughs (§9.8).
 export const interviews = pgTable(
@@ -45,7 +45,7 @@ export const interviewControls = pgTable(
     interviewId: uuid('interview_id')
       .notNull()
       .references(() => interviews.id, { onDelete: 'cascade' }),
-    ismControlId: uuid('ism_control_id').notNull().references(() => ismControls.id),
+    frameworkControlId: uuid('framework_control_id').notNull().references(() => frameworkControls.id),
   },
-  (t) => [primaryKey({ columns: [t.interviewId, t.ismControlId] })],
+  (t) => [primaryKey({ columns: [t.interviewId, t.frameworkControlId] })],
 );

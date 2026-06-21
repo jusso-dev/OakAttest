@@ -43,7 +43,7 @@ export type CertificationData = {
     name: string;
     reference: string | null;
     classification: Classification;
-    ismRevision: string;
+    frameworkRevision: string;
   };
   tenant: { name: string; productName: string };
   client: { name: string };

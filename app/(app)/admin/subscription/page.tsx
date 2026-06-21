@@ -10,6 +10,7 @@ import { ACTIONS } from '@/lib/rbac/matrix';
 import { resolveEntitlement } from '@/lib/billing/entitlement';
 import { resolveEntitlements } from '@/lib/licensing';
 import { PlanChangeForm } from '@/components/admin/PlanChangeForm';
+import { SubscriptionLifecycleControls } from '@/components/admin/SubscriptionLifecycleControls';
 import {
   Card,
   CardContent,
@@ -163,6 +164,12 @@ export default async function SubscriptionAdminPage() {
               .
             </p>
           )}
+          {sub && (
+            <div className="border-t border-[var(--field-border)] pt-3">
+              <p className="mb-2 text-xs uppercase text-slate-600">Lifecycle</p>
+              <SubscriptionLifecycleControls tenantId={tenant.tenantId} status={sub.status} />
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -224,11 +231,11 @@ export default async function SubscriptionAdminPage() {
             Append-only audit entries for this subscription. The most recent 50 changes are shown.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           {history.length === 0 ? (
             <p className="text-sm text-slate-600">No state changes recorded.</p>
           ) : (
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="border-b border-[var(--field-border)] text-left text-xs uppercase text-slate-600">
                   <th className="py-2 pr-3">When</th>

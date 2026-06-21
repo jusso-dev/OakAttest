@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { and, eq, isNull } from 'drizzle-orm';
 import { getSession } from '@/lib/auth/session';
-import { resolveActiveTenant } from '@/lib/auth/active-tenant';
+import { resolveActiveTenant, listAccessibleTenants } from '@/lib/auth/active-tenant';
 import { AppShell } from '@/components/AppShell';
 import { CommandPalette } from '@/components/CommandPalette';
 import { db } from '@/lib/db/client';
@@ -9,6 +9,9 @@ import { engagements } from '@/db/schema/engagements';
 import { engagementMembers, tenants } from '@/db/schema/tenants';
 import { users } from '@/db/schema/auth';
 import { rolesForUser } from '@/lib/rbac/require';
+import { isPlatformAdmin } from '@/lib/auth/platform';
+import { partnersForUser } from '@/lib/auth/partner';
+import { unreadNotificationCount } from '@/lib/notifications';
 import { isMfaRequiredForRoles, shouldRequireMfaEnrollment } from '@/lib/auth/mfa-policy';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -160,12 +163,33 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
   const userRole = formatRole(roles[0] ?? 'read_only_observer');
 
+  const [platformAdmin, myPartners, accessibleTenants, unreadCount] = await Promise.all([
+    isPlatformAdmin(session.user.id),
+    partnersForUser(session.user.id),
+    listAccessibleTenants(session.user.id),
+    unreadNotificationCount(session.user.id),
+  ]);
+
+  // "Acting in" applies when the active tenant is managed (MSP/platform) rather
+  // than a direct membership.
+  const activeEntry = accessibleTenants.find((t) => t.id === tenant.tenantId);
+  const actingAs =
+    activeEntry && !activeEntry.direct
+      ? { tenantName: tenant.tenantName, exitHref: platformAdmin ? '/owner' : '/partner' }
+      : null;
+
   return (
     <AppShell
       tenantName={tenant.tenantName}
       userName={session.user.name ?? session.user.email}
       userRole={userRole}
-      canUseTenantAdmin={tenant.access === 'tenant'}
+      canUseTenantAdmin={tenant.access === 'tenant' || platformAdmin}
+      isPlatformAdmin={platformAdmin}
+      isPartnerMember={myPartners.length > 0}
+      tenants={accessibleTenants}
+      activeTenantId={tenant.tenantId}
+      actingAs={actingAs}
+      unreadCount={unreadCount}
       burlEngagements={engagementList.map((engagement) => ({
         id: engagement.id,
         name: engagement.name,

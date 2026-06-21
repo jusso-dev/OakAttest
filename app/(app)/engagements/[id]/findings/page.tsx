@@ -8,7 +8,7 @@ import {
   findingRiskAcceptances,
   remediationActions,
 } from '@/db/schema/findings';
-import { engagementControls, ismControls } from '@/db/schema/ism';
+import { engagementControls, frameworkControls } from '@/db/schema/frameworks';
 import { engagements } from '@/db/schema/engagements';
 import { evidenceItems } from '@/db/schema/evidence';
 import { residualRisks } from '@/db/schema/certification';
@@ -90,14 +90,14 @@ export default async function FindingsPage({
 
   const controls = await db
     .select({
-      id: engagementControls.ismControlId,
+      id: engagementControls.frameworkControlId,
       controlId: engagementControls.controlId,
-      chapter: ismControls.topic,
-      subChapter: ismControls.section,
-      description: ismControls.description,
+      chapter: frameworkControls.topic,
+      subChapter: frameworkControls.section,
+      description: frameworkControls.description,
     })
     .from(engagementControls)
-    .innerJoin(ismControls, eq(ismControls.id, engagementControls.ismControlId))
+    .innerJoin(frameworkControls, eq(frameworkControls.id, engagementControls.frameworkControlId))
     .where(and(eq(engagementControls.tenantId, engagement.tenantId), eq(engagementControls.engagementId, id)))
     .orderBy(engagementControls.controlId);
 
@@ -107,15 +107,15 @@ export default async function FindingsPage({
       : await db
           .select({
             findingId: findingControls.findingId,
-            controlId: ismControls.controlId,
-            chapter: ismControls.topic,
-            subChapter: ismControls.section,
-            description: ismControls.description,
+            controlId: frameworkControls.controlId,
+            chapter: frameworkControls.topic,
+            subChapter: frameworkControls.section,
+            description: frameworkControls.description,
           })
           .from(findingControls)
-          .innerJoin(ismControls, eq(ismControls.id, findingControls.ismControlId))
+          .innerJoin(frameworkControls, eq(frameworkControls.id, findingControls.frameworkControlId))
           .where(inArray(findingControls.findingId, list.map((finding) => finding.id)))
-          .orderBy(ismControls.controlId);
+          .orderBy(frameworkControls.controlId);
 
   const roles = await rolesForUser({
     userId: session.user.id,
@@ -274,7 +274,7 @@ export default async function FindingsPage({
           </form>
           <p className="mt-3 text-xs text-slate-600">
             Showing {filteredList.length} of {list.length} findings. Filters include linked
-            ISM control ID, chapter, sub-chapter, and control description.
+            control ID, section, and control description.
           </p>
         </CardContent>
       </Card>

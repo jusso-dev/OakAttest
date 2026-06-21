@@ -46,7 +46,7 @@ export type EssentialEightReportData = {
     name: string;
     reference: string | null;
     classification: string;
-    ismRevision: string;
+    frameworkRevision: string;
   };
   client: { name: string };
   system: { name: string; description: string | null; environment: string | null };
@@ -121,7 +121,7 @@ export function EssentialEightReportDocument({ data }: { data: EssentialEightRep
         <InfoRow label="Client" value={data.client.name} />
         <InfoRow label="System" value={data.system.name} />
         <InfoRow label="Environment" value={data.system.environment ?? '-'} />
-        <InfoRow label="ISM revision" value={data.engagement.ismRevision} />
+        <InfoRow label="ISM revision" value={data.engagement.frameworkRevision} />
 
         <Text style={styles.sectionTitle}>2. Scope and Approach</Text>
         <Text style={styles.body}>{data.profile.scope || 'No Essential Eight-specific scope recorded.'}</Text>

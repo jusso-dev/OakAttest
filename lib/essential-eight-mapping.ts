@@ -1,7 +1,7 @@
 type EssentialEightMapping = Array<{ strategy: string; maturityLevel?: number | null }> | null;
 
 export type MappedControlInput = {
-  ismControlId: string;
+  frameworkControlId: string;
   controlId: string;
   description: string;
   status?: string | null;
@@ -10,7 +10,7 @@ export type MappedControlInput = {
 };
 
 export type MappedControlEvidenceInput = {
-  ismControlId: string;
+  frameworkControlId: string;
   id: string;
   filename: string;
   reviewStatus: string;
@@ -18,7 +18,7 @@ export type MappedControlEvidenceInput = {
 };
 
 export type MappedControlFindingInput = {
-  ismControlId: string;
+  frameworkControlId: string;
   code: string;
   title: string;
   type: string;
@@ -27,7 +27,7 @@ export type MappedControlFindingInput = {
 };
 
 export type EssentialEightMappedControl = {
-  ismControlId: string;
+  frameworkControlId: string;
   controlId: string;
   description: string;
   status: string | null;
@@ -53,27 +53,27 @@ export function groupEssentialEightMappedControls(opts: {
   evidence: MappedControlEvidenceInput[];
   findings: MappedControlFindingInput[];
 }): Map<string, EssentialEightMappedControl[]> {
-  const evidenceByControl = groupBy(opts.evidence, (item) => item.ismControlId);
-  const findingsByControl = groupBy(opts.findings, (item) => item.ismControlId);
+  const evidenceByControl = groupBy(opts.evidence, (item) => item.frameworkControlId);
+  const findingsByControl = groupBy(opts.findings, (item) => item.frameworkControlId);
   const grouped = new Map<string, EssentialEightMappedControl[]>();
 
   for (const control of opts.controls) {
     for (const mapping of control.mapping ?? []) {
       const existing = grouped.get(mapping.strategy) ?? [];
       existing.push({
-        ismControlId: control.ismControlId,
+        frameworkControlId: control.frameworkControlId,
         controlId: control.controlId,
         description: control.description,
         status: control.status ?? null,
         applicable: control.applicable ?? null,
         maturityLevel: mapping.maturityLevel ?? null,
-        evidence: (evidenceByControl.get(control.ismControlId) ?? []).map((item) => ({
+        evidence: (evidenceByControl.get(control.frameworkControlId) ?? []).map((item) => ({
           id: item.id,
           filename: item.filename,
           reviewStatus: item.reviewStatus,
           sha256: item.sha256,
         })),
-        findings: (findingsByControl.get(control.ismControlId) ?? []).map((item) => ({
+        findings: (findingsByControl.get(control.frameworkControlId) ?? []).map((item) => ({
           code: item.code,
           title: item.title,
           type: item.type,

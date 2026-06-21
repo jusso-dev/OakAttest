@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { and, eq, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db/client';
-import { engagementControls } from '@/db/schema/ism';
+import { engagementControls } from '@/db/schema/frameworks';
 import { engagements } from '@/db/schema/engagements';
 import { auditLog } from '@/db/schema/audit';
 import { requireSession } from '@/lib/auth/session';

@@ -18,7 +18,9 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx db/seed/index.ts",
     "db:seed:plans": "tsx db/seed/plans.ts",
-    "ism:import": "tsx scripts/ism-import.ts"
+    "db:seed:frameworks": "tsx db/seed/frameworks.ts",
+    "framework:import": "tsx scripts/framework-import.ts",
+    "platform:admin": "tsx scripts/grant-platform-admin.ts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1048.0",

@@ -49,15 +49,24 @@ export default async function InvitePage({
     );
   }
 
-  const isEngagement = invitation.kind === 'engagement';
+  const title =
+    invitation.kind === 'engagement'
+      ? 'Engagement invitation'
+      : invitation.kind === 'partner'
+        ? 'MSP partner invitation'
+        : 'Tenant invitation';
+  const description =
+    invitation.kind === 'engagement'
+      ? `${invitation.tenantName} has invited you to ${invitation.engagementName} as ${invitation.role}.`
+      : invitation.kind === 'partner'
+        ? `${invitation.tenantName} has invited you to manage their MSP workspace as ${invitation.role.replace('_', ' ')}.`
+        : `${invitation.tenantName} has invited you to join as ${invitation.role}.`;
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{isEngagement ? 'Engagement invitation' : 'Tenant invitation'}</CardTitle>
+        <CardTitle>{title}</CardTitle>
         <CardDescription>
-          {isEngagement
-            ? `${invitation.tenantName} has invited you to ${invitation.engagementName} as ${invitation.role}.`
-            : `${invitation.tenantName} has invited you to join as ${invitation.role}.`}{' '}
+          {description}{' '}
           Sign in or create an account with <strong>{invitation.email}</strong> to accept.
         </CardDescription>
       </CardHeader>

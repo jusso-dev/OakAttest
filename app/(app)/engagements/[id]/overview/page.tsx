@@ -1,7 +1,7 @@
 import { eq, count, desc } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { engagements, clientOrganisations, systems } from '@/db/schema/engagements';
-import { engagementControls, ismImports } from '@/db/schema/ism';
+import { engagementControls, frameworkImports, frameworks } from '@/db/schema/frameworks';
 import { engagementMembers } from '@/db/schema/tenants';
 import { users } from '@/db/schema/auth';
 import { sspExports, sspSectionComments, sspSections } from '@/db/schema/ssp';
@@ -10,14 +10,24 @@ import { requirePageSession } from '@/lib/auth/session';
 import { rolesForUser } from '@/lib/rbac/require';
 import { ACTIONS, isPermitted } from '@/lib/rbac/matrix';
 import { InviteMemberForm } from '@/components/engagement/InviteMemberForm';
+import { EngagementDetailsForm } from '@/components/engagement/EngagementDetailsForm';
 import { SspExportPanel } from '@/components/engagement/SspExportPanel';
 import { SspCollaborationPanel } from '@/components/engagement/SspCollaborationPanel';
 import { RoleAccessGuide } from '@/components/admin/RoleAccessGuide';
 import { CveSubmitForm } from '@/components/evidence/CveSubmitForm';
 import { VulnScanUpload } from '@/components/fieldwork/VulnScanUpload';
 import { IrapGuidancePanel } from '@/components/engagement/IrapGuidancePanel';
-import { IsmMigrationPanel } from '@/components/engagement/IsmMigrationPanel';
-import { compareIsmRevisions } from '@/lib/ism/compare';
+import { FrameworkMigrationPanel } from '@/components/engagement/FrameworkMigrationPanel';
+import { compareIsmRevisions } from '@/lib/frameworks/compare';
+import { getEngagementFramework, usesClassification } from '@/lib/frameworks/registry';
+import {
+  visibleAudiences,
+  getMentionDirectory,
+  listEngagementNotes,
+  type Audience,
+} from '@/lib/engagement-notes';
+import { isWatchingEngagement } from '@/lib/engagement-watch';
+import { DiscussionThread } from '@/components/collaboration/DiscussionThread';
 
 export default async function OverviewPage({
   params,
@@ -92,14 +102,23 @@ export default async function OverviewPage({
     .where(eq(sspSectionComments.engagementId, id))
     .orderBy(sspSectionComments.createdAt);
 
-  const [latestIsm] = await db
-    .select({ revision: ismImports.revision, completedAt: ismImports.completedAt })
-    .from(ismImports)
-    .orderBy(desc(ismImports.completedAt))
-    .limit(1);
+  const framework = await getEngagementFramework(id);
+  const isIsm = framework.key === 'ism';
+
+  // Revision-migration prompt is ISM-only (the diff is classification-based and
+  // reads the ISM release feed). Other frameworks don't get this banner.
+  const [latestIsm] = isIsm
+    ? await db
+        .select({ revision: frameworkImports.revision, completedAt: frameworkImports.completedAt })
+        .from(frameworkImports)
+        .innerJoin(frameworks, eq(frameworks.id, frameworkImports.frameworkId))
+        .where(eq(frameworks.key, 'ism'))
+        .orderBy(desc(frameworkImports.completedAt))
+        .limit(1)
+    : [undefined];
   const ismDiff =
-    latestIsm && latestIsm.revision !== engagement.ismRevision
-      ? await compareIsmRevisions(engagement.ismRevision, latestIsm.revision)
+    latestIsm && latestIsm.revision !== engagement.frameworkRevision
+      ? await compareIsmRevisions(engagement.frameworkRevision, latestIsm.revision)
       : null;
 
   const roles = await rolesForUser({
@@ -108,16 +127,37 @@ export default async function OverviewPage({
     engagementId: id,
   });
   const canInvite = roles.some((role) => isPermitted(ACTIONS.engagementInvite, role));
+  const canEditDetails = roles.some((role) => isPermitted(ACTIONS.engagementUpdate, role));
   const canSubmitSbom = roles.some((role) => isPermitted(ACTIONS.evidenceUpload, role));
   const canImportVulnScan = roles.some((role) => isPermitted(ACTIONS.findingCreate, role));
+
+  // Internal discussion threads the current user can see.
+  const audiences = visibleAudiences(roles);
+  const allNotes = await listEngagementNotes(id, audiences);
+  const AUDIENCE_META: Record<Audience, { label: string; description: string }> = {
+    assessor: { label: 'Team', description: 'Internal assessor-side discussion. Not visible to the client.' },
+    client: { label: 'Client', description: 'Client-side discussion thread.' },
+  };
+  const threadTabs = await Promise.all(
+    audiences.map(async (audience) => ({
+      audience,
+      label: AUDIENCE_META[audience].label,
+      description: AUDIENCE_META[audience].description,
+      directory: await getMentionDirectory(id, engagement.tenantId, audience),
+      notes: allNotes.filter((n) => n.audience === audience),
+    })),
+  );
+  const watching = audiences.includes('assessor')
+    ? await isWatchingEngagement(id, session.user.id)
+    : false;
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
       {latestIsm && ismDiff ? (
         <div className="md:col-span-2">
-          <IsmMigrationPanel
+          <FrameworkMigrationPanel
             engagementId={id}
-            currentRevision={engagement.ismRevision}
+            currentRevision={engagement.frameworkRevision}
             targetRevision={latestIsm.revision}
             diff={ismDiff}
           />
@@ -129,14 +169,32 @@ export default async function OverviewPage({
           <CardDescription>System under assessment.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
+          <Row label="Engagement">{engagement.name}</Row>
+          <Row label="Reference">{engagement.reference ?? '—'}</Row>
+          {canEditDetails && (
+            <div className="pt-1">
+              <EngagementDetailsForm
+                engagementId={id}
+                name={engagement.name}
+                reference={engagement.reference}
+              />
+            </div>
+          )}
           <Row label="System">{system?.name ?? '—'}</Row>
           <Row label="Environment">{system?.environment ?? '—'}</Row>
-          <Row label="Classification">{engagement.classification.replace('_', ':')}</Row>
-          <Row label="Assessment type">
-            {engagement.assessmentType === 'cloud_irap' ? 'Cloud IRAP workload' : 'Standard IRAP'}
-          </Row>
-          <Row label="Cloud provider">{formatCloudProvider(engagement.cloudProvider)}</Row>
-          <Row label="ISM revision">{engagement.ismRevision}</Row>
+          <Row label="Framework">{framework.label}</Row>
+          {usesClassification(framework) && (
+            <>
+              <Row label="Classification">{engagement.classification.replace('_', ':')}</Row>
+              <Row label="Assessment type">
+                {engagement.assessmentType === 'cloud_irap' ? 'Cloud IRAP workload' : 'Standard IRAP'}
+              </Row>
+              {engagement.assessmentType === 'cloud_irap' && (
+                <Row label="Cloud provider">{formatCloudProvider(engagement.cloudProvider)}</Row>
+              )}
+            </>
+          )}
+          <Row label="Revision">{engagement.frameworkRevision}</Row>
           <Row label="Applicable controls">{controlCount}</Row>
           <Row label="Boundary">{engagement.boundaryLockedAt ? 'Locked' : 'Draft'}</Row>
         </CardContent>
@@ -149,13 +207,21 @@ export default async function OverviewPage({
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <Row label="Name">{client?.name ?? '—'}</Row>
-          <Row label="ABN">{client?.abn ?? '—'}</Row>
+          <Row label="Business number">{client?.abn ?? '—'}</Row>
           <Row label="Primary contact">{client?.primaryContactName ?? '—'}</Row>
           <Row label="Email">{client?.primaryContactEmail ?? '—'}</Row>
         </CardContent>
       </Card>
 
-      <IrapGuidancePanel />
+      {isIsm && <IrapGuidancePanel />}
+
+      {threadTabs.length > 0 && (
+        <DiscussionThread
+          engagementId={id}
+          tabs={threadTabs}
+          watch={audiences.includes('assessor') ? { watching } : undefined}
+        />
+      )}
 
       <Card className="md:col-span-2">
         <CardHeader>

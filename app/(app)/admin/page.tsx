@@ -10,6 +10,7 @@ import { ACTIONS } from '@/lib/rbac/matrix';
 import { redirect } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TenantInviteForm } from '@/components/admin/TenantInviteForm';
+import { MemberRowControls } from '@/components/admin/MemberRowControls';
 import { RoleAccessGuide } from '@/components/admin/RoleAccessGuide';
 import { SecurityPolicyForm } from '@/components/admin/SecurityPolicyForm';
 import { SigningKeysPanel } from '@/components/admin/SigningKeysPanel';
@@ -192,14 +193,15 @@ export default async function AdminPage({
           <CardTitle>Members</CardTitle>
           <CardDescription>{members.length} active member(s).</CardDescription>
         </CardHeader>
-        <CardContent>
-          <table className="w-full text-sm">
+        <CardContent className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-[var(--field-border)] text-left text-xs uppercase text-slate-600">
                 <th className="py-2 pr-3">Name</th>
                 <th className="py-2 pr-3">Email</th>
                 <th className="py-2 pr-3">Role</th>
                 <th className="py-2 pr-3">Joined</th>
+                {canManageTenant && <th className="py-2 pr-3 text-right">Manage</th>}
               </tr>
             </thead>
             <tbody>
@@ -211,6 +213,16 @@ export default async function AdminPage({
                   <td className="py-2 pr-3 text-slate-600">
                     {m.joinedAt ? new Date(m.joinedAt).toLocaleDateString('en-AU') : '—'}
                   </td>
+                  {canManageTenant && (
+                    <td className="py-2 pr-3">
+                      <MemberRowControls
+                        tenantId={tenant.tenantId}
+                        userId={m.userId}
+                        role={m.role as 'tenant_owner' | 'assessor_admin'}
+                        memberLabel={m.name ?? m.email}
+                      />
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

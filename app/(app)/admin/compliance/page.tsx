@@ -4,7 +4,7 @@ import { db } from '@/lib/db/client';
 import { engagements } from '@/db/schema/engagements';
 import { certificationReports } from '@/db/schema/certification';
 import { evidenceItems } from '@/db/schema/evidence';
-import { ismImports } from '@/db/schema/ism';
+import { frameworkImports } from '@/db/schema/frameworks';
 import { engagementTasks } from '@/db/schema/tasks';
 import { tenants } from '@/db/schema/tenants';
 import { requirePageSession } from '@/lib/auth/session';
@@ -44,7 +44,7 @@ export default async function CompliancePage() {
       id: engagements.id,
       name: engagements.name,
       classification: engagements.classification,
-      ismRevision: engagements.ismRevision,
+      frameworkRevision: engagements.frameworkRevision,
       certifiedAt: engagements.certifiedAt,
       updatedAt: engagements.updatedAt,
     })
@@ -88,9 +88,9 @@ export default async function CompliancePage() {
           .where(and(eq(evidenceItems.tenantId, tenant.tenantId), inArray(evidenceItems.engagementId, engagementIds)))
       : [];
   const [latestIsm] = await db
-    .select({ revision: ismImports.revision, completedAt: ismImports.completedAt })
-    .from(ismImports)
-    .orderBy(desc(ismImports.completedAt))
+    .select({ revision: frameworkImports.revision, completedAt: frameworkImports.completedAt })
+    .from(frameworkImports)
+    .orderBy(desc(frameworkImports.completedAt))
     .limit(1);
 
   const today = new Date();
@@ -108,7 +108,7 @@ export default async function CompliancePage() {
         item.reviewStatus !== 'rejected' &&
         item.uploadedAt < addCalendarMonths(today, -12),
     ).length;
-    const hasNewIsmRelease = Boolean(latestIsm && latestIsm.revision !== e.ismRevision);
+    const hasNewIsmRelease = Boolean(latestIsm && latestIsm.revision !== e.frameworkRevision);
     const hasMaterialChange = Boolean(e.certifiedAt && e.updatedAt > e.certifiedAt);
     return {
       ...e,
@@ -148,11 +148,11 @@ export default async function CompliancePage() {
             threshold is {dueSoonDays(compliancePolicy)} days.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-x-auto">
           {rows.length === 0 ? (
             <p className="text-sm text-slate-600">No certified engagements yet.</p>
           ) : (
-            <table className="min-w-full text-sm">
+            <table className="min-w-[640px] text-sm">
               <thead>
                 <tr className="border-b border-[var(--field-border)] text-left text-xs uppercase text-slate-600">
                   <th className="py-2 pr-3">Engagement</th>

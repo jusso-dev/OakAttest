@@ -15,6 +15,7 @@ import {
 } from './enums';
 import { tenants } from './tenants';
 import { users } from './auth';
+import { clients } from './clients';
 
 // One client organisation being assessed against one system. Engagements are
 // the unit of work; almost every other domain row carries `engagement_id`.
@@ -31,9 +32,13 @@ export const engagements = pgTable(
     phase: engagementPhaseEnum('phase').notNull().default('scoping'),
     assessmentType: text('assessment_type').notNull().default('standard'),
     cloudProvider: text('cloud_provider').notNull().default('none'),
-    // ISM revision the engagement is pinned to. New revisions surface a
+    // The compliance framework this engagement is assessed against (ISM, NIST,
+    // FedRAMP, SOC 2, ISO 27001). FK to frameworks.id enforced at the DB level
+    // (see migration) to avoid a schema import cycle with frameworks.ts.
+    frameworkId: uuid('framework_id').notNull(),
+    // Framework revision the engagement is pinned to. New revisions surface a
     // banner with a compare/migrate action (section 8).
-    ismRevision: text('ism_revision').notNull(),
+    frameworkRevision: text('framework_revision').notNull(),
     startedAt: timestamp('started_at', { withTimezone: true }),
     targetCertificationAt: timestamp('target_certification_at', { withTimezone: true }),
     certifiedAt: timestamp('certified_at', { withTimezone: true }),
@@ -58,6 +63,10 @@ export const clientOrganisations = pgTable(
       .notNull()
       .references(() => engagements.id, { onDelete: 'cascade' }),
     tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+    // The registry client this engagement was created against. Nullable for
+    // engagements created before the client registry; the columns below are a
+    // snapshot taken at creation time.
+    clientId: uuid('client_id').references(() => clients.id),
     name: text('name').notNull(),
     abn: text('abn'),
     primaryContactName: text('primary_contact_name'),

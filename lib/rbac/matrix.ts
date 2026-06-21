@@ -53,6 +53,10 @@ export const ACTIONS = {
   tenantManageIpAllowlist: 'tenant:manage_ip_allowlist',
   tenantManageIsm: 'tenant:manage_ism',
 
+  // client registry
+  clientView: 'client:view',
+  clientManage: 'client:manage',
+
   // engagements
   engagementCreate: 'engagement:create',
   engagementUpdate: 'engagement:update',
@@ -110,6 +114,10 @@ export const PERMISSIONS: Record<Action, Allow> = {
   [ACTIONS.tenantManageBranding]: ['tenant_owner'],
   [ACTIONS.tenantManageIpAllowlist]: ['tenant_owner'],
   [ACTIONS.tenantManageIsm]: ['tenant_owner', 'assessor_admin'],
+
+  // Client registry
+  [ACTIONS.clientView]: ['tenant_owner', 'assessor_admin', 'lead_assessor', 'assessor'],
+  [ACTIONS.clientManage]: ['tenant_owner', 'assessor_admin', 'lead_assessor'],
 
   // Engagements
   [ACTIONS.engagementCreate]: ['tenant_owner', 'assessor_admin'],

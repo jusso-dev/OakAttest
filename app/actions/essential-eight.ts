@@ -15,7 +15,7 @@ import { engagements } from '@/db/schema/engagements';
 import { clientOrganisations, systems } from '@/db/schema/engagements';
 import { tenants } from '@/db/schema/tenants';
 import { evidenceItems } from '@/db/schema/evidence';
-import { engagementControls, ismControls } from '@/db/schema/ism';
+import { engagementControls, frameworkControls } from '@/db/schema/frameworks';
 import { findingControls, findings } from '@/db/schema/findings';
 import { auditLog } from '@/db/schema/audit';
 import { requireSession } from '@/lib/auth/session';
@@ -322,17 +322,17 @@ export async function generateEssentialEightReport(input: { engagementId: string
     .limit(1);
   const mappedControls = await db
     .select({
-      ismControlId: ismControls.id,
+      frameworkControlId: frameworkControls.id,
       controlId: engagementControls.controlId,
-      description: ismControls.description,
-      mapping: ismControls.essentialEightMapping,
+      description: frameworkControls.description,
+      mapping: frameworkControls.essentialEightMapping,
     })
     .from(engagementControls)
-    .innerJoin(ismControls, eq(ismControls.id, engagementControls.ismControlId))
+    .innerJoin(frameworkControls, eq(frameworkControls.id, engagementControls.frameworkControlId))
     .where(eq(engagementControls.engagementId, data.engagementId));
   const findingLinks = await db
     .select({
-      ismControlId: findingControls.ismControlId,
+      frameworkControlId: findingControls.frameworkControlId,
       code: findings.code,
       type: findings.type,
       severity: findings.severity,
@@ -368,26 +368,26 @@ export async function generateEssentialEightReport(input: { engagementId: string
   const rowByStrategy = new Map(rows.map((row) => [row.strategy, row]));
   const controlsByStrategy = new Map<
     string,
-    Array<{ ismControlId: string; controlId: string; maturityLevel?: number | null }>
+    Array<{ frameworkControlId: string; controlId: string; maturityLevel?: number | null }>
   >();
   const strategyByControl = new Map<string, Set<string>>();
   for (const control of mappedControls) {
     for (const mapping of control.mapping ?? []) {
       const controls = controlsByStrategy.get(mapping.strategy) ?? [];
       controls.push({
-        ismControlId: control.ismControlId,
+        frameworkControlId: control.frameworkControlId,
         controlId: control.controlId,
         maturityLevel: mapping.maturityLevel ?? null,
       });
       controlsByStrategy.set(mapping.strategy, controls);
-      const strategies = strategyByControl.get(control.ismControlId) ?? new Set<string>();
+      const strategies = strategyByControl.get(control.frameworkControlId) ?? new Set<string>();
       strategies.add(mapping.strategy);
-      strategyByControl.set(control.ismControlId, strategies);
+      strategyByControl.set(control.frameworkControlId, strategies);
     }
   }
   const findingsByStrategy = new Map<string, EssentialEightReportData['strategies'][number]['findings']>();
   for (const finding of findingLinks) {
-    for (const strategy of strategyByControl.get(finding.ismControlId) ?? []) {
+    for (const strategy of strategyByControl.get(finding.frameworkControlId) ?? []) {
       const existing = findingsByStrategy.get(strategy) ?? [];
       if (!existing.some((item) => item.code === finding.code)) {
         existing.push({
@@ -408,7 +408,7 @@ export async function generateEssentialEightReport(input: { engagementId: string
       name: engagement.name,
       reference: engagement.reference,
       classification: engagement.classification,
-      ismRevision: engagement.ismRevision,
+      frameworkRevision: engagement.frameworkRevision,
     },
     client: { name: client?.name ?? '-' },
     system: {

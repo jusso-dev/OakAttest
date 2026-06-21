@@ -1,0 +1,4 @@
+control_id,title,description,category,guidance,default_applicable
+A.5.1,Policies for information security,"Replace with your licensed ISO/IEC 27001 Annex A control text.",Organizational,"Optional implementation guidance.",true
+A.8.1,User endpoint devices,"Replace with your licensed ISO/IEC 27001 Annex A control text.",Technological,"Optional guidance.",true
+A.5.7,Threat intelligence,"Replace with your licensed ISO/IEC 27001 Annex A control text.",Organizational,"Optional guidance.",false

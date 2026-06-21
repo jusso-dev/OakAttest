@@ -17,6 +17,7 @@ import { requireSession } from '@/lib/auth/session';
 import { requirePermission } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
 import { requireCanStore, refreshTenantUsage } from '@/lib/licensing';
+import { notifyEngagementWatchers } from '@/lib/engagement-watch';
 import {
   STORAGE_BUCKET,
   buildEvidenceKey,
@@ -69,7 +70,7 @@ export async function createEvidenceRequest(input: z.infer<typeof createRequestS
       requestedBy: session.user.id,
     });
     await tx.insert(evidenceRequestControls).values(
-      data.ismControlIds.map((cid) => ({ evidenceRequestId: id, ismControlId: cid })),
+      data.ismControlIds.map((cid) => ({ evidenceRequestId: id, frameworkControlId: cid })),
     );
     await tx.insert(auditLog).values({
       tenantId,
@@ -177,7 +178,7 @@ export async function startEvidenceUpload(input: z.infer<typeof startUploadSchem
 
     if (data.ismControlIds && data.ismControlIds.length > 0) {
       await tx.insert(evidenceItemControls).values(
-        data.ismControlIds.map((cid) => ({ evidenceItemId: id, ismControlId: cid })),
+        data.ismControlIds.map((cid) => ({ evidenceItemId: id, frameworkControlId: cid })),
       );
     }
 
@@ -307,6 +308,17 @@ export async function finaliseEvidenceUpload(input: z.infer<typeof finaliseSchem
       afterJson: { sha256: data.sha256.toLowerCase() } as never,
     });
   });
+
+  // Notify engagement watchers (assessors) of new evidence. Fire-and-forget.
+  void notifyEngagementWatchers({
+    engagementId: data.engagementId,
+    tenantId,
+    actorUserId: session.user.id,
+    type: 'evidence_uploaded',
+    title: 'New evidence uploaded',
+    body: data.description ?? null,
+    link: `/engagements/${data.engagementId}/evidence`,
+  }).catch(() => {});
 
   revalidatePath(`/engagements/${data.engagementId}/evidence`);
   return { ok: true };

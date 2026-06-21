@@ -17,7 +17,7 @@ import {
 import { engagements } from './engagements';
 import { tenants } from './tenants';
 import { users } from './auth';
-import { ismControls } from './ism';
+import { frameworkControls } from './frameworks';
 import { evidenceItems } from './evidence';
 
 // Findings register (§9.10). Non-conformance blocks certification;
@@ -66,9 +66,9 @@ export const findingControls = pgTable(
     findingId: uuid('finding_id')
       .notNull()
       .references(() => findings.id, { onDelete: 'cascade' }),
-    ismControlId: uuid('ism_control_id').notNull().references(() => ismControls.id),
+    frameworkControlId: uuid('framework_control_id').notNull().references(() => frameworkControls.id),
   },
-  (t) => [primaryKey({ columns: [t.findingId, t.ismControlId] })],
+  (t) => [primaryKey({ columns: [t.findingId, t.frameworkControlId] })],
 );
 
 export const findingEvidence = pgTable(

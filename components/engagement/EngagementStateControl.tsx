@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { ConfirmButton } from '@/components/ui/confirm-dialog';
 import { updateEngagementState } from '@/app/actions/engagements';
 import type { Phase } from './PhaseStepper';
 
@@ -92,15 +93,29 @@ export function EngagementStateControl({
         </label>
         {canEdit && (
           <div className="flex items-end">
-            <Button
-              type="button"
-              variant="primary"
-              disabled={!changed || busy}
-              onClick={save}
-              className="w-full sm:w-auto"
-            >
-              {busy ? 'Saving...' : 'Update state'}
-            </Button>
+            {status === 'archived' && currentStatus !== 'archived' ? (
+              <ConfirmButton
+                variant="primary"
+                disabled={!changed || busy}
+                className="w-full sm:w-auto"
+                triggerLabel={busy ? 'Saving...' : 'Update state'}
+                title="Archive this engagement?"
+                description="Archiving hides the engagement from active lists. You can set the status back to active later, but assessors should confirm work is complete first."
+                confirmLabel="Archive engagement"
+                confirmVariant="primary"
+                onConfirm={save}
+              />
+            ) : (
+              <Button
+                type="button"
+                variant="primary"
+                disabled={!changed || busy}
+                onClick={save}
+                className="w-full sm:w-auto"
+              >
+                {busy ? 'Saving...' : 'Update state'}
+              </Button>
+            )}
           </div>
         )}
       </div>

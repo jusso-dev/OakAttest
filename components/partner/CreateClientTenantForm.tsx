@@ -34,14 +34,14 @@ export function CreateClientTenantForm({ partnerId }: { partnerId: string }) {
 
   return (
     <div className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-[1fr_160px_180px_auto]">
+      <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_180px_auto]">
         <div className="space-y-1.5">
           <Label htmlFor="clientName">Client name</Label>
           <Input id="clientName" value={name} onChange={(e) => setName(e.target.value)} placeholder="Client A" />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="clientAbn">ABN (optional)</Label>
-          <Input id="clientAbn" value={abn} onChange={(e) => setAbn(e.target.value)} placeholder="51 824 753 556" />
+          <Label htmlFor="clientAbn" className="whitespace-nowrap">Business no. (optional)</Label>
+          <Input id="clientAbn" value={abn} onChange={(e) => setAbn(e.target.value)} placeholder="ABN, EIN, company no." />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="clientPlan">Plan</Label>
@@ -57,11 +57,9 @@ export function CreateClientTenantForm({ partnerId }: { partnerId: string }) {
             <option value="ENTERPRISE">Enterprise</option>
           </select>
         </div>
-        <div className="flex items-end">
-          <Button variant="primary" disabled={busy || name.length < 2} onClick={submit}>
-            {busy ? 'Adding…' : 'Add tenant'}
-          </Button>
-        </div>
+        <Button variant="primary" disabled={busy || name.length < 2} onClick={submit}>
+          {busy ? 'Adding…' : 'Add tenant'}
+        </Button>
       </div>
       {err && <p className="text-sm text-red-700">{err}</p>}
     </div>

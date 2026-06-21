@@ -1,6 +1,6 @@
 import { and, count, eq, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
-import { engagementControls } from '@/db/schema/ism';
+import { engagementControls } from '@/db/schema/frameworks';
 import { evidenceItems, evidenceRequests } from '@/db/schema/evidence';
 import { findings } from '@/db/schema/findings';
 import { residualRisks } from '@/db/schema/certification';
@@ -96,7 +96,7 @@ export async function getEngagementCoverage(engagementId: string): Promise<Engag
           select 1
           from evidence_item_controls eic
           join evidence_items ei on ei.id = eic.evidence_item_id
-          where eic.ism_control_id = ec.ism_control_id
+          where eic.framework_control_id = ec.framework_control_id
             and ei.engagement_id = ec.engagement_id
             and ei.storage_verified_at is not null
             and ei.quarantined_at is null

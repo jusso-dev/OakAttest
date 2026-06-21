@@ -7,7 +7,7 @@ import crypto from 'node:crypto';
 import JSZip from 'jszip';
 import { db } from '@/lib/db/client';
 import { engagements, clientOrganisations, systems } from '@/db/schema/engagements';
-import { engagementControls, ismControls } from '@/db/schema/ism';
+import { engagementControls, frameworkControls } from '@/db/schema/frameworks';
 import { systemBoundaries } from '@/db/schema/boundaries';
 import { essentialEightAssessments } from '@/db/schema/essential-eight';
 import { residualRisks } from '@/db/schema/certification';
@@ -230,7 +230,7 @@ async function buildSspData(
   const controlRows = await db
     .select({
       controlId: engagementControls.controlId,
-      description: ismControls.description,
+      description: frameworkControls.description,
       applicable: engagementControls.applicable,
       justification: engagementControls.applicabilityJustification,
       implementationStatement: engagementControls.implementationStatement,
@@ -241,7 +241,7 @@ async function buildSspData(
       evidenceLimitations: engagementControls.evidenceLimitations,
     })
     .from(engagementControls)
-    .innerJoin(ismControls, eq(ismControls.id, engagementControls.ismControlId))
+    .innerJoin(frameworkControls, eq(frameworkControls.id, engagementControls.frameworkControlId))
     .where(
       and(
         eq(engagementControls.tenantId, engagement.tenantId),
@@ -311,7 +311,7 @@ async function buildSspData(
       name: engagement.name,
       reference: engagement.reference,
       classification: engagement.classification,
-      ismRevision: engagement.ismRevision,
+      frameworkRevision: engagement.frameworkRevision,
       phase: engagement.phase,
       status: engagement.status,
       createdAt: engagement.createdAt.toISOString(),

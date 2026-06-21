@@ -4,6 +4,7 @@ import { db } from '@/lib/db/client';
 import { tenantMembers, engagementMembers, tenants } from '@/db/schema/tenants';
 import { partnerMembers } from '@/db/schema/partners';
 import { engagements } from '@/db/schema/engagements';
+import { isPlatformAdmin } from '@/lib/auth/platform';
 
 // Active tenant is stored in a cookie set after the user picks one via the
 // command palette. We re-validate every request that the user is still a
@@ -101,6 +102,21 @@ export async function resolveActiveTenant(userId: string): Promise<{
       )
       .limit(1);
     if (partnerScoped[0]) return partnerScoped[0];
+
+    // Platform superadmin can drop into any tenant.
+    if (await isPlatformAdmin(userId)) {
+      const platformScoped = await db
+        .select({
+          tenantId: tenants.id,
+          tenantSlug: tenants.slug,
+          tenantName: tenants.name,
+          access: sql<'tenant'>`'tenant'`,
+        })
+        .from(tenants)
+        .where(and(eq(tenants.id, cookieTenantId), isNull(tenants.deletedAt)))
+        .limit(1);
+      if (platformScoped[0]) return platformScoped[0];
+    }
   }
 
   const fallback = await db
@@ -142,6 +158,23 @@ export async function resolveActiveTenant(userId: string): Promise<{
     .limit(1);
   if (partnerFallback[0]) return partnerFallback[0];
 
+  // Platform superadmin with no membership defaults to the first tenant so they
+  // are never stranded on onboarding; they switch via the Owner console.
+  if (await isPlatformAdmin(userId)) {
+    const platformFallback = await db
+      .select({
+        tenantId: tenants.id,
+        tenantSlug: tenants.slug,
+        tenantName: tenants.name,
+        access: sql<'tenant'>`'tenant'`,
+      })
+      .from(tenants)
+      .where(isNull(tenants.deletedAt))
+      .orderBy(tenants.createdAt)
+      .limit(1);
+    if (platformFallback[0]) return platformFallback[0];
+  }
+
   const engagementFallback = await db
     .select({
       tenantId: tenants.id,
@@ -163,4 +196,50 @@ export async function resolveActiveTenant(userId: string): Promise<{
     .limit(1);
 
   return engagementFallback[0] ?? null;
+}
+
+export type AccessibleTenant = { id: string; name: string; direct: boolean };
+
+// Tenants the user can switch into: direct memberships, tenants managed via
+// their partner (MSP), and — for the platform superadmin — every tenant.
+// `direct` marks a real membership (vs a dropped-in management context).
+export async function listAccessibleTenants(userId: string): Promise<AccessibleTenant[]> {
+  const direct = await db
+    .select({ id: tenants.id, name: tenants.name })
+    .from(tenantMembers)
+    .innerJoin(tenants, eq(tenants.id, tenantMembers.tenantId))
+    .where(
+      and(
+        eq(tenantMembers.userId, userId),
+        isNull(tenantMembers.deletedAt),
+        isNull(tenants.deletedAt),
+      ),
+    );
+
+  const managed = await db
+    .select({ id: tenants.id, name: tenants.name })
+    .from(tenants)
+    .innerJoin(partnerMembers, eq(partnerMembers.partnerId, tenants.partnerId))
+    .where(
+      and(
+        eq(partnerMembers.userId, userId),
+        isNull(partnerMembers.deletedAt),
+        isNull(tenants.deletedAt),
+      ),
+    );
+
+  let all: Array<{ id: string; name: string }> = [];
+  if (await isPlatformAdmin(userId)) {
+    all = await db
+      .select({ id: tenants.id, name: tenants.name })
+      .from(tenants)
+      .where(isNull(tenants.deletedAt));
+  }
+
+  const byId = new Map<string, AccessibleTenant>();
+  for (const t of direct) byId.set(t.id, { ...t, direct: true });
+  for (const t of [...managed, ...all]) {
+    if (!byId.has(t.id)) byId.set(t.id, { ...t, direct: false });
+  }
+  return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name));
 }

@@ -10,7 +10,7 @@ describe('Essential Eight report export', () => {
         name: 'Example IRAP',
         reference: 'IRAP-001',
         classification: 'protected',
-        ismRevision: '2025-12',
+        frameworkRevision: '2025-12',
       },
       client: { name: 'Client Co' },
       system: { name: 'Client Platform', description: null, environment: 'AWS' },

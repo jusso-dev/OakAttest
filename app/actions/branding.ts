@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db/client';
 import { tenants } from '@/db/schema/tenants';
@@ -101,7 +101,14 @@ export async function removeIpAllowlistEntry(input: z.infer<typeof removeIpSchem
     tenantId: data.tenantId,
   });
   await db.transaction(async (tx) => {
-    await tx.delete(tenantIpAllowlist).where(eq(tenantIpAllowlist.id, data.entryId));
+    await tx
+      .delete(tenantIpAllowlist)
+      .where(
+        and(
+          eq(tenantIpAllowlist.id, data.entryId),
+          eq(tenantIpAllowlist.tenantId, data.tenantId),
+        ),
+      );
     await tx.insert(auditLog).values({
       tenantId: data.tenantId,
       actorUserId: session.user.id,

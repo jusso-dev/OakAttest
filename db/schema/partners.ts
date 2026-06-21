@@ -57,5 +57,32 @@ export const partnerMembers = pgTable(
   ],
 );
 
+// Partner-level invitations (the platform superadmin inviting an MSP owner, or
+// a partner owner inviting more MSP staff). Mirrors `tenant_invitations`. The
+// accepting user becomes a `partner_members` row with the invited role.
+export const partnerInvitations = pgTable(
+  'partner_invitations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    partnerId: uuid('partner_id')
+      .notNull()
+      .references(() => partners.id, { onDelete: 'cascade' }),
+    email: text('email').notNull(),
+    role: partnerRoleEnum('role').notNull(),
+    token: text('token').notNull(),
+    invitedBy: uuid('invited_by').references(() => users.id),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+    acceptedBy: uuid('accepted_by').references(() => users.id),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('partner_invitations_token_uq').on(t.token),
+    index('partner_invitations_partner_email_idx').on(t.partnerId, t.email),
+  ],
+);
+
 export type Partner = typeof partners.$inferSelect;
 export type PartnerMember = typeof partnerMembers.$inferSelect;
+export type PartnerInvitation = typeof partnerInvitations.$inferSelect;

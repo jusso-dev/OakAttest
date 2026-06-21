@@ -8,7 +8,7 @@ import { db } from '@/lib/db/client';
 import { cveScans, cveScanFindings } from '@/db/schema/cve';
 import { engagements } from '@/db/schema/engagements';
 import { findings, findingControls } from '@/db/schema/findings';
-import { engagementControls } from '@/db/schema/ism';
+import { engagementControls } from '@/db/schema/frameworks';
 import { auditLog } from '@/db/schema/audit';
 import { requireSession } from '@/lib/auth/session';
 import { requirePermission } from '@/lib/rbac/require';
@@ -111,7 +111,7 @@ export async function submitCveScan(input: z.infer<typeof submitSchema>) {
   // Find ISM controls related to patching/vulnerability management for the
   // auto-drafted observation links.
   const patchingControls = await db
-    .select({ id: engagementControls.id, ismControlId: engagementControls.ismControlId, controlId: engagementControls.controlId })
+    .select({ id: engagementControls.id, frameworkControlId: engagementControls.frameworkControlId, controlId: engagementControls.controlId })
     .from(engagementControls)
     .where(
       and(
@@ -121,7 +121,7 @@ export async function submitCveScan(input: z.infer<typeof submitSchema>) {
     );
   const patchingControlIds = patchingControls
     .filter((c) => /patch|vulnerab/i.test(c.controlId))
-    .map((c) => c.ismControlId);
+    .map((c) => c.frameworkControlId);
 
   const signedHash = crypto
     .createHash('sha256')
@@ -193,7 +193,7 @@ export async function submitCveScan(input: z.infer<typeof submitSchema>) {
         reportedBy: session.user.id,
       });
       await tx.insert(findingControls).values(
-        patchingControlIds.map((cid) => ({ findingId, ismControlId: cid })),
+        patchingControlIds.map((cid) => ({ findingId, frameworkControlId: cid })),
       );
     }
 

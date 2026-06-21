@@ -131,7 +131,7 @@ export async function generateCertificationDraft(input: z.infer<typeof generateS
       name: engagement.name,
       reference: engagement.reference,
       classification: engagement.classification,
-      ismRevision: engagement.ismRevision,
+      frameworkRevision: engagement.frameworkRevision,
     },
     tenant: { name: tenant.name, productName: branding.productName },
     client: { name: client?.name ?? '—' },

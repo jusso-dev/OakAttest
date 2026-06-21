@@ -8,16 +8,17 @@ import crypto from 'node:crypto';
 import { db } from '@/lib/db/client';
 import { partners, partnerMembers } from '@/db/schema/partners';
 import { tenants } from '@/db/schema/tenants';
+import { clients } from '@/db/schema/clients';
 import { subscriptions } from '@/db/schema/subscriptions';
 import { plans } from '@/db/schema/plans';
 import { auditLog } from '@/db/schema/audit';
 import { requireSession } from '@/lib/auth/session';
 import { requirePartnerRole } from '@/lib/auth/partner';
+import { requirePlatformAdmin } from '@/lib/auth/platform';
 import { requirePermission } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
 import { classifyPlanChange } from '@/lib/licensing';
 import { transitionSubscription } from '@/lib/billing/transitions';
-import { isValidAbn, normalizeAbn } from '@/lib/abn';
 
 const PLAN_CODES = ['ESSENTIAL', 'PROFESSIONAL', 'ENTERPRISE'] as const;
 
@@ -31,13 +32,11 @@ function slugify(name: string): string {
     .slice(0, 60);
 }
 
+// Generic business identifier (ABN / EIN / company number). Stored as-is so
+// MSPs can onboard clients in any jurisdiction.
 const abnField = z.preprocess(
-  (value) => (typeof value === 'string' ? value : ''),
-  z
-    .string()
-    .transform(normalizeAbn)
-    .refine((value) => value === '' || isValidAbn(value), 'Enter a valid ABN')
-    .transform((value) => value || undefined),
+  (value) => (typeof value === 'string' ? value.trim() : ''),
+  z.string().max(64).optional().transform((value) => value || undefined),
 );
 
 // Create an MSP partner. Any authenticated user may found a partner and becomes
@@ -50,6 +49,10 @@ const createPartnerSchema = z.object({
 
 export async function createPartner(input: z.infer<typeof createPartnerSchema>) {
   const session = await requireSession();
+  // MSP partners are provisioned by the platform owner (hosted model), not
+  // self-served. The owner becomes the first partner_owner; to onboard an
+  // external MSP owner use `provisionPartner` (invite flow) instead.
+  await requirePlatformAdmin(session.user.id);
   const data = createPartnerSchema.parse(input);
   const slug = slugify(data.name) || crypto.randomBytes(4).toString('hex');
   const partnerId = crypto.randomUUID();
@@ -114,6 +117,14 @@ export async function createClientTenant(input: z.infer<typeof createClientTenan
         });
       }
     }
+
+    // Seed a matching client record inside the new tenant so an engagement can
+    // be started immediately (the assessor fills in the contact details).
+    await tx.insert(clients).values({
+      tenantId,
+      name: data.name,
+      businessNumber: data.abn ?? null,
+    });
 
     await tx.insert(auditLog).values({
       tenantId,

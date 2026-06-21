@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { ConfirmButton } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -82,7 +83,8 @@ export function IpAllowlistManager({
         </div>
       </div>
       {error && <p className="text-sm text-red-700">{error}</p>}
-      <table className="w-full text-sm">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[480px] text-sm">
         <thead>
           <tr className="border-b border-[var(--field-border)] text-left text-xs uppercase text-slate-600">
             <th className="py-2 pr-3">CIDR</th>
@@ -103,15 +105,22 @@ export function IpAllowlistManager({
                 <td className="py-2 pr-3 font-mono text-xs">{e.cidr}</td>
                 <td className="py-2 pr-3 text-slate-700">{e.description ?? '—'}</td>
                 <td className="py-2 pr-3 text-right">
-                  <Button size="sm" variant="destructive" onClick={() => remove(e.id)}>
-                    Remove
-                  </Button>
+                  <ConfirmButton
+                    size="sm"
+                    variant="destructive"
+                    triggerLabel="Remove"
+                    title="Remove IP allowlist entry?"
+                    description={`Remove ${e.cidr} from the allowlist? Assessors connecting from this range will be blocked. You can re-add it later.`}
+                    confirmLabel="Remove entry"
+                    onConfirm={() => remove(e.id)}
+                  />
                 </td>
               </tr>
             ))
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

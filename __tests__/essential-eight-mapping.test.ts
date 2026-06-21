@@ -6,7 +6,7 @@ describe('Essential Eight ISM mapping', () => {
     const grouped = groupEssentialEightMappedControls({
       controls: [
         {
-          ismControlId: 'ism-1',
+          frameworkControlId: 'ism-1',
           controlId: 'ISM-0001',
           description: 'Application control is implemented.',
           status: 'implemented',
@@ -19,7 +19,7 @@ describe('Essential Eight ISM mapping', () => {
       ],
       evidence: [
         {
-          ismControlId: 'ism-1',
+          frameworkControlId: 'ism-1',
           id: 'evidence-1',
           filename: 'allow-list.pdf',
           reviewStatus: 'accepted',
@@ -28,7 +28,7 @@ describe('Essential Eight ISM mapping', () => {
       ],
       findings: [
         {
-          ismControlId: 'ism-1',
+          frameworkControlId: 'ism-1',
           code: 'FND-001',
           title: 'Policy drift',
           type: 'observation',

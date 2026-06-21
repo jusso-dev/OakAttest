@@ -1,0 +1,4 @@
+control_id,title,description,category,guidance,default_applicable
+CC1.1,Control Environment - Integrity and Ethical Values,"Replace with your licensed AICPA Trust Services Criteria control text.",Common Criteria,"Optional implementation guidance.",true
+CC6.1,Logical and Physical Access Controls,"Replace with your licensed AICPA TSC control text.",Common Criteria,"Optional guidance.",true
+A1.1,Availability - Capacity,"Replace with your licensed AICPA TSC control text.",Availability,"Optional guidance.",false

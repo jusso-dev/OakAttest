@@ -16,7 +16,7 @@ import {
 import { engagements } from './engagements';
 import { tenants } from './tenants';
 import { users } from './auth';
-import { ismControls } from './ism';
+import { frameworkControls } from './frameworks';
 
 // Evidence Requests (§9.7). The assessor asks the client for an artifact
 // covering one or more controls.
@@ -50,9 +50,9 @@ export const evidenceRequestControls = pgTable(
     evidenceRequestId: uuid('evidence_request_id')
       .notNull()
       .references(() => evidenceRequests.id, { onDelete: 'cascade' }),
-    ismControlId: uuid('ism_control_id').notNull().references(() => ismControls.id),
+    frameworkControlId: uuid('framework_control_id').notNull().references(() => frameworkControls.id),
   },
-  (t) => [primaryKey({ columns: [t.evidenceRequestId, t.ismControlId] })],
+  (t) => [primaryKey({ columns: [t.evidenceRequestId, t.frameworkControlId] })],
 );
 
 // Uploaded files. Versioned: replacing a file creates a new row with
@@ -103,7 +103,7 @@ export const evidenceItemControls = pgTable(
     evidenceItemId: uuid('evidence_item_id')
       .notNull()
       .references(() => evidenceItems.id, { onDelete: 'cascade' }),
-    ismControlId: uuid('ism_control_id').notNull().references(() => ismControls.id),
+    frameworkControlId: uuid('framework_control_id').notNull().references(() => frameworkControls.id),
   },
-  (t) => [primaryKey({ columns: [t.evidenceItemId, t.ismControlId] })],
+  (t) => [primaryKey({ columns: [t.evidenceItemId, t.frameworkControlId] })],
 );

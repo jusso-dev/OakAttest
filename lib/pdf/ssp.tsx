@@ -63,7 +63,7 @@ export type SspData = {
     name: string;
     reference: string | null;
     classification: Classification;
-    ismRevision: string;
+    frameworkRevision: string;
     phase: string;
     status: string;
     createdAt: string;
@@ -216,7 +216,7 @@ export function SspDocument({ data }: { data: SspData }) {
         </Text>
         <View style={styles.row}>
           <View style={styles.cell}><Text style={styles.label}>ISM revision</Text></View>
-          <View style={styles.cell}><Text>{data.engagement.ismRevision}</Text></View>
+          <View style={styles.cell}><Text>{data.engagement.frameworkRevision}</Text></View>
         </View>
 
         <Text style={styles.sectionTitle}>5. Boundary and Component Inventory</Text>

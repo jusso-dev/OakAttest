@@ -68,7 +68,7 @@ export async function createInterview(input: z.infer<typeof createSchema>) {
     });
     if (data.ismControlIds?.length) {
       await tx.insert(interviewControls).values(
-        data.ismControlIds.map((cid) => ({ interviewId: id, ismControlId: cid })),
+        data.ismControlIds.map((cid) => ({ interviewId: id, frameworkControlId: cid })),
       );
     }
     await tx.insert(auditLog).values({

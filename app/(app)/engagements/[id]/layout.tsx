@@ -7,6 +7,7 @@ import { getSession } from '@/lib/auth/session';
 import { resolveActiveTenant } from '@/lib/auth/active-tenant';
 import { requirePermission, PermissionDeniedError, rolesForUser } from '@/lib/rbac/require';
 import { ACTIONS, isPermitted } from '@/lib/rbac/matrix';
+import { getEngagementFramework, usesClassification } from '@/lib/frameworks/registry';
 import { PhaseStepper, type Phase } from '@/components/engagement/PhaseStepper';
 import { UnsavedChangesProvider } from '@/components/engagement/UnsavedChangesGuard';
 import { EngagementStateControl } from '@/components/engagement/EngagementStateControl';
@@ -88,13 +89,21 @@ export default async function EngagementLayout({
     dueAt: task.dueAt?.toISOString() ?? null,
   }));
 
+  const framework = await getEngagementFramework(row.id);
+
   return (
     <UnsavedChangesProvider>
       <div className="mx-auto w-full max-w-[96rem] space-y-6">
         <header className="space-y-2">
           <p className="text-xs uppercase text-slate-600">
             {row.reference ?? 'Engagement'} ·{' '}
-            <span className="text-slate-700">{row.classification.replace('_', ':')}</span>
+            <span className="text-slate-700">{framework.label}</span>
+            {usesClassification(framework) && (
+              <>
+                {' · '}
+                <span className="text-slate-700">{row.classification.replace('_', ':')}</span>
+              </>
+            )}
           </p>
           <h1 className="text-2xl font-semibold text-slate-900">{row.name}</h1>
         </header>

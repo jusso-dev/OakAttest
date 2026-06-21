@@ -1,4 +1,5 @@
 import { desc, eq } from 'drizzle-orm';
+import { redirect } from 'next/navigation';
 import { db } from '@/lib/db/client';
 import {
   essentialEightAssessments,
@@ -6,7 +7,7 @@ import {
   essentialEightProfiles,
   essentialEightReports,
 } from '@/db/schema/essential-eight';
-import { engagementControls, ismControls } from '@/db/schema/ism';
+import { engagementControls, frameworkControls } from '@/db/schema/frameworks';
 import { evidenceItemControls, evidenceItems } from '@/db/schema/evidence';
 import { findingControls, findings } from '@/db/schema/findings';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +15,7 @@ import { EssentialEightGrid } from '@/components/engagement/EssentialEightGrid';
 import { EssentialEightChart } from '@/components/engagement/EssentialEightChart';
 import { calculateEssentialEightOverall, ESSENTIAL_EIGHT_STRATEGIES } from '@/lib/essential-eight';
 import { groupEssentialEightMappedControls } from '@/lib/essential-eight-mapping';
+import { getEngagementFramework, hasEssentialEight } from '@/lib/frameworks/registry';
 
 export const metadata = { title: 'Essential Eight · OakAttest' };
 
@@ -23,6 +25,13 @@ export default async function EssentialEightPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  // Essential Eight is an ISM overlay. Frameworks without it (NIST, SOC 2, ISO)
+  // have no E8 maturity view — send them back to the overview.
+  const framework = await getEngagementFramework(id);
+  if (!hasEssentialEight(framework)) {
+    redirect(`/engagements/${id}/overview`);
+  }
 
   const rows = await db
     .select()
@@ -59,20 +68,20 @@ export default async function EssentialEightPage({
 
   const mappedControls = await db
     .select({
-      ismControlId: ismControls.id,
+      frameworkControlId: frameworkControls.id,
       controlId: engagementControls.controlId,
-      description: ismControls.description,
+      description: frameworkControls.description,
       status: engagementControls.status,
       applicable: engagementControls.applicable,
-      mapping: ismControls.essentialEightMapping,
+      mapping: frameworkControls.essentialEightMapping,
     })
     .from(engagementControls)
-    .innerJoin(ismControls, eq(ismControls.id, engagementControls.ismControlId))
+    .innerJoin(frameworkControls, eq(frameworkControls.id, engagementControls.frameworkControlId))
     .where(eq(engagementControls.engagementId, id));
 
   const mappedEvidence = await db
     .select({
-      ismControlId: evidenceItemControls.ismControlId,
+      frameworkControlId: evidenceItemControls.frameworkControlId,
       id: evidenceItems.id,
       filename: evidenceItems.filename,
       reviewStatus: evidenceItems.reviewStatus,
@@ -84,7 +93,7 @@ export default async function EssentialEightPage({
 
   const mappedFindings = await db
     .select({
-      ismControlId: findingControls.ismControlId,
+      frameworkControlId: findingControls.frameworkControlId,
       code: findings.code,
       title: findings.title,
       type: findings.type,

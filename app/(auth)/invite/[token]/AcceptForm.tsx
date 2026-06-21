@@ -7,10 +7,17 @@ import {
   acceptEngagementInvitation,
   acceptTenantInvitation,
 } from '@/app/actions/invitations';
+import { acceptPartnerInvitation } from '@/app/actions/partner-invitations';
 import { useSession } from '@/lib/auth/client';
 import Link from 'next/link';
 
-export function AcceptForm({ token, kind }: { token: string; kind: 'tenant' | 'engagement' }) {
+export function AcceptForm({
+  token,
+  kind,
+}: {
+  token: string;
+  kind: 'tenant' | 'engagement' | 'partner';
+}) {
   const router = useRouter();
   const { data: session } = useSession();
   const [busy, setBusy] = useState(false);
@@ -23,6 +30,9 @@ export function AcceptForm({ token, kind }: { token: string; kind: 'tenant' | 'e
       if (kind === 'engagement') {
         const result = await acceptEngagementInvitation({ token });
         router.push(`/engagements/${result.engagementId}/overview`);
+      } else if (kind === 'partner') {
+        await acceptPartnerInvitation({ token });
+        router.push('/partner');
       } else {
         await acceptTenantInvitation({ token });
         router.push('/dashboard');

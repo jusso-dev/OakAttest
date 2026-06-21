@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db/client';
 import { engagements } from '@/db/schema/engagements';
 import { findings, findingControls } from '@/db/schema/findings';
-import { engagementControls } from '@/db/schema/ism';
+import { engagementControls } from '@/db/schema/frameworks';
 import { auditLog } from '@/db/schema/audit';
 import { requireSession } from '@/lib/auth/session';
 import { requirePermission } from '@/lib/rbac/require';
@@ -51,7 +51,7 @@ export async function importVulnScan(input: z.infer<typeof importSchema>) {
 
   const patching = await db
     .select({
-      id: engagementControls.ismControlId,
+      id: engagementControls.frameworkControlId,
       controlId: engagementControls.controlId,
     })
     .from(engagementControls)
@@ -90,7 +90,7 @@ export async function importVulnScan(input: z.infer<typeof importSchema>) {
       });
       if (patchingIds.length > 0) {
         await tx.insert(findingControls).values(
-          patchingIds.map((cid) => ({ findingId, ismControlId: cid })),
+          patchingIds.map((cid) => ({ findingId, frameworkControlId: cid })),
         );
       }
       drafted += 1;

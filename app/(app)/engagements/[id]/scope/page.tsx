@@ -1,7 +1,7 @@
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { systemBoundaries } from '@/db/schema/boundaries';
-import { engagementControls, ismControls } from '@/db/schema/ism';
+import { engagementControls, frameworkControls } from '@/db/schema/frameworks';
 import { engagements } from '@/db/schema/engagements';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BoundaryEditor } from '@/components/engagement/BoundaryEditor';
@@ -36,10 +36,10 @@ export default async function ScopePage({
     .select({
       id: engagementControls.id,
       controlId: engagementControls.controlId,
-      description: ismControls.description,
-      chapter: ismControls.topic,
-      subChapter: ismControls.section,
-      minClassification: ismControls.minClassification,
+      description: frameworkControls.description,
+      chapter: frameworkControls.topic,
+      subChapter: frameworkControls.section,
+      minClassification: frameworkControls.minClassification,
       status: engagementControls.status,
       applicable: engagementControls.applicable,
       justification: engagementControls.applicabilityJustification,
@@ -50,7 +50,7 @@ export default async function ScopePage({
       evidenceLimitations: engagementControls.evidenceLimitations,
     })
     .from(engagementControls)
-    .innerJoin(ismControls, eq(ismControls.id, engagementControls.ismControlId))
+    .innerJoin(frameworkControls, eq(frameworkControls.id, engagementControls.frameworkControlId))
     .where(eq(engagementControls.engagementId, id))
     .orderBy(engagementControls.controlId);
 

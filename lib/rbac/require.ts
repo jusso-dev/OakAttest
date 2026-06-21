@@ -2,6 +2,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { tenantMembers, engagementMembers } from '@/db/schema/tenants';
 import { partnerRoleForTenant } from '@/lib/auth/partner';
+import { isPlatformAdmin } from '@/lib/auth/platform';
 import {
   type Action,
   type Role,
@@ -70,6 +71,12 @@ export async function rolesForUser(ctx: AuthContext): Promise<Role[]> {
       const mapped = partnerRoleToTenantRole(partnerRole);
       if (!roles.includes(mapped)) roles.push(mapped);
     }
+  }
+
+  // The platform superadmin (host/owner) has full tenant-owner access to every
+  // tenant — they administer the whole instance.
+  if (!roles.includes('tenant_owner') && (await isPlatformAdmin(ctx.userId))) {
+    roles.push('tenant_owner');
   }
 
   if (ctx.engagementId) {
