@@ -3,7 +3,7 @@ import { requirePageSession } from '@/lib/auth/session';
 import { resolveActiveTenant } from '@/lib/auth/active-tenant';
 import { requirePermission, PermissionDeniedError, rolesForUser } from '@/lib/rbac/require';
 import { ACTIONS, isPermitted } from '@/lib/rbac/matrix';
-import { listClientsForTenant } from '@/app/actions/clients';
+import { listClientsForTenant } from '@/lib/clients';
 import { clientMissingFields } from '@/db/schema/clients';
 import { ClientsManager } from '@/components/clients/ClientsManager';
 

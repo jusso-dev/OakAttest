@@ -5,6 +5,7 @@ import { tenantMembers, engagementMembers, tenants } from '@/db/schema/tenants';
 import { partnerMembers } from '@/db/schema/partners';
 import { engagements } from '@/db/schema/engagements';
 import { isPlatformAdmin } from '@/lib/auth/platform';
+import { partnerRoleForTenant } from '@/lib/auth/partner';
 
 // Active tenant is stored in a cookie set after the user picks one via the
 // command palette. We re-validate every request that the user is still a
@@ -242,4 +243,25 @@ export async function listAccessibleTenants(userId: string): Promise<AccessibleT
     if (!byId.has(t.id)) byId.set(t.id, { ...t, direct: false });
   }
   return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// Whether a user may act inside a tenant: a direct member, MSP staff of the
+// tenant's partner ("drop into"), or the platform superadmin. Server-only
+// helper (not a server action) — callers derive userId from the session.
+export async function canAccessTenant(userId: string, tenantId: string): Promise<boolean> {
+  const [member] = await db
+    .select({ id: tenantMembers.id })
+    .from(tenantMembers)
+    .where(
+      and(
+        eq(tenantMembers.tenantId, tenantId),
+        eq(tenantMembers.userId, userId),
+        isNull(tenantMembers.deletedAt),
+      ),
+    )
+    .limit(1);
+  if (member) return true;
+  if (await partnerRoleForTenant(userId, tenantId)) return true;
+  if (await isPlatformAdmin(userId)) return true;
+  return false;
 }

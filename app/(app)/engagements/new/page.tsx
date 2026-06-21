@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { db } from '@/lib/db/client';
 import { frameworkImports } from '@/db/schema/frameworks';
 import { listFrameworks } from '@/lib/frameworks/registry';
-import { listClientsForTenant } from '@/app/actions/clients';
+import { listClientsForTenant } from '@/lib/clients';
 import { clientMissingFields } from '@/db/schema/clients';
 import { requirePageSession } from '@/lib/auth/session';
 import { resolveActiveTenant } from '@/lib/auth/active-tenant';

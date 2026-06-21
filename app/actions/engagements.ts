@@ -180,6 +180,14 @@ export async function createEngagement(input: z.infer<typeof createSchema>) {
         ),
       );
 
+    // Guard against an invalid/empty framework revision: every framework seeds
+    // at least one in-scope control, so zero means the revision is wrong.
+    if (applicable.length === 0) {
+      throw new Error(
+        'No controls found for the selected framework revision. Import the catalogue or pick a valid revision.',
+      );
+    }
+
     const cloudInheritanceEnabled = canUseProtectedCloudInheritance(
       data.assessmentType,
       data.cloudProvider,

@@ -153,9 +153,13 @@ export async function createEngagementNote(opts: {
   );
 
   // Assessor-thread posts also notify engagement watchers (minus the author and
-  // anyone already pinged by a mention).
+  // anyone already pinged by a mention). Only watchers who can SEE the assessor
+  // thread are notified — never leak assessor content to a client-side watcher.
   if (opts.audience === 'assessor') {
-    const watchers = await listWatcherIds(opts.engagementId);
+    const allowedWatchers = new Set(allowed); // assessor-side directory ids
+    const watchers = (await listWatcherIds(opts.engagementId)).filter((id) =>
+      allowedWatchers.has(id),
+    );
     const already = new Set([...mentionedUserIds, opts.authorId]);
     await createNotifications(
       watchers

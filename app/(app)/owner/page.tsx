@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/card';
 import { ProvisionPartnerForm } from '@/components/partner/ProvisionPartnerForm';
 import { InvitePartnerMemberForm } from '@/components/partner/InvitePartnerMemberForm';
+import { RevokeInviteButton } from '@/components/partner/RevokeInviteButton';
 import { DropIntoButton } from '@/components/partner/DropIntoButton';
 
 export const metadata = { title: 'Platform owner · OakAttest' };
@@ -154,12 +155,22 @@ export default async function OwnerConsolePage() {
               <CardHeader>
                 <CardTitle>Invite MSP staff</CardTitle>
                 <CardDescription>
-                  {pendingInvites.length > 0
-                    ? `${pendingInvites.length} pending invite(s): ${pendingInvites.map((i) => i.email).join(', ')}`
-                    : 'No pending invites.'}
+                  {pendingInvites.length > 0 ? `${pendingInvites.length} pending invite(s).` : 'No pending invites.'}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                {pendingInvites.length > 0 && (
+                  <ul className="divide-y divide-[var(--field-border)]">
+                    {pendingInvites.map((i) => (
+                      <li key={i.id} className="flex items-center justify-between gap-2 py-2">
+                        <span className="text-sm text-slate-800">
+                          {i.email} <span className="text-xs text-slate-500">· {i.role.replace('_', ' ')}</span>
+                        </span>
+                        <RevokeInviteButton partnerId={partner.id} invitationId={i.id} email={i.email} />
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 <InvitePartnerMemberForm partnerId={partner.id} />
               </CardContent>
             </Card>

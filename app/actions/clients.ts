@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { and, asc, eq, isNull } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db/client';
 import { clients } from '@/db/schema/clients';
@@ -22,14 +22,6 @@ const baseFields = {
 function clean(v?: string) {
   const t = v?.trim();
   return t ? t : null;
-}
-
-export async function listClientsForTenant(tenantId: string) {
-  return db
-    .select()
-    .from(clients)
-    .where(and(eq(clients.tenantId, tenantId), isNull(clients.deletedAt)))
-    .orderBy(asc(clients.name));
 }
 
 const createSchema = z.object({ tenantId: z.string().uuid(), ...baseFields });

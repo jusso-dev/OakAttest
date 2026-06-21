@@ -170,10 +170,7 @@ export async function acceptPartnerInvitation(input: z.infer<typeof acceptSchema
   if (invitation.acceptedAt) throw new Error('Invitation already accepted');
   if (invitation.expiresAt < new Date()) throw new Error('Invitation has expired');
 
-  if (
-    session.user.email &&
-    invitation.email.toLowerCase() !== session.user.email.toLowerCase()
-  ) {
+  if (invitation.email.toLowerCase() !== (session.user.email ?? '').toLowerCase()) {
     throw new Error('This invitation is addressed to a different email');
   }
 

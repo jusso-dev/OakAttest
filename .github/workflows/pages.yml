@@ -27,7 +27,11 @@ jobs:
 
       - name: Assemble static site
         run: |
-          cp -R docs _site
+          cp -R site _site
+          # Keep screenshots in sync with the latest captures.
+          mkdir -p _site/assets/screenshots
+          cp docs/screenshots/*.png _site/assets/screenshots/ 2>/dev/null || true
+          cp public/oak-attest-mark.png public/oak-attest-logo-lockup.png _site/assets/ 2>/dev/null || true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

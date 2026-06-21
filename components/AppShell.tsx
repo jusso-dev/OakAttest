@@ -64,14 +64,24 @@ export function AppShell({
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
-  // Close the mobile drawer on Escape.
+  // Close the mobile drawer on Escape, lock body scroll while open, and move
+  // focus into the drawer; restore the trigger on close.
   useEffect(() => {
     if (!mobileOpen) return;
+    const trigger = document.activeElement as HTMLElement | null;
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setMobileOpen(false);
     }
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const drawerClose = document.getElementById('mobile-drawer-close');
+    drawerClose?.focus();
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+      trigger?.focus?.();
+    };
   }, [mobileOpen]);
 
   function toggleCollapsed() {
@@ -140,6 +150,7 @@ export function AppShell({
             <div className="mb-6 flex items-center justify-between">
               <BrandLogo variant="compact" imageClassName="h-9" />
               <button
+                id="mobile-drawer-close"
                 type="button"
                 onClick={() => setMobileOpen(false)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-700 hover:bg-[var(--oak-mist-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--oak-shield)]"

@@ -1,27 +1,26 @@
-const gallery = document.querySelector("[data-gallery]");
+// Scroll-reveal for marketing sections. Respects reduced-motion: if the user
+// prefers reduced motion, everything is shown immediately (CSS also no-ops the
+// transition).
+(function () {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const items = Array.from(document.querySelectorAll('.reveal'));
 
-if (gallery) {
-  const image = gallery.querySelector("[data-gallery-image]");
-  const caption = gallery.querySelector("[data-gallery-caption]");
-  const buttons = Array.from(gallery.querySelectorAll(".thumb"));
+  if (reduce || !('IntersectionObserver' in window)) {
+    items.forEach((el) => el.classList.add('in'));
+    return;
+  }
 
-  buttons.forEach((button) => {
-    button.addEventListener("click", () => {
-      const src = button.getAttribute("data-src");
-      const alt = button.getAttribute("data-alt");
-      const label = button.getAttribute("data-caption");
-
-      if (!src || !alt || !label || !image || !caption) {
-        return;
-      }
-
-      image.setAttribute("src", src);
-      image.setAttribute("alt", alt);
-      caption.textContent = label;
-
-      buttons.forEach((item) => {
-        item.classList.toggle("is-active", item === button);
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in');
+          io.unobserve(entry.target);
+        }
       });
-    });
-  });
-}
+    },
+    { rootMargin: '0px 0px -10% 0px', threshold: 0.12 },
+  );
+
+  items.forEach((el) => io.observe(el));
+})();

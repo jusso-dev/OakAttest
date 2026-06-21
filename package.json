@@ -20,7 +20,9 @@
     "db:seed:plans": "tsx db/seed/plans.ts",
     "db:seed:frameworks": "tsx db/seed/frameworks.ts",
     "framework:import": "tsx scripts/framework-import.ts",
-    "platform:admin": "tsx scripts/grant-platform-admin.ts"
+    "platform:admin": "tsx scripts/grant-platform-admin.ts",
+    "remotion": "remotion studio remotion/index.ts",
+    "remotion:render": "tsx scripts/render-remotion.ts"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1048.0",
@@ -58,6 +60,9 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
+    "@remotion/bundler": "^4.0.481",
+    "@remotion/cli": "^4.0.481",
+    "@remotion/renderer": "^4.0.481",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/node-cron": "^3.0.11",
@@ -68,6 +73,7 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.3.0-canary.21",
+    "remotion": "^4.0.481",
     "tailwindcss": "^4",
     "tsx": "^4.22.0",
     "typescript": "^5",

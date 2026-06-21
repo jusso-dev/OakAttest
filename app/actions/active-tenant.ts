@@ -4,32 +4,10 @@ import { z } from 'zod';
 import { and, eq, isNull } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db/client';
-import { tenants, tenantMembers } from '@/db/schema/tenants';
+import { tenants } from '@/db/schema/tenants';
 import { auditLog } from '@/db/schema/audit';
 import { requireSession } from '@/lib/auth/session';
-import { writeActiveTenantCookie } from '@/lib/auth/active-tenant';
-import { partnerRoleForTenant } from '@/lib/auth/partner';
-import { isPlatformAdmin } from '@/lib/auth/platform';
-
-// Whether a user may act inside a tenant: a direct tenant member, an MSP staff
-// member of the tenant's partner ("drop into"), or the platform superadmin.
-export async function canAccessTenant(userId: string, tenantId: string): Promise<boolean> {
-  const [member] = await db
-    .select({ id: tenantMembers.id })
-    .from(tenantMembers)
-    .where(
-      and(
-        eq(tenantMembers.tenantId, tenantId),
-        eq(tenantMembers.userId, userId),
-        isNull(tenantMembers.deletedAt),
-      ),
-    )
-    .limit(1);
-  if (member) return true;
-  if (await partnerRoleForTenant(userId, tenantId)) return true;
-  if (await isPlatformAdmin(userId)) return true;
-  return false;
-}
+import { writeActiveTenantCookie, canAccessTenant } from '@/lib/auth/active-tenant';
 
 const schema = z.object({
   tenantId: z.string().uuid(),
