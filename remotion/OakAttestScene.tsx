@@ -96,7 +96,7 @@ export function OakAttestScene() {
 
   // Oak grows from the watering.
   const treeGrow = spring({ frame: frame - 34, fps, config: { damping: 200, mass: 1.3 } });
-  const treeScale = interpolate(treeGrow, [0, 1], [0.04, 1]);
+  const treeScale = interpolate(treeGrow, [0, 1], [0.001, 1]);
   const treeOpacity = interpolate(frame, [34, 56], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
   const sproutO = interpolate(frame, [30, 44, 70], [0, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
@@ -162,8 +162,8 @@ export function OakAttestScene() {
             <path d="M0 -64 C -18 -72 -30 -64 -34 -50 C -18 -48 -4 -54 0 -64 Z" fill={SPROUT} />
           </g>
 
-          {/* the oak grows from the watering */}
-          <g opacity={treeOpacity} transform={`translate(${TREE_X} ${GROUND_Y}) scale(${treeScale})`} style={{ transformBox: 'fill-box' }}>
+          {/* the oak grows up out of the ground from nothing */}
+          <g opacity={treeOpacity} transform={`translate(${TREE_X} ${GROUND_Y}) scale(${treeScale})`} style={{ transformBox: 'fill-box', transformOrigin: 'center bottom' }}>
             <path d="M -26 0 C -22 -120 -16 -210 -10 -300 L 12 -300 C 18 -210 22 -120 26 0 Z" fill={TRUNK} />
             <path d="M 4 -300 C 6 -210 8 -120 10 0 L 26 0 C 22 -120 18 -210 12 -300 Z" fill={TRUNK_DARK} opacity={0.5} />
             <path d="M -4 -250 C 80 -300 180 -300 246 -350" stroke={TRUNK} strokeWidth={14} fill="none" strokeLinecap="round" />
