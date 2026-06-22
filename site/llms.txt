@@ -25,7 +25,10 @@ ASD-registered IRAP assessor firms, managed service providers (MSPs) onboarding 
 - [Frameworks](https://oak-attest.com/frameworks.html): ISM, NIST 800-53, SOC 2, ISO 27001 and how each is scoped.
 - [For MSPs](https://oak-attest.com/msp.html): Multi-tenant model, provisioning clients, drop-in management.
 - [Collaboration](https://oak-attest.com/collaboration.html): Threads, mentions, notifications, watching engagements.
-- [Platform](https://oak-attest.com/platform.html): Hosting, data residency, auditability, roles and access.
+- [Platform](https://oak-attest.com/platform.html): Hosting, Australian data residency and sovereignty, auditability, roles and access.
+- [Resources](https://oak-attest.com/resources.html): Plain-English guides to IRAP, the ISM and the Essential Eight.
+- [IRAP Common Assessment Framework explained](https://oak-attest.com/irap-common-assessment-framework-explained.html): What the ASD's 2025 CAF standardises and the six-step lifecycle it follows.
+- [ISM vs Essential Eight](https://oak-attest.com/ism-vs-essential-eight.html): How the two ASD frameworks relate and when each applies.
 
 ## Contact
 
