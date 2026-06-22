@@ -1,38 +1,34 @@
 # OakAttest
 
-> Open-source IRAP assessment software for Australian assessor firms and client organisations.
+> Hosted security-assessment platform for IRAP assessor firms, MSPs, and the client organisations they assess. Scoping to certification, across every framework.
 
-OakAttest is a self-hostable workspace for running IRAP assessment work against the Australian Government Information Security Manual (ISM). It supports scoping, assessment boundaries, ISM applicability, evidence collection, fieldwork, findings, residual risk, certification records, SSP bundle exports and ongoing compliance maintenance.
+OakAttest is a hosted, invite-based workspace for running security assessments end to end: organisation setup, scoping, evidence collection, fieldwork, findings, residual risk, certification records, exportable artefacts, and ongoing compliance maintenance. It supports the Australian Government ISM (with Essential Eight and Cloud IRAP), NIST SP 800-53, SOC 2, and ISO/IEC 27001.
 
 ## Core Topics
 
-- IRAP assessment software for Australia
-- Open-source IRAP and ISM assessment workspace
-- Australian Information Security Manual (ISM) control assessment
-- IRAP assessor collaboration with client organisations
-- Assessment boundary diagrams and Cloud IRAP context
-- System Security Plan (SSP) artefacts and SSP Annex data
-- Evidence collection, review, findings and residual risk
-- OFFICIAL: Sensitive and PROTECTED assessment workflows
-- Essential Eight visibility and Australian Government cyber security evidence
-- Self-hosted assessment tooling with audit history
+- Security assessment platform for assessor firms and MSPs
+- Multi-framework: ISM, NIST 800-53, SOC 2, ISO 27001
+- IRAP assessment lifecycle, scoping to certification
+- MSP multi-tenant: one instance, many MSPs, many client tenants
+- Evidence chain of custody, findings, residual risk
+- Internal collaboration: discussion threads, @mentions, notifications
+- Defensible certification records and exportable artefacts
+- Australian data residency and append-only audit
 
 ## Primary Users
 
-- ASD-registered IRAP assessor firms
-- Lead assessors and assessors
-- Assessor administrators
-- Client administrators and contributors
-- Read-only observers, peer reviewers and ASD liaison stakeholders
+ASD-registered IRAP assessor firms, managed service providers (MSPs) onboarding and managing client organisations, and the client organisations being assessed.
 
-## Useful Links
+## Pages
 
-- [OakAttest showcase](https://jusso-dev.github.io/OakAttest/): Product overview, screenshots and deployment posture.
-- [GitHub repository](https://github.com/jusso-dev/OakAttest): Source code, README, local development instructions and licence.
-- [README](https://github.com/jusso-dev/OakAttest#readme): Detailed capabilities, screenshots, roles and local setup.
+- [Home](https://oak-attest.com/): Overview, the assessment lifecycle, and product screenshots.
+- [Frameworks](https://oak-attest.com/frameworks.html): ISM, NIST 800-53, SOC 2, ISO 27001 and how each is scoped.
+- [For MSPs](https://oak-attest.com/msp.html): Multi-tenant model, provisioning clients, drop-in management.
+- [Collaboration](https://oak-attest.com/collaboration.html): Threads, mentions, notifications, watching engagements.
+- [Platform](https://oak-attest.com/platform.html): Hosting, data residency, auditability, roles and access.
 
-## Positioning Notes
+## Contact
 
-OakAttest is not an ASD certification, endorsement or approval system. It helps assessor firms and client organisations collect, structure and export evidence and assessment artefacts that can support the relevant authorisation decision.
+Request access: hello@oak-attest.com
 
-OakAttest is AGPL-3.0-or-later licensed and designed for self-hosted or controlled deployments where evidence, audit history and assessment material need clear ownership.
+OakAttest is a hosted, proprietary product. It is delivered as a managed service with invite-based access; deployments declare data residency and keep an append-only audit trail.

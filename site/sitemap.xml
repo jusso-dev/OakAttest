@@ -2,17 +2,49 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
-    <loc>https://jusso-dev.github.io/OakAttest/</loc>
-    <lastmod>2026-05-17</lastmod>
+    <loc>https://oak-attest.com/</loc>
+    <lastmod>2026-06-21</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <image:image>
-      <image:loc>https://jusso-dev.github.io/OakAttest/assets/screenshots/08-engagement-overview.png</image:loc>
-      <image:title>OakAttest IRAP engagement overview</image:title>
+      <image:loc>https://oak-attest.com/assets/screenshots/10-dashboard.png</image:loc>
+      <image:title>OakAttest engagement dashboard</image:title>
     </image:image>
+  </url>
+  <url>
+    <loc>https://oak-attest.com/frameworks.html</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
     <image:image>
-      <image:loc>https://jusso-dev.github.io/OakAttest/assets/screenshots/07-scope-boundary-applicability.png</image:loc>
-      <image:title>OakAttest system boundary and ISM applicability workspace</image:title>
+      <image:loc>https://oak-attest.com/assets/screenshots/06-new-engagement.png</image:loc>
+      <image:title>Select a compliance framework for an engagement</image:title>
     </image:image>
+  </url>
+  <url>
+    <loc>https://oak-attest.com/msp.html</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://oak-attest.com/assets/screenshots/04-tenant-admin.png</image:loc>
+      <image:title>Managed client tenant administration</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://oak-attest.com/collaboration.html</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://oak-attest.com/assets/screenshots/09-engagement-overview.png</image:loc>
+      <image:title>Engagement overview with discussion and activity</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://oak-attest.com/platform.html</loc>
+    <lastmod>2026-06-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>

@@ -1,5 +1,5 @@
 import { Composition } from 'remotion';
-import { Hero } from './Hero';
+import { OakAttestScene } from './OakAttestScene';
 import { FrameworkTicker } from './FrameworkTicker';
 
 // Remotion compositions for the OakAttest marketing site.
@@ -8,8 +8,8 @@ export function RemotionRoot() {
     <>
       <Composition
         id="Hero"
-        component={Hero}
-        durationInFrames={300}
+        component={OakAttestScene}
+        durationInFrames={480}
         fps={30}
         width={1920}
         height={1080}

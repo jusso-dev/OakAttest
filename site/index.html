@@ -3,184 +3,103 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>OakAttest — the assessment platform for every framework</title>
-    <meta
-      name="description"
-      content="OakAttest runs the security assessment lifecycle from scoping to certification across ISM, NIST 800-53, SOC 2 and ISO 27001. Built for IRAP assessor firms and the MSPs who manage them."
-    />
+    <title>OakAttest — security assessments, scoping to certification</title>
+    <meta name="description" content="OakAttest is a hosted security-assessment platform for IRAP assessor firms and MSPs. Run the lifecycle from scoping to certification across the ISM, NIST 800-53, SOC 2 and ISO 27001." />
+    <link rel="canonical" href="https://oak-attest.com/" />
     <link rel="icon" href="assets/oak-attest-mark.png" />
-    <meta property="og:title" content="OakAttest — the assessment platform for every framework" />
-    <meta property="og:description" content="Scoping to certification, across every framework. For assessor firms and MSPs." />
-    <meta property="og:image" content="assets/oakattest-hero-poster.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://oak-attest.com/" />
+    <meta property="og:title" content="OakAttest — security assessments, scoping to certification" />
+    <meta property="og:description" content="Hosted assessment platform for IRAP firms and MSPs. ISM, NIST 800-53, SOC 2, ISO 27001." />
+    <meta property="og:image" content="https://oak-attest.com/assets/oakattest-hero-poster.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="OakAttest — security assessments, scoping to certification" />
+    <meta name="twitter:description" content="Hosted assessment platform for IRAP firms and MSPs. ISM, NIST 800-53, SOC 2, ISO 27001." />
+    <meta name="twitter:image" content="https://oak-attest.com/assets/oakattest-hero-poster.png" />
     <meta name="theme-color" content="#0f3f2c" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="styles.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css?v=11" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          { "@type": "Organization", "name": "OakAttest", "url": "https://oak-attest.com/", "logo": "https://oak-attest.com/assets/oak-attest-mark.png", "email": "hello@oak-attest.com" },
+          { "@type": "WebSite", "name": "OakAttest", "url": "https://oak-attest.com/" },
+          { "@type": "SoftwareApplication", "name": "OakAttest", "applicationCategory": "BusinessApplication", "operatingSystem": "Web", "description": "Hosted security-assessment platform for IRAP assessor firms and MSPs, covering scoping to certification across the ISM, NIST 800-53, SOC 2 and ISO 27001.", "offers": { "@type": "Offer", "availability": "https://schema.org/InviteOnly", "price": "0", "priceCurrency": "AUD" } }
+        ]
+      }
+    </script>
   </head>
   <body>
     <a class="skip" href="#main">Skip to content</a>
 
     <header class="site-header">
       <div class="wrap header-inner">
-        <a class="brand" href="#top" aria-label="OakAttest home">
+        <a class="brand" href="/" aria-label="OakAttest home">
           <img src="assets/oak-attest-mark.png" alt="" width="32" height="32" />
           <span>OakAttest</span>
         </a>
         <nav class="nav" aria-label="Primary">
-          <a href="#frameworks">Frameworks</a>
-          <a href="#msp">For MSPs</a>
-          <a href="#collaboration">Collaboration</a>
-          <a href="#workflow">Workflow</a>
-          <a href="#deployment">Deployment</a>
+          <a href="/frameworks.html">Frameworks</a>
+          <a href="/msp.html">For MSPs</a>
+          <a href="/collaboration.html">Collaboration</a>
+          <a href="/platform.html">Platform</a>
         </nav>
-        <a class="btn btn-primary header-cta" href="https://github.com/yumaitau/OakAttest">View on GitHub</a>
+        <a class="btn btn-primary header-cta" href="mailto:hello@oak-attest.com?subject=OakAttest%20access%20request">Request access</a>
       </div>
     </header>
 
     <main id="main">
-      <!-- HERO -->
       <section class="hero" id="top">
         <div class="wrap hero-grid">
           <div class="hero-copy reveal">
-            <p class="kicker">IRAP and beyond</p>
-            <h1>Run IRAP.<br />And every framework after.</h1>
+            <p class="kicker">Scoping to certification</p>
+            <h1>Every oak starts with an acorn.<br />Every assessment starts with evidence.</h1>
             <p class="lede">
-              OakAttest takes a security assessment from scoping to defensible certification, with
-              evidence chain of custody, role-aware access, and a full audit trail. One platform for
+              OakAttest takes an assessment from scoping to defensible certification, with evidence
+              chain of custody, role-aware access, and a full audit trail. One hosted platform for
               the ISM, NIST 800-53, SOC 2 and ISO 27001.
             </p>
             <div class="hero-actions">
-              <a class="btn btn-primary" href="#deployment">Deploy OakAttest</a>
+              <a class="btn btn-primary" href="mailto:hello@oak-attest.com?subject=OakAttest%20access%20request">Request access</a>
               <a class="btn btn-ghost" href="#screenshots">See it in action</a>
             </div>
-            <p class="hero-trust">
-              Self-installed or managed · Australian data residency · Append-only audit
-            </p>
+            <p class="hero-trust">Hosted by us · Invite-based access · Australian data residency · Append-only audit</p>
           </div>
           <figure class="hero-media reveal">
-            <video
-              class="hero-video"
-              autoplay
-              muted
-              loop
-              playsinline
-              poster="assets/oakattest-hero-poster.png"
-              aria-label="Animated OakAttest brand showing the supported frameworks"
-            >
-              <source src="assets/oakattest-hero.mp4" type="video/mp4" />
+            <video class="hero-video" autoplay muted loop playsinline poster="assets/oakattest-hero-poster.png?v=11" aria-label="Animated OakAttest story: a tended oak, evidence captured, then secured and certified">
+              <source src="assets/oakattest-hero.mp4?v=11" type="video/mp4" />
             </video>
           </figure>
         </div>
       </section>
 
-      <!-- FRAMEWORKS -->
-      <section class="band" id="frameworks">
+      <section class="band" id="pillars">
         <div class="wrap">
-          <h2 class="section-title reveal">Assess against the framework that matters</h2>
-          <p class="section-lede reveal">
-            Pick a framework per engagement. OakAttest pulls official OSCAL catalogues, or lets a
-            client import their own licensed control set, then scopes each engagement the right way.
-          </p>
+          <h2 class="section-title reveal">One platform, three jobs</h2>
           <ul class="fw-grid">
             <li class="fw-card reveal">
-              <h3>Australian ISM</h3>
-              <p>Cumulative classification scoping, Essential Eight overlay, Cloud IRAP inheritance.</p>
-              <span class="fw-tag">OSCAL · ASD</span>
+              <h3>Every framework</h3>
+              <p>Assess against the ISM, NIST 800-53, SOC 2 or ISO 27001, scoped the right way per engagement.</p>
+              <a class="fw-link" href="/frameworks.html">Frameworks &rarr;</a>
             </li>
             <li class="fw-card reveal">
-              <h3>NIST SP 800-53</h3>
-              <p>Rev 5 catalogue and baselines, pulled straight from the official OSCAL source.</p>
-              <span class="fw-tag">OSCAL · NIST</span>
+              <h3>Built for MSPs</h3>
+              <p>One instance, many MSPs, many isolated client tenants. Provision, invite, and drop in.</p>
+              <a class="fw-link" href="/msp.html">For MSPs &rarr;</a>
             </li>
             <li class="fw-card reveal">
-              <h3>SOC 2</h3>
-              <p>Trust Services Criteria imported by the client from their licensed copy via CSV.</p>
-              <span class="fw-tag">Client CSV</span>
-            </li>
-            <li class="fw-card reveal">
-              <h3>ISO/IEC 27001</h3>
-              <p>Annex A control set imported per tenant, scoped by Statement of Applicability.</p>
-              <span class="fw-tag">Client CSV</span>
+              <h3>Collaboration</h3>
+              <p>Internal threads with @mentions and notifications, plus watch engagements for changes.</p>
+              <a class="fw-link" href="/collaboration.html">Collaboration &rarr;</a>
             </li>
           </ul>
         </div>
       </section>
 
-      <!-- MULTI-FRAMEWORK SPLIT -->
-      <section class="split">
-        <div class="wrap split-grid">
-          <div class="split-copy reveal">
-            <p class="kicker">One model, many frameworks</p>
-            <h2>Select a framework, start assessing</h2>
-            <p>
-              Engagements are created against a client and a framework revision. Classification and
-              IRAP options appear only for the ISM; everything else scopes by baseline or selection.
-              No Australian-specific fields where they don't belong.
-            </p>
-            <ul class="ticks">
-              <li>Per-engagement framework and pinned revision</li>
-              <li>Official OSCAL imports plus client CSV for licensed standards</li>
-              <li>Tenant-scoped catalogues keep licensed content private</li>
-            </ul>
-          </div>
-          <figure class="shot reveal">
-            <img src="assets/screenshots/06-new-engagement.png" alt="Creating a new engagement and selecting a compliance framework" loading="lazy" />
-          </figure>
-        </div>
-      </section>
-
-      <!-- MSP -->
-      <section class="split alt" id="msp">
-        <div class="wrap split-grid reverse">
-          <div class="split-copy reveal">
-            <p class="kicker">Built for MSPs</p>
-            <h2>One instance. Many MSPs. Many clients.</h2>
-            <p>
-              Stand up a single hosted instance, invite MSP partners, and let each manage their own
-              isolated client tenants. Drop into any client workspace to do the work, with an
-              "acting in" banner and a full context-switch audit trail.
-            </p>
-            <ul class="ticks">
-              <li>Platform owner over partners over client tenants</li>
-              <li>Invite MSP admins; provision clients with a plan</li>
-              <li>Drop in, switch tenants, and manage on the client's behalf</li>
-            </ul>
-          </div>
-          <figure class="shot reveal">
-            <img src="assets/screenshots/04-tenant-admin.png" alt="Tenant administration console for a managed client" loading="lazy" />
-          </figure>
-        </div>
-      </section>
-
-      <!-- COLLABORATION -->
-      <section class="split" id="collaboration">
-        <div class="wrap split-grid">
-          <div class="split-copy reveal">
-            <p class="kicker">Stay in the loop</p>
-            <h2>Discuss, mention, and monitor</h2>
-            <p>
-              Internal discussion threads keep the assessor team and the client side separate.
-              Mention a teammate with @ and they are notified. Watch an engagement to be told the
-              moment new evidence lands or a field changes.
-            </p>
-            <ul class="ticks">
-              <li>Separate assessor and client threads with @mentions</li>
-              <li>In-app notifications for mentions, notes and updates</li>
-              <li>Watch engagements for new evidence and changes</li>
-            </ul>
-          </div>
-          <figure class="shot reveal">
-            <img src="assets/screenshots/09-engagement-overview.png" alt="Engagement overview with discussion and activity" loading="lazy" />
-          </figure>
-        </div>
-      </section>
-
-      <!-- WORKFLOW -->
-      <section class="band" id="workflow">
+      <section class="band alt" id="workflow">
         <div class="wrap">
           <h2 class="section-title reveal">The whole lifecycle, in order</h2>
           <ol class="flow">
@@ -193,63 +112,49 @@
         </div>
       </section>
 
-      <!-- SCREENSHOTS -->
       <section class="shots" id="screenshots">
         <div class="wrap">
           <h2 class="section-title reveal">A working assessment instrument</h2>
-          <p class="section-lede reveal">Calm, dense, and built for repeated work, not a demo.</p>
+          <p class="section-lede reveal">Calm, dense, built for repeated work. Click any screen to view it full size.</p>
           <div class="gallery">
-            <figure class="reveal"><img src="assets/screenshots/10-dashboard.png" alt="Engagement dashboard" loading="lazy" /><figcaption>Dashboard</figcaption></figure>
-            <figure class="reveal"><img src="assets/screenshots/07-scope-boundary-applicability.png" alt="Scope, boundary and applicability" loading="lazy" /><figcaption>Scope and applicability</figcaption></figure>
-            <figure class="reveal"><img src="assets/screenshots/11-findings.png" alt="Findings register" loading="lazy" /><figcaption>Findings</figcaption></figure>
-            <figure class="reveal"><img src="assets/screenshots/12-certification.png" alt="Certification record" loading="lazy" /><figcaption>Certification</figcaption></figure>
-            <figure class="reveal"><img src="assets/screenshots/15-assessment-coverage.png" alt="Assessment coverage blockers" loading="lazy" /><figcaption>Coverage</figcaption></figure>
-            <figure class="reveal"><img src="assets/screenshots/17-burl-engagement-questions.png" alt="Burl AI assistant answering engagement questions" loading="lazy" /><figcaption>Burl, your AI helper</figcaption></figure>
+            <figure class="reveal"><img class="zoomable" src="assets/screenshots/10-dashboard.png" alt="OakAttest engagement dashboard" loading="lazy" /><figcaption>Dashboard</figcaption></figure>
+            <figure class="reveal"><img class="zoomable" src="assets/screenshots/07-scope-boundary-applicability.png" alt="Scope, boundary and applicability worksheet" loading="lazy" /><figcaption>Scope and applicability</figcaption></figure>
+            <figure class="reveal"><img class="zoomable" src="assets/screenshots/11-findings.png" alt="Findings register" loading="lazy" /><figcaption>Findings</figcaption></figure>
+            <figure class="reveal"><img class="zoomable" src="assets/screenshots/12-certification.png" alt="Certification record" loading="lazy" /><figcaption>Certification</figcaption></figure>
+            <figure class="reveal"><img class="zoomable" src="assets/screenshots/15-assessment-coverage.png" alt="Assessment coverage blockers" loading="lazy" /><figcaption>Coverage</figcaption></figure>
+            <figure class="reveal"><img class="zoomable" src="assets/screenshots/17-burl-engagement-questions.png" alt="Burl AI assistant answering engagement questions" loading="lazy" /><figcaption>Burl, your AI helper</figcaption></figure>
           </div>
         </div>
       </section>
 
-      <!-- DEPLOYMENT -->
-      <section class="band alt" id="deployment">
-        <div class="wrap">
-          <h2 class="section-title reveal">Deploy it your way</h2>
-          <div class="deploy-grid">
-            <article class="deploy reveal">
-              <h3>Self-installed</h3>
-              <p>Run it on your own infrastructure. Email delivery is optional, MFA is recommended not forced, and your data never leaves your deployment.</p>
-            </article>
-            <article class="deploy reveal">
-              <h3>Managed</h3>
-              <p>One hosted instance, MSP partners and their clients underneath, each tenant isolated with its own plan, usage limits and branding.</p>
-            </article>
-            <article class="deploy reveal">
-              <h3>Accountable by design</h3>
-              <p>Append-only audit log, row-level tenant isolation, role-based access, and declared data residency on every deployment.</p>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <!-- CTA -->
       <section class="cta">
         <div class="wrap cta-inner reveal">
           <h2>Bring every assessment into one place.</h2>
           <p>From a single IRAP engagement to a full MSP practice across frameworks.</p>
-          <a class="btn btn-primary" href="https://github.com/yumaitau/OakAttest">Get OakAttest</a>
+          <a class="btn btn-primary" href="mailto:hello@oak-attest.com?subject=OakAttest%20access%20request">Request access</a>
         </div>
       </section>
     </main>
 
     <footer class="site-footer">
       <div class="wrap footer-inner">
-        <div class="brand">
-          <img src="assets/oak-attest-mark.png" alt="" width="24" height="24" />
-          <span>OakAttest</span>
-        </div>
-        <p>Security assessment, scoping to certification. Australian English. AGPL-3.0.</p>
+        <div class="brand"><img src="assets/oak-attest-mark.png" alt="" width="24" height="24" /><span>OakAttest</span></div>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="/frameworks.html">Frameworks</a>
+          <a href="/msp.html">For MSPs</a>
+          <a href="/collaboration.html">Collaboration</a>
+          <a href="/platform.html">Platform</a>
+          <a href="mailto:hello@oak-attest.com?subject=OakAttest%20access%20request">Request access</a>
+        </nav>
+        <p>Hosted security-assessment platform. Australian English.</p>
       </div>
     </footer>
 
-    <script src="site.js" defer></script>
+    <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer" hidden>
+      <button class="lightbox-close" id="lightbox-close" aria-label="Close">&times;</button>
+      <img class="lightbox-img" id="lightbox-img" alt="" />
+    </div>
+
+    <script src="site.js?v=10" defer></script>
   </body>
 </html>

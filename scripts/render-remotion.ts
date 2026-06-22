@@ -27,7 +27,7 @@ async function main() {
   await renderStill({
     serveUrl,
     composition: hero,
-    frame: 120,
+    frame: 390,
     output: path.join(OUT, 'oakattest-hero-poster.png'),
   });
 
