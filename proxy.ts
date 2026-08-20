@@ -21,6 +21,7 @@ const PUBLIC_PATHS = [
   '/invite',
   '/forgot-password',
   '/reset-password',
+  '/privacy',
 ];
 
 function isPublic(pathname: string): boolean {

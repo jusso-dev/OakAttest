@@ -27,11 +27,12 @@ ASD-registered IRAP assessor firms, managed service providers (MSPs) onboarding 
 - [Collaboration](https://oak-attest.com/collaboration.html): Threads, mentions, notifications, watching engagements.
 - [Platform](https://oak-attest.com/platform.html): Hosting, Australian data residency and sovereignty, auditability, roles and access.
 - [Resources](https://oak-attest.com/resources.html): Plain-English guides to IRAP, the ISM and the Essential Eight.
+- [Privacy](/privacy.html): Privacy policy for OakAttest and these pages.
 - [IRAP Common Assessment Framework explained](https://oak-attest.com/irap-common-assessment-framework-explained.html): What the ASD's 2025 CAF standardises and the six-step lifecycle it follows.
 - [ISM vs Essential Eight](https://oak-attest.com/ism-vs-essential-eight.html): How the two ASD frameworks relate and when each applies.
 
 ## Contact
 
-Request access: hello@oak-attest.com
+Request access: hello@yumait.com.au
 
 OakAttest is a hosted, proprietary product. It is delivered as a managed service with invite-based access; deployments declare data residency and keep an append-only audit trail.
