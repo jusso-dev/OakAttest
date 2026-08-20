@@ -35,6 +35,15 @@ describe('RBAC matrix', () => {
     expect(isPermitted(ACTIONS.engagementView, 'read_only_observer')).toBe(true);
     expect(isPermitted(ACTIONS.findingCreate, 'read_only_observer')).toBe(false);
     expect(isPermitted(ACTIONS.evidenceUpload, 'read_only_observer')).toBe(false);
+    expect(isPermitted(ACTIONS.auditReadinessView, 'read_only_observer')).toBe(true);
+    expect(isPermitted(ACTIONS.auditReadinessManage, 'read_only_observer')).toBe(false);
+  });
+
+  it('keeps audit readiness changes with accountable engagement roles', () => {
+    expect(isPermitted(ACTIONS.auditReadinessManage, 'lead_assessor')).toBe(true);
+    expect(isPermitted(ACTIONS.auditReadinessManage, 'client_admin')).toBe(true);
+    expect(isPermitted(ACTIONS.auditReadinessManage, 'assessor')).toBe(false);
+    expect(isPermitted(ACTIONS.auditReadinessManage, 'client_contributor')).toBe(false);
   });
 
   it('independence guard: no assessor-side role has remediation_guidance', () => {

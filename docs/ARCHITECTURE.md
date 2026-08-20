@@ -90,6 +90,8 @@ exhaustive list.
 - `/engagements/[id]/findings` — register, sign-off, remediation actions
 - `/engagements/[id]/essential-eight` — maturity scorecard + trend chart
 - `/engagements/[id]/certification` — draft, sign, public verify URL
+- `/engagements/[id]/audit-readiness` — ISO 27001 Stage 1 or SOC 2 readiness,
+  auditor access, and timestamped evidence packages
 - `/admin` — members, deployment data location, billing stub
 - `/admin/ism` — ISM OSCAL import, seed, and revision removal panel
 - `/admin/audit` — append-only viewer

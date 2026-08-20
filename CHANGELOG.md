@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Audit readiness and auditor evidence room
+
+- Added ISO/IEC 27001 Stage 1 and SOC 2 Type I/II audit planning, including
+  scope, audit firm, lead auditor, target date, SOC 2 categories, and Type II
+  observation period.
+- Added framework-specific readiness requirements with owners, due dates,
+  statuses, notes, completion timestamps, and append-only audit history.
+- Added live readiness gates derived from existing scope, control, and evidence
+  coverage rather than a parallel assessment model.
+- Added Comp-style auditor access using engagement-scoped
+  `read_only_observer` invitations and direct, audit-logged evidence downloads.
+- Added versioned ZIP exports with verified evidence files, control matrix,
+  evidence index, findings register, checklist, audit log, JSON manifest, and
+  SHA-256 hashes. Package generation never claims certification or an audit
+  opinion.
+
 ### Milestone 2 — full platform build
 
 **Schema completions** (`db/migrations/0001_milestone2.sql`)

@@ -8,6 +8,7 @@ import { resolveActiveTenant } from '@/lib/auth/active-tenant';
 import { requirePermission, PermissionDeniedError, rolesForUser } from '@/lib/rbac/require';
 import { ACTIONS, isPermitted } from '@/lib/rbac/matrix';
 import { getEngagementFramework, usesClassification } from '@/lib/frameworks/registry';
+import { auditTypesForFramework } from '@/lib/audit-readiness';
 import { PhaseStepper, type Phase } from '@/components/engagement/PhaseStepper';
 import { UnsavedChangesProvider } from '@/components/engagement/UnsavedChangesGuard';
 import { EngagementStateControl } from '@/components/engagement/EngagementStateControl';
@@ -114,13 +115,21 @@ export default async function EngagementLayout({
           canEdit={canUpdateState}
         />
         <PhaseStepper engagementId={row.id} currentPhase={row.phase as Phase} />
-        <div>
+        <div className="flex flex-wrap gap-2">
           <a
             href={`/engagements/${row.id}/coverage`}
             className="inline-flex h-8 items-center rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3 text-sm font-medium text-slate-900 hover:bg-[var(--oak-mist)]"
           >
             Assessment coverage
           </a>
+          {auditTypesForFramework(framework.key).length > 0 ? (
+            <a
+              href={`/engagements/${row.id}/audit-readiness`}
+              className="inline-flex h-8 items-center rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3 text-sm font-medium text-slate-900 hover:bg-[var(--oak-mist)]"
+            >
+              Audit readiness
+            </a>
+          ) : null}
         </div>
         {canViewTasks ? (
           <EngagementTaskStrip

@@ -85,6 +85,10 @@ export const ACTIONS = {
   taskView: 'task:view',
   taskManage: 'task:manage',
 
+  // audit readiness
+  auditReadinessView: 'audit_readiness:view',
+  auditReadinessManage: 'audit_readiness:manage',
+
   // certification
   certificationGenerate: 'certification:generate',
   certificationSign: 'certification:sign',
@@ -196,6 +200,23 @@ export const PERMISSIONS: Record<Action, Allow> = {
     'assessor',
     'client_admin',
     'client_contributor',
+  ],
+
+  // Audit readiness
+  [ACTIONS.auditReadinessView]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
+    'read_only_observer',
+  ],
+  [ACTIONS.auditReadinessManage]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'client_admin',
   ],
 
   // Certification

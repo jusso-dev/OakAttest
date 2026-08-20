@@ -17,7 +17,12 @@ Two role scopes: **tenant** (assessor firm) and **engagement** (per assessment).
 | `assessor`           | Engagement | Review evidence, log findings, conduct interviews             |
 | `client_admin`       | Engagement | Invite client staff, manage system boundary, upload evidence  |
 | `client_contributor` | Engagement | Upload evidence, respond to evidence requests                 |
-| `read_only_observer` | Engagement | View-only (ASD liaison, peer reviewer)                        |
+| `read_only_observer` | Engagement | View and download only (external auditor, liaison, peer reviewer) |
+
+Audit readiness changes are limited to tenant owners, assessor admins, lead
+assessors, and client admins. Auditors use `read_only_observer`: they can inspect
+the workspace, evidence, findings, and immutable packages, but cannot change
+scope, checklist state, evidence review, or findings.
 
 ## Enforcement
 

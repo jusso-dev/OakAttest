@@ -218,6 +218,12 @@ viewport captures so the README remains readable.
 - Tenant security policy settings for MFA enforcement, evidence retention, and
   reassessment cadence by classification.
 - Append-only audit log with search, filters, sorting, and pagination.
+- ISO/IEC 27001 Stage 1 and SOC 2 Type I/II readiness workspace with audit
+  scope and period planning, owner-based preparation requirements, live gates,
+  and engagement-scoped read-only auditor invitations.
+- Timestamped auditor evidence packages containing verified source files,
+  control and findings registers, checklist state, audit history, a JSON
+  manifest, and per-file SHA-256 hashes.
 
 ## IRAP Workflow Coverage
 
@@ -254,7 +260,8 @@ OakAttest separates assessor organisation access from engagement access.
   review, fieldwork, and findings work.
 - `client_admin`: manages client-side participation for a specific engagement.
 - `client_contributor`: uploads evidence and writes implementation statements.
-- `read_only_observer`: can view permitted engagement material without editing.
+- `read_only_observer`: can inspect permitted engagement material and download
+  evidence packages without editing; intended for auditors and peer reviewers.
 
 ## Local Development
 

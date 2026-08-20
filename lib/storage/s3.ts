@@ -119,6 +119,14 @@ export function buildEssentialEightReportKey(opts: {
   return `tenants/${opts.tenantId}/engagements/${opts.engagementId}/essential-eight/v${opts.version}.pdf`;
 }
 
+export function buildAuditPackageKey(opts: {
+  tenantId: string;
+  engagementId: string;
+  version: number;
+}): string {
+  return `tenants/${opts.tenantId}/engagements/${opts.engagementId}/audit-readiness/v${opts.version}.zip`;
+}
+
 export async function presignUpload(opts: {
   key: string;
   contentType?: string;
@@ -158,6 +166,17 @@ export async function presignDownload(opts: {
   const config = readStorageConfig();
   const cmd = new GetObjectCommand({ Bucket: config.bucket, Key: opts.key });
   return getSignedUrl(client(), cmd, { expiresIn: opts.expiresIn ?? 300 });
+}
+
+export async function getObjectBuffer(key: string): Promise<Buffer> {
+  const config = readStorageConfig();
+  const result = await client().send(new GetObjectCommand({ Bucket: config.bucket, Key: key }));
+  if (!result.Body) throw new Error('Stored object is empty or unreadable');
+  const chunks: Buffer[] = [];
+  for await (const chunk of toAsyncIterable(result.Body)) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
 }
 
 export async function verifyObject(opts: {

@@ -9,6 +9,7 @@ import { rolesForUser } from '@/lib/rbac/require';
 import { EvidenceRequestForm } from '@/components/evidence/EvidenceRequestForm';
 import { EvidenceUploader } from '@/components/evidence/EvidenceUploader';
 import { EvidenceReviewActions } from '@/components/evidence/EvidenceReviewActions';
+import { EvidenceDownloadButton } from '@/components/evidence/EvidenceDownloadButton';
 import { engagements } from '@/db/schema/engagements';
 import { EnterpriseEvidenceGuidance } from '@/components/evidence/EnterpriseEvidenceGuidance';
 import { EnterpriseEvidenceCsvPanel } from '@/components/evidence/EnterpriseEvidenceCsvPanel';
@@ -166,12 +167,21 @@ export default async function EvidencePage({
                           </span>
                         </td>
                         <td className="py-2 pr-3 text-right">
-                          {isAssessor && storageState === 'finalised' && it.reviewStatus === 'pending' && (
-                            <EvidenceReviewActions
-                              engagementId={id}
-                              evidenceItemId={it.id}
-                            />
-                          )}
+                          <div className="flex justify-end gap-2">
+                            {storageState === 'finalised' ? (
+                              <EvidenceDownloadButton
+                                engagementId={id}
+                                evidenceItemId={it.id}
+                                filename={it.filename}
+                              />
+                            ) : null}
+                            {isAssessor && storageState === 'finalised' && it.reviewStatus === 'pending' && (
+                              <EvidenceReviewActions
+                                engagementId={id}
+                                evidenceItemId={it.id}
+                              />
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
