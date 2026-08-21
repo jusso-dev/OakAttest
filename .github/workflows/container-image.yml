@@ -39,5 +39,12 @@ jobs:
           tags: |
             ghcr.io/yumaitau/oakattest:main
             ghcr.io/yumaitau/oakattest:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+
+      - name: Deploy image through Coolify
+        env:
+          DEPLOY_WEBHOOK: ${{ vars.DEPLOY_WEBHOOK }}
+          DEPLOY_WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
+        run: |
+          curl --fail --silent --show-error --request POST \
+            --header "Authorization: Bearer ${DEPLOY_WEBHOOK_SECRET}" \
+            "${DEPLOY_WEBHOOK}"
