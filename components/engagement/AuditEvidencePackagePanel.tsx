@@ -8,6 +8,7 @@ import {
   getAuditEvidencePackageDownloadUrl,
 } from '@/app/actions/audit-readiness';
 import { Button } from '@/components/ui/button';
+import { UserDateTime } from '@/components/timezone/UserTimezone';
 
 export function AuditEvidencePackagePanel({ engagementId, packages, canManage }: {
   engagementId: string;
@@ -57,7 +58,7 @@ export function AuditEvidencePackagePanel({ engagementId, packages, canManage }:
       {packages.map((record) => <li key={record.id} className="grid gap-3 py-3 text-sm md:grid-cols-[90px_1fr_180px_auto] md:items-center">
         <span className="font-medium text-slate-950">v{record.version}</span>
         <span className="font-mono text-xs text-slate-600" title={record.bundleSha256}>{record.bundleSha256.slice(0, 24)}…</span>
-        <span className="text-slate-600">{new Date(record.generatedAt).toLocaleString('en-AU')} · {formatBytes(record.sizeBytes)}</span>
+        <span className="text-slate-600"><UserDateTime value={record.generatedAt} /> · {formatBytes(record.sizeBytes)}</span>
         <Button size="sm" variant="outline" disabled={busyId === record.id} onClick={() => download(record.id)}><Download className="h-3 w-3" />{busyId === record.id ? 'Preparing…' : 'Download'}</Button>
       </li>)}
     </ul>}

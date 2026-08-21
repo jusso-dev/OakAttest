@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import {
   LayoutDashboard,
   Settings,
+  UserRoundCog,
   ScrollText,
   Palette,
   Globe,
@@ -26,12 +27,14 @@ import { BurlAssistant } from '@/components/burl/BurlAssistant';
 import { SignOutButton } from '@/components/SignOutButton';
 import { cn } from '@/lib/utils';
 import type { BurlEngagementOption } from '@/lib/burl/context';
+import { UserTimeZoneProvider } from '@/components/timezone/UserTimezone';
 
 export function AppShell({
   children,
   tenantName,
   userName,
   userRole,
+  userTimeZone,
   canUseTenantAdmin,
   isPlatformAdmin = false,
   isPartnerMember = false,
@@ -45,6 +48,7 @@ export function AppShell({
   tenantName: string;
   userName: string;
   userRole: string;
+  userTimeZone: string;
   canUseTenantAdmin: boolean;
   isPlatformAdmin?: boolean;
   isPartnerMember?: boolean;
@@ -105,6 +109,7 @@ export function AppShell({
         badge={unreadCount}
       />
       <SidebarLink href="/burl" icon={Bot} label="Burl" collapsed={linkCollapsed} />
+      <SidebarLink href="/settings/profile" icon={UserRoundCog} label="Profile settings" collapsed={linkCollapsed} />
 
       {(isPlatformAdmin || isPartnerMember) && (
         <>
@@ -134,6 +139,7 @@ export function AppShell({
   );
 
   return (
+    <UserTimeZoneProvider timeZone={userTimeZone}>
     <div className="flex min-h-dvh bg-[var(--background)] text-slate-950">
       <a
         href="#main-content"
@@ -171,6 +177,9 @@ export function AppShell({
               <p>
                 Signed in as <span className="font-semibold text-slate-950">{userName}</span>
               </p>
+              <Link href="/settings/profile" className="mt-1 block text-[var(--oak-shield)] underline">
+                Timezone {userTimeZone}
+              </Link>
               <SignOutButton />
             </div>
           </div>
@@ -236,6 +245,9 @@ export function AppShell({
               <p className="mt-1">
                 Role <span className="font-semibold text-slate-950">{userRole}</span>
               </p>
+              <Link href="/settings/profile" className="mt-1 block truncate text-[var(--oak-shield)] underline">
+                Timezone {userTimeZone}
+              </Link>
             </>
           )}
           <SignOutButton compact={collapsed} />
@@ -285,6 +297,7 @@ export function AppShell({
       </main>
       <BurlAssistant mode="popup" engagements={burlEngagements} />
     </div>
+    </UserTimeZoneProvider>
   );
 }
 

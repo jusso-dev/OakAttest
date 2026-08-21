@@ -16,6 +16,7 @@ import {
   sectionLabel,
   sspSectionReadiness,
 } from '@/lib/ssp/collaboration';
+import { UserDateTime } from '@/components/timezone/UserTimezone';
 
 type SectionRow = {
   id: string;
@@ -236,7 +237,7 @@ function CommentItem({
         <div>
           <p className="text-slate-900">{comment.body}</p>
           <p className="mt-1 text-xs text-slate-600">
-            {comment.authorName ?? comment.authorEmail ?? 'Unknown'} · {new Date(comment.createdAt).toLocaleString('en-AU')}
+            {comment.authorName ?? comment.authorEmail ?? 'Unknown'} · <UserDateTime value={comment.createdAt} />
           </p>
         </div>
         <Button

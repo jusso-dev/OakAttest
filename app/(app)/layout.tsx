@@ -24,6 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       twoFactorEnabled: users.twoFactorEnabled,
       mfaEnforcedAt: users.mfaEnforcedAt,
       mfaEnrolledAt: users.mfaEnrolledAt,
+      timeZone: users.timeZone,
     })
     .from(users)
     .where(eq(users.id, session.user.id))
@@ -78,6 +79,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       label: 'Dashboard',
       description: 'All engagements',
       href: '/dashboard',
+    },
+    {
+      id: 'profile-settings',
+      label: 'Profile settings',
+      description: 'Timezone and account preferences',
+      href: '/settings/profile',
     },
     ...(tenant.access === 'tenant'
       ? [
@@ -183,6 +190,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       tenantName={tenant.tenantName}
       userName={session.user.name ?? session.user.email}
       userRole={userRole}
+      userTimeZone={profile.timeZone}
       canUseTenantAdmin={tenant.access === 'tenant' || platformAdmin}
       isPlatformAdmin={platformAdmin}
       isPartnerMember={myPartners.length > 0}

@@ -14,6 +14,7 @@ import { engagements } from '@/db/schema/engagements';
 import { EnterpriseEvidenceGuidance } from '@/components/evidence/EnterpriseEvidenceGuidance';
 import { EnterpriseEvidenceCsvPanel } from '@/components/evidence/EnterpriseEvidenceCsvPanel';
 import { evidenceStorageState } from '@/lib/evidence/state';
+import { UserDate } from '@/components/timezone/UserTimezone';
 
 export default async function EvidencePage({
   params,
@@ -108,7 +109,7 @@ export default async function EvidencePage({
                       )}
                       <p className="mt-1 text-xs text-slate-600">
                         Status: {r.status}
-                        {r.dueAt ? ` · Due ${new Date(r.dueAt).toLocaleDateString('en-AU')}` : ''}
+                        {r.dueAt && <> · Due <UserDate value={r.dueAt} /></>}
                       </p>
                     </div>
                     {isClient && r.status === 'open' && (

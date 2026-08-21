@@ -16,6 +16,7 @@ import {
   criteriaForStrategy,
   type EssentialEightCriterionResult,
 } from '@/lib/essential-eight-criteria';
+import { UserDateTime } from '@/components/timezone/UserTimezone';
 
 type Strategy = {
   key: string;
@@ -180,7 +181,7 @@ export function EssentialEightGrid({
             {reports.map((report) => (
               <li key={report.id} className="flex items-center justify-between py-2">
                 <div>
-                  <p>Version {report.version} · {new Date(report.generatedAt).toLocaleString('en-AU')}</p>
+                  <p>Version {report.version} · <UserDateTime value={report.generatedAt} /></p>
                   <p className="font-mono text-xs text-slate-600">{report.sha256.slice(0, 16)}…</p>
                 </div>
                 <Button size="sm" variant="outline" onClick={() => downloadReport(report.id)}>

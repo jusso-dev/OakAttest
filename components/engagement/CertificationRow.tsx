@@ -7,6 +7,7 @@ import {
   signAndBundleCertification,
   getCertificationDownloadUrl,
 } from '@/app/actions/certification';
+import { UserDateTime } from '@/components/timezone/UserTimezone';
 
 type Report = {
   id: string;
@@ -77,8 +78,8 @@ export function CertificationRow({
           <p className="text-xs text-slate-600">
             {report.status}
             {report.signedAt
-              ? ` · signed ${new Date(report.signedAt).toLocaleString('en-AU')}`
-              : ` · created ${new Date(report.createdAt).toLocaleString('en-AU')}`}
+              ? <> · signed <UserDateTime value={report.signedAt} /></>
+              : <> · created <UserDateTime value={report.createdAt} /></>}
           </p>
           {report.bundleSha256 && (
             <p className="mt-1 font-mono text-xs text-slate-600">

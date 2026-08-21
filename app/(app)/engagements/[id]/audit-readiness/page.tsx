@@ -33,12 +33,15 @@ import {
 } from '@/components/engagement/AuditRequirementChecklist';
 import { AuditEvidencePackagePanel } from '@/components/engagement/AuditEvidencePackagePanel';
 import { AuditorInviteForm } from '@/components/engagement/AuditorInviteForm';
+import { userTimeZone } from '@/lib/auth/user-timezone';
+import { formatDateInput } from '@/lib/timezone';
 
 export const metadata = { title: 'Audit readiness · OakAttest' };
 
 export default async function AuditReadinessPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await requirePageSession();
+  const timeZone = await userTimeZone(session.user.id);
   const [engagement] = await db
     .select({
       id: engagements.id,
@@ -225,15 +228,15 @@ export default async function AuditReadinessPage({ params }: { params: Promise<{
         leadAuditor: profile.leadAuditor,
         scopeStatement: profile.scopeStatement,
         trustServiceCategories: profile.trustServiceCategories,
-        periodStart: dateInput(profile.periodStart),
-        periodEnd: dateInput(profile.periodEnd),
-        targetAuditDate: dateInput(profile.targetAuditAt) ?? '',
+        periodStart: dateInput(profile.periodStart, timeZone),
+        periodEnd: dateInput(profile.periodEnd, timeZone),
+        targetAuditDate: dateInput(profile.targetAuditAt, timeZone) ?? '',
       }
     : null;
   const requirementValues: AuditRequirementValue[] = requirements.map((item) => ({
     ...item,
     status: item.status as AuditRequirementStatus,
-    dueDate: dateInput(item.dueAt),
+    dueDate: dateInput(item.dueAt, timeZone),
     updatedAt: item.updatedAt.toISOString(),
     evidenceItemIds: requirementEvidenceLinks
       .filter((link) => link.requirementId === item.id)
@@ -307,6 +310,6 @@ function Info({ label, value }: { label: string; value: string }) {
   return <div><p className="text-xs uppercase text-slate-500">{label}</p><p className="mt-1 font-medium text-slate-900">{value}</p></div>;
 }
 
-function dateInput(value: Date | null) {
-  return value?.toISOString().slice(0, 10) ?? null;
+function dateInput(value: Date | null, timeZone: string) {
+  return value ? formatDateInput(value, timeZone) : null;
 }

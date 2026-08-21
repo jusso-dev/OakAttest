@@ -6,6 +6,7 @@ import { createMcpApiToken, revokeMcpApiToken } from '@/app/actions/mcp-tokens';
 import { Button } from '@/components/ui/button';
 import { ConfirmButton } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
+import { useUserTimeZone } from '@/components/timezone/UserTimezone';
 
 type TokenRow = {
   id: string;
@@ -30,6 +31,7 @@ export function McpApiTokensPanel({
   endpoint: string;
 }) {
   const router = useRouter();
+  const { formatDateTime } = useUserTimeZone();
   const [name, setName] = useState('Assessment automation');
   const [expiresInDays, setExpiresInDays] = useState(90);
   const [secret, setSecret] = useState<string | null>(null);
@@ -134,9 +136,9 @@ export function McpApiTokensPanel({
               <tr key={token.id} className="border-b border-[var(--field-border)] last:border-0">
                 <td className="px-3 py-2 text-slate-900">{token.name}</td>
                 <td className="px-3 py-2 font-mono text-xs text-slate-700">{token.tokenPrefix}…</td>
-                <td className="px-3 py-2 text-slate-600">{formatDate(token.expiresAt)}</td>
-                <td className="px-3 py-2 text-slate-600">{token.lastUsedAt ? formatDate(token.lastUsedAt) : 'Never'}</td>
-                <td className="px-3 py-2 text-slate-700">{tokenStatus(token)}</td>
+                <td className="px-3 py-2 text-slate-600">{formatDateTime(token.expiresAt)}</td>
+                <td className="px-3 py-2 text-slate-600">{token.lastUsedAt ? formatDateTime(token.lastUsedAt) : 'Never'}</td>
+                <td className="px-3 py-2 text-slate-700">{tokenStatus(token, formatDateTime)}</td>
                 <td className="px-3 py-2 text-right">
                   {!token.revokedAt && new Date(token.expiresAt) > new Date() && (
                     <ConfirmButton
@@ -161,12 +163,8 @@ export function McpApiTokensPanel({
   );
 }
 
-function formatDate(value: Date): string {
-  return new Date(value).toLocaleString('en-AU');
-}
-
-function tokenStatus(token: TokenRow): string {
-  if (token.revokedAt) return `Revoked ${formatDate(token.revokedAt)}`;
+function tokenStatus(token: TokenRow, format: (value: Date) => string): string {
+  if (token.revokedAt) return `Revoked ${format(token.revokedAt)}`;
   if (new Date(token.expiresAt) <= new Date()) return 'Expired';
   return 'Active';
 }

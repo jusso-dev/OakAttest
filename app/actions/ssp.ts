@@ -36,6 +36,7 @@ import { renderBoundaryPng } from '@/lib/boundary/render';
 import { boundaryGraphSchema } from '@/lib/boundary/schema';
 import { resolveBranding } from '@/lib/branding';
 import { canTransitionSspStatus, type SspReviewStatus } from '@/lib/ssp/collaboration';
+import { userTimeZone } from '@/lib/auth/user-timezone';
 
 const generateSchema = z.object({
   engagementId: z.string().uuid(),
@@ -43,11 +44,12 @@ const generateSchema = z.object({
 
 export async function generateSspPdf(input: z.infer<typeof generateSchema>) {
   const session = await requireSession();
+  const timeZone = await userTimeZone(session.user.id);
   const { engagementId } = generateSchema.parse(input);
 
   const engagement = await requireEngagementExportAccess(session.user.id, engagementId);
   const nextVersion = await nextSspVersion(engagementId);
-  const data = await buildSspData(engagementId, engagement, nextVersion);
+  const data = await buildSspData(engagementId, engagement, nextVersion, timeZone);
   const buffer = await renderSspPdf(data);
   const sha = crypto.createHash('sha256').update(buffer).digest('hex');
   const key = buildSspKey({
@@ -74,11 +76,12 @@ export async function generateSspPdf(input: z.infer<typeof generateSchema>) {
 
 export async function generateSspXlsx(input: z.infer<typeof generateSchema>) {
   const session = await requireSession();
+  const timeZone = await userTimeZone(session.user.id);
   const { engagementId } = generateSchema.parse(input);
 
   const engagement = await requireEngagementExportAccess(session.user.id, engagementId);
   const nextVersion = await nextSspVersion(engagementId);
-  const data = await buildSspData(engagementId, engagement, nextVersion);
+  const data = await buildSspData(engagementId, engagement, nextVersion, timeZone);
   const buffer = await renderSspXlsx(data);
   const sha = crypto.createHash('sha256').update(buffer).digest('hex');
   const key = buildSspKey({
@@ -109,11 +112,12 @@ export async function generateSspXlsx(input: z.infer<typeof generateSchema>) {
 
 export async function generateSspBundle(input: z.infer<typeof generateSchema>) {
   const session = await requireSession();
+  const timeZone = await userTimeZone(session.user.id);
   const { engagementId } = generateSchema.parse(input);
 
   const engagement = await requireEngagementExportAccess(session.user.id, engagementId);
   const nextVersion = await nextSspVersion(engagementId);
-  const data = await buildSspData(engagementId, engagement, nextVersion);
+  const data = await buildSspData(engagementId, engagement, nextVersion, timeZone);
   const boundary = await latestBoundary(engagementId);
   const boundaryGraph = boundary
     ? boundaryGraphSchema.safeParse(boundary.graph).data
@@ -189,6 +193,7 @@ async function buildSspData(
   engagementId: string,
   engagement: typeof engagements.$inferSelect,
   version: number,
+  timeZone: string,
 ): Promise<SspData> {
   const [tenant] = await db
     .select({ name: tenants.name, branding: tenants.branding })
@@ -307,6 +312,7 @@ async function buildSspData(
   );
 
   return {
+    timeZone,
     engagement: {
       name: engagement.name,
       reference: engagement.reference,

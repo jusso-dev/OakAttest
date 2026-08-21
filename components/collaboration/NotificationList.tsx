@@ -6,6 +6,7 @@ import {
   markNotificationReadAction,
   markAllNotificationsReadAction,
 } from '@/app/actions/notifications';
+import { UserDateTime } from '@/components/timezone/UserTimezone';
 
 type Item = {
   id: string;
@@ -61,9 +62,7 @@ export function NotificationList({ items }: { items: Item[] }) {
                   )}
                   {n.title}
                 </span>
-                <time className="text-xs text-slate-500" dateTime={n.createdAt}>
-                  {new Date(n.createdAt).toLocaleString('en-AU')}
-                </time>
+                <span className="text-xs text-slate-500"><UserDateTime value={n.createdAt} /></span>
               </div>
               {n.body && <span className="text-sm text-slate-700">{n.body}</span>}
             </button>

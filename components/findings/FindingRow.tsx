@@ -12,6 +12,7 @@ import {
   createRemediationAction,
   updateRemediationAction,
 } from '@/app/actions/findings';
+import { UserDate, useUserTimeZone } from '@/components/timezone/UserTimezone';
 
 type Finding = {
   id: string;
@@ -275,6 +276,7 @@ function RetestForm({
   evidenceOptions: EvidenceOption[];
 }) {
   const router = useRouter();
+  const { timeZone, toUtc } = useUserTimeZone();
   const [method, setMethod] = useState('');
   const [result, setResult] = useState<'passed' | 'failed' | 'partially_remediated'>('passed');
   const [retestedAt, setRetestedAt] = useState('');
@@ -300,7 +302,7 @@ function RetestForm({
         method,
         result,
         notes: notes || undefined,
-        retestedAt: retestedAt ? new Date(`${retestedAt}T09:00:00.000Z`).toISOString() : undefined,
+        retestedAt: retestedAt ? toUtc(`${retestedAt}T09:00`).toISOString() : undefined,
         evidenceItemIds,
       });
       setMethod('');
@@ -338,7 +340,7 @@ function RetestForm({
           value={retestedAt}
           onChange={(event) => setRetestedAt(event.target.value)}
           className="flex h-9 rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3 text-sm"
-          aria-label="Retest date"
+          aria-label={`Retest date (${timeZone})`}
         />
       </div>
       <textarea
@@ -402,9 +404,7 @@ function RemediationView({
       <p className="text-slate-900">{remediation.description}</p>
       <p className="mt-1 text-xs text-slate-600">
         {remediation.ownerName ?? 'Unassigned'}
-        {remediation.dueDate
-          ? ` · due ${new Date(remediation.dueDate).toLocaleDateString('en-AU')}`
-          : ''}{' '}
+        {remediation.dueDate && <> · due <UserDate value={remediation.dueDate} /></>}{' '}
         · status {remediation.status.replace(/_/g, ' ')}
       </p>
       {canEdit && (
@@ -458,6 +458,7 @@ function RiskAcceptanceForm({
   residualRiskOptions: ResidualRiskOption[];
 }) {
   const router = useRouter();
+  const { timeZone, toUtc } = useUserTimeZone();
   const [acceptedByName, setAcceptedByName] = useState('');
   const [acceptedAt, setAcceptedAt] = useState('');
   const [rationale, setRationale] = useState('');
@@ -474,7 +475,7 @@ function RiskAcceptanceForm({
         engagementId,
         findingId,
         acceptedByName,
-        acceptedAt: acceptedAt ? new Date(`${acceptedAt}T09:00:00.000Z`).toISOString() : new Date().toISOString(),
+        acceptedAt: acceptedAt ? toUtc(`${acceptedAt}T09:00`).toISOString() : new Date().toISOString(),
         rationale,
         residualRiskId,
       });
@@ -501,7 +502,7 @@ function RiskAcceptanceForm({
           value={acceptedAt}
           onChange={(event) => setAcceptedAt(event.target.value)}
           className="flex h-9 rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3 text-sm"
-          aria-label="Accepted date"
+          aria-label={`Accepted date (${timeZone})`}
         />
         <select
           value={residualRiskId}
@@ -547,6 +548,7 @@ function NewRemediationForm({
   findingId: string;
 }) {
   const router = useRouter();
+  const { dateEndToUtc, timeZone } = useUserTimeZone();
   const [description, setDescription] = useState('');
   const [owner, setOwner] = useState('');
   const [due, setDue] = useState('');
@@ -560,7 +562,7 @@ function NewRemediationForm({
         findingId,
         description,
         ownerName: owner || undefined,
-        dueDate: due ? new Date(due).toISOString() : undefined,
+        dueDate: due ? dateEndToUtc(due).toISOString() : undefined,
       });
       setDescription('');
       setOwner('');
@@ -585,6 +587,7 @@ function NewRemediationForm({
           onChange={(e) => setOwner(e.target.value)}
           placeholder="Owner name"
           className="flex h-9 rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3 text-sm"
+          aria-label={`Due date (${timeZone})`}
         />
         <input
           type="date"
@@ -652,7 +655,7 @@ function FindingClosureHistory({
       {retests.map((retest) => (
         <div key={retest.id} className="mt-2 rounded border border-[var(--field-border)] p-2">
           <p className="font-medium text-slate-900">
-            {retest.result.replace(/_/g, ' ')} · {new Date(retest.retestedAt).toLocaleDateString('en-AU')}
+            {retest.result.replace(/_/g, ' ')} · <UserDate value={retest.retestedAt} />
           </p>
           <p className="mt-1 text-slate-700">{retest.method}</p>
           {retest.notes && <p className="mt-1 text-xs text-slate-600">{retest.notes}</p>}
@@ -666,7 +669,7 @@ function FindingClosureHistory({
       {riskAcceptances.map((acceptance) => (
         <div key={acceptance.id} className="mt-2 rounded border border-[var(--field-border)] p-2">
           <p className="font-medium text-slate-900">
-            Accepted by {acceptance.acceptedByName} · {new Date(acceptance.acceptedAt).toLocaleDateString('en-AU')}
+            Accepted by {acceptance.acceptedByName} · <UserDate value={acceptance.acceptedAt} />
           </p>
           <p className="mt-1 text-slate-700">{acceptance.rationale}</p>
           {acceptance.residualRiskId && (

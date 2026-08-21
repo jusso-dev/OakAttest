@@ -5,8 +5,10 @@ import { inviteToEngagement } from '@/app/actions/invitations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useUserTimeZone } from '@/components/timezone/UserTimezone';
 
 export function AuditorInviteForm({ engagementId }: { engagementId: string }) {
+  const { formatDateTime } = useUserTimeZone();
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -18,7 +20,7 @@ export function AuditorInviteForm({ engagementId }: { engagementId: string }) {
     startTransition(async () => {
       try {
         const result = await inviteToEngagement({ engagementId, email, role: 'read_only_observer' });
-        setMessage(`Auditor invite sent. Expires ${new Date(result.expiresAt).toLocaleString('en-AU')}.`);
+        setMessage(`Auditor invite sent. Expires ${formatDateTime(result.expiresAt)}.`);
         form.reset();
       } catch (err) {
         setMessage((err as Error).message);

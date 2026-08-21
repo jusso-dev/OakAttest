@@ -8,6 +8,7 @@ import {
 } from '@react-pdf/renderer';
 import { e8StrategyLabel, formatMaturity } from '@/lib/essential-eight';
 import { criteriaForStrategy } from '@/lib/essential-eight-criteria';
+import { formatDateTime } from '@/lib/timezone';
 
 const styles = StyleSheet.create({
   page: { padding: 44, fontSize: 9, fontFamily: 'Helvetica', color: '#0f172a' },
@@ -41,6 +42,7 @@ const styles = StyleSheet.create({
 });
 
 export type EssentialEightReportData = {
+  timeZone: string;
   tenant: { name: string; productName: string };
   engagement: {
     name: string;
@@ -117,7 +119,8 @@ export function EssentialEightReportDocument({ data }: { data: EssentialEightRep
 
         <Text style={styles.sectionTitle}>1. Report Metadata</Text>
         <InfoRow label="Version" value={`v${data.report.version}`} />
-        <InfoRow label="Generated" value={formatDate(data.report.generatedAt)} />
+        <InfoRow label="Generated" value={formatDateTime(data.report.generatedAt, data.timeZone)} />
+        <InfoRow label="Timezone" value={data.timeZone} />
         <InfoRow label="Client" value={data.client.name} />
         <InfoRow label="System" value={data.system.name} />
         <InfoRow label="Environment" value={data.system.environment ?? '-'} />
@@ -232,10 +235,6 @@ export async function renderEssentialEightReportPdf(data: EssentialEightReportDa
   if (Buffer.isBuffer(blob)) return blob;
   if (blob instanceof Uint8Array) return Buffer.from(blob);
   throw new Error('Unexpected PDF buffer shape');
-}
-
-function formatDate(value: string): string {
-  return new Date(value).toLocaleString('en-AU');
 }
 
 async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {

@@ -10,6 +10,7 @@ import {
   taskStatusLabel,
   type TaskStatus,
 } from '@/lib/tasks';
+import { useUserTimeZone } from '@/components/timezone/UserTimezone';
 
 type EngagementTaskStripTask = {
   id: string;
@@ -28,6 +29,7 @@ export function EngagementTaskStrip({
   currentUserId: string;
   tasks: EngagementTaskStripTask[];
 }) {
+  const { timeZone } = useUserTimeZone();
   const [collapsed, setCollapsed] = useState(false);
   const storageKey = `oakattest:engagement-task-strip:${engagementId}`;
 
@@ -39,18 +41,18 @@ export function EngagementTaskStrip({
   }, [storageKey]);
 
   const stats = useMemo(() => {
-    const overdue = tasks.filter((task) => isTaskOverdue(task)).length;
-    const dueToday = tasks.filter((task) => isTaskDueToday(task)).length;
+    const overdue = tasks.filter((task) => isTaskOverdue(task, new Date(), timeZone)).length;
+    const dueToday = tasks.filter((task) => isTaskDueToday(task, new Date(), timeZone)).length;
     const mine = tasks.filter((task) => task.ownerUserId === currentUserId).length;
     const blocked = tasks.filter((task) => task.status === 'blocked').length;
     const leadTask =
-      tasks.find((task) => isTaskOverdue(task)) ??
-      tasks.find((task) => isTaskDueToday(task)) ??
+      tasks.find((task) => isTaskOverdue(task, new Date(), timeZone)) ??
+      tasks.find((task) => isTaskDueToday(task, new Date(), timeZone)) ??
       tasks.find((task) => task.ownerUserId === currentUserId) ??
       tasks[0];
 
     return { overdue, dueToday, mine, blocked, leadTask };
-  }, [currentUserId, tasks]);
+  }, [currentUserId, tasks, timeZone]);
 
   function toggleCollapsed() {
     setCollapsed((current) => {
@@ -111,7 +113,7 @@ export function EngagementTaskStrip({
             {stats.leadTask ? (
               <p className="mt-1 truncate text-sm text-slate-700">
                 Next: {stats.leadTask.title} ({taskStatusLabel(stats.leadTask.status)}
-                {stats.leadTask.dueAt ? `, due ${formatTaskDueDate(stats.leadTask.dueAt)}` : ''})
+                {stats.leadTask.dueAt ? `, due ${formatTaskDueDate(stats.leadTask.dueAt, timeZone)}` : ''})
               </p>
             ) : (
               <p className="mt-1 text-sm text-slate-600">No open engagement tasks.</p>

@@ -34,6 +34,7 @@ import {
   renderEssentialEightReportPdf,
   type EssentialEightReportData,
 } from '@/lib/pdf/essential-eight';
+import { userTimeZone } from '@/lib/auth/user-timezone';
 import { resolveBranding } from '@/lib/branding';
 
 async function tenantForEngagement(engagementId: string): Promise<string> {
@@ -275,6 +276,7 @@ export async function upsertEssentialEight(input: z.infer<typeof upsertSchema>) 
 
 export async function generateEssentialEightReport(input: { engagementId: string }) {
   const session = await requireSession();
+  const timeZone = await userTimeZone(session.user.id);
   const data = z.object({ engagementId: z.string().uuid() }).parse(input);
   const tenantId = await tenantForEngagement(data.engagementId);
   await requirePermission(ACTIONS.certificationGenerate, {
@@ -403,6 +405,7 @@ export async function generateEssentialEightReport(input: { engagementId: string
   }
   const evidenceById = new Map(evidenceRows.map((item) => [item.id, item]));
   const reportData: EssentialEightReportData = {
+    timeZone,
     tenant: { name: tenant?.name ?? 'Tenant', productName: branding.productName },
     engagement: {
       name: engagement.name,

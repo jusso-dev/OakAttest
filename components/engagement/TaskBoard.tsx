@@ -23,6 +23,7 @@ import {
   type TaskStatus,
 } from '@/lib/tasks';
 import { cn } from '@/lib/utils';
+import { useUserTimeZone } from '@/components/timezone/UserTimezone';
 
 export type EngagementTask = {
   id: string;
@@ -61,14 +62,6 @@ const emptyForm: TaskForm = {
   ownerUserId: '',
   dueDate: '',
 };
-
-function dueDateInput(value: string | null) {
-  return value ? new Date(value).toISOString().slice(0, 10) : '';
-}
-
-function formatDate(value: string | null) {
-  return formatTaskDueDate(value);
-}
 
 function priorityClasses(priority: TaskPriority) {
   switch (priority) {
@@ -118,6 +111,7 @@ function TaskColumn({
   onMoveTask: (taskId: string, status: TaskStatus) => void;
   onCompleteTask: (taskId: string) => void;
 }) {
+  const { timeZone } = useUserTimeZone();
   const [isOver, setIsOver] = useState(false);
 
   return (
@@ -233,8 +227,8 @@ function TaskColumn({
             );
           }
 
-          const overdue = isTaskOverdue(task);
-          const dueToday = isTaskDueToday(task);
+          const overdue = isTaskOverdue(task, new Date(), timeZone);
+          const dueToday = isTaskDueToday(task, new Date(), timeZone);
           return (
             <article
               key={task.id}
@@ -301,7 +295,7 @@ function TaskColumn({
                 <div className="flex justify-between gap-3">
                   <dt>Due</dt>
                   <dd className={overdue ? 'font-medium text-red-700' : 'text-slate-700'}>
-                    {formatDate(task.dueAt)}
+                    {formatTaskDueDate(task.dueAt, timeZone)}
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3">
@@ -381,6 +375,7 @@ export function TaskBoard({
   assignees: TaskAssignee[];
   canManage: boolean;
 }) {
+  const { timeZone, formatDateInput } = useUserTimeZone();
   const [tasks, setTasks] = useState(initialTasks);
   const [form, setForm] = useState<TaskForm>(emptyForm);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
@@ -389,7 +384,7 @@ export function TaskBoard({
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const summary = useMemo(() => summarizeTasks(tasks), [tasks]);
+  const summary = useMemo(() => summarizeTasks(tasks, new Date(), timeZone), [tasks, timeZone]);
   const tasksByStatus = useMemo(
     () =>
       TASK_BOARD_STATUSES.reduce(
@@ -461,7 +456,7 @@ export function TaskBoard({
       status: task.status,
       priority: task.priority,
       ownerUserId: task.ownerUserId ?? '',
-      dueDate: dueDateInput(task.dueAt),
+      dueDate: task.dueAt ? formatDateInput(task.dueAt) : '',
     });
   }
 
