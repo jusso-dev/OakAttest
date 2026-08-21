@@ -28,6 +28,7 @@ RUN npm ci --omit=dev --legacy-peer-deps && npm cache clean --force
 COPY --from=build --chown=node:node /app/.next ./.next
 COPY --from=build --chown=node:node /app/public ./public
 COPY --from=build --chown=node:node /app/db ./db
+COPY --from=build --chown=node:node /app/emails ./emails
 COPY --from=build --chown=node:node /app/lib ./lib
 COPY --from=build --chown=node:node /app/scripts ./scripts
 COPY --from=build --chown=node:node /app/drizzle.config.ts ./drizzle.config.ts
