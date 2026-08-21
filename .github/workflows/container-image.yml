@@ -39,8 +39,6 @@ jobs:
           tags: |
             ghcr.io/yumaitau/oakattest:main
             ghcr.io/yumaitau/oakattest:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Deploy image through Coolify
         env:
