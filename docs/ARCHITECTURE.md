@@ -68,6 +68,18 @@ revision; new revisions surface a `Compare and migrate` banner.
 4. Every Server Action calls `requirePermission` with its own action key
    before any mutation. Audit rows are written in the same transaction.
 
+## Assessment automation MCP
+
+`/api/mcp` is a stateless Streamable HTTP MCP surface backed by the official
+TypeScript SDK. Bearer credentials resolve to a tenant and user actor, then an
+AsyncLocalStorage request context invokes existing server actions. UI and agent
+workflows therefore share RBAC, licensing, audit logging, checksum verification,
+notifications, invitations, and package generation.
+
+MCP credentials are stored as one-way hashes in `mcp_api_tokens`; plaintext is
+returned only at creation. Each tool call records an integration audit event,
+while its domain action records the normal resource-specific events.
+
 ## Status
 
 The platform is feature-complete across the five IRAP phases and the §13
@@ -100,3 +112,4 @@ exhaustive list.
 - `/api/auth/[...all]` — BetterAuth handler
 - `/api/interviews/[id]/ics` — calendar export
 - `/api/engagements/[id]/findings/csv` — findings register CSV
+- `/api/mcp` — bearer-authenticated Streamable HTTP assessment automation

@@ -2,6 +2,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { tenantInvitations, tenantMembers, tenants } from '@/db/schema/tenants';
 import { tenantSigningKeys } from '@/db/schema/certification';
+import { mcpApiTokens } from '@/db/schema/mcp';
 import { users } from '@/db/schema/auth';
 import { requirePageSession } from '@/lib/auth/session';
 import { resolveActiveTenant } from '@/lib/auth/active-tenant';
@@ -14,6 +15,7 @@ import { MemberRowControls } from '@/components/admin/MemberRowControls';
 import { RoleAccessGuide } from '@/components/admin/RoleAccessGuide';
 import { SecurityPolicyForm } from '@/components/admin/SecurityPolicyForm';
 import { SigningKeysPanel } from '@/components/admin/SigningKeysPanel';
+import { McpApiTokensPanel } from '@/components/admin/McpApiTokensPanel';
 
 export const metadata = { title: 'Tenant admin · OakAttest' };
 
@@ -91,6 +93,21 @@ export default async function AdminPage({
     .from(tenantSigningKeys)
     .where(eq(tenantSigningKeys.tenantId, tenant.tenantId))
     .orderBy(tenantSigningKeys.createdAt);
+
+  const mcpTokens = await db
+    .select({
+      id: mcpApiTokens.id,
+      name: mcpApiTokens.name,
+      tokenPrefix: mcpApiTokens.tokenPrefix,
+      scopes: mcpApiTokens.scopes,
+      expiresAt: mcpApiTokens.expiresAt,
+      lastUsedAt: mcpApiTokens.lastUsedAt,
+      revokedAt: mcpApiTokens.revokedAt,
+      createdAt: mcpApiTokens.createdAt,
+    })
+    .from(mcpApiTokens)
+    .where(eq(mcpApiTokens.tenantId, tenant.tenantId))
+    .orderBy(mcpApiTokens.createdAt);
 
   const inviteMode = params?.invite === '1';
   const canManageTenant = roles.includes('tenant_owner');
@@ -171,6 +188,24 @@ export default async function AdminPage({
             tenantId={tenant.tenantId}
             keys={signingKeys}
             canManage={canManageTenant}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Agent automation (MCP)</CardTitle>
+          <CardDescription>
+            Connect another AI agent over authenticated Streamable HTTP to manage assessments,
+            evidence, findings, audit readiness, assessor access, and timestamped packages.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <McpApiTokensPanel
+            tenantId={tenant.tenantId}
+            tokens={mcpTokens}
+            canManage={canManageTenant}
+            endpoint={`${process.env.BETTER_AUTH_URL ?? 'http://localhost:3000'}/api/mcp`}
           />
         </CardContent>
       </Card>

@@ -24,6 +24,18 @@ assessors, and client admins. Auditors use `read_only_observer`: they can inspec
 the workspace, evidence, findings, and immutable packages, but cannot change
 scope, checklist state, evidence review, or findings.
 
+## MCP machine access
+
+MCP tokens do not introduce a privileged role. A token is bound to its creator,
+tenant, expiry, and scopes. Tool execution reuses that user's current tenant and
+engagement roles; removing the user's access immediately removes the token's
+effective access. Only tenant owners may issue or revoke tokens.
+
+This preserves assessor/client independence for agent workflows: an
+assessor-side token cannot perform client-only evidence uploads or author
+implementation statements, and a client-side role cannot decide applicability
+or review its own evidence.
+
 ## Enforcement
 
 All mutations call `requirePermission(action, resource, ctx)` from

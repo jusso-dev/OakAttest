@@ -10,6 +10,18 @@ deployments and supports the assessment lifecycle from organisation setup throug
 scoping, evidence collection, fieldwork, findings, certification, and ongoing
 compliance maintenance.
 
+## Agent automation over MCP
+
+OakAttest exposes an authenticated Streamable HTTP MCP endpoint at `/api/mcp`.
+An external agent can manage client and assessment setup, control workpapers,
+evidence exchange, findings, ISO 27001/SOC 2 readiness, auditor invitations,
+and timestamped audit packages through the same RBAC and audit-logged actions
+used by the UI. Tenant owners create revocable bearer tokens in **Tenant admin
+→ Agent automation (MCP)**.
+
+See [docs/MCP.md](docs/MCP.md) for connection configuration, tools, evidence
+upload flow, role boundaries, and production host/origin controls.
+
 The product focuses on practical IRAP work: ISM control applicability,
 assessment boundaries, evidence quality, client collaboration, residual risk,
 auditability, and exportable artefacts that can support a client authorisation

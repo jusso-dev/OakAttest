@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Assessment automation MCP
+
+- Added a bearer-authenticated Streamable HTTP MCP at `/api/mcp` with 29 tools
+  covering client and assessment creation, scope/control workpapers, evidence
+  request/upload/verification/review/download, ISO 27001 and SOC 2 readiness,
+  findings, read-only auditor invitations, and timestamped audit packages.
+- Added tenant-managed, expiring, revocable MCP tokens stored as one-way
+  SHA-256 digests, request-local machine actors, host/origin controls, and an
+  integration audit event for every tool call.
+
 ### Audit readiness and auditor evidence room
 
 - Added ISO/IEC 27001 Stage 1 and SOC 2 Type I/II audit planning, including
