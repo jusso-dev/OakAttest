@@ -1,10 +1,16 @@
 import { Suspense } from 'react';
+import { redirect } from 'next/navigation';
+import { connection } from 'next/server';
 import { SignUpForm } from './SignUpForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { isPublicSignupEnabled } from '@/lib/auth/signup-policy';
 
 export const metadata = { title: 'Create account · OakAttest' };
 
-export default function SignUpPage() {
+export default async function SignUpPage() {
+  await connection();
+  if (!isPublicSignupEnabled()) redirect('/sign-in');
+
   return (
     <Card>
       <CardHeader>

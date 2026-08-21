@@ -6,7 +6,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
           <BrandLogo className="justify-center" imageClassName="h-11" priority />
-          <h1 className="mt-2 text-xl font-semibold text-slate-950">IRAP assessment platform</h1>
+          <h1 className="mt-2 text-xl font-semibold text-slate-950">Assessment Platform</h1>
         </div>
         {children}
       </div>
