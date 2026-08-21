@@ -3,6 +3,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { magicLink, twoFactor, haveIBeenPwned, oAuthProxy, admin } from 'better-auth/plugins';
 import { db } from '@/lib/db/client';
 import { sendMagicLinkEmail } from '@/emails/send';
+import { isPublicSignupEnabled } from '@/lib/auth/signup-policy';
 
 // BetterAuth configuration per spec §5.
 //
@@ -27,6 +28,7 @@ import { sendMagicLinkEmail } from '@/emails/send';
 
 const secret = process.env.BETTER_AUTH_SECRET ?? 'dev-insecure-please-set-BETTER_AUTH_SECRET';
 const baseURL = process.env.BETTER_AUTH_URL ?? 'http://localhost:3000';
+const publicSignupEnabled = isPublicSignupEnabled();
 
 export const auth = betterAuth({
   secret,
@@ -35,6 +37,7 @@ export const auth = betterAuth({
 
   emailAndPassword: {
     enabled: true,
+    disableSignUp: !publicSignupEnabled,
     minPasswordLength: 14,
     maxPasswordLength: 256,
     autoSignIn: true,
@@ -65,7 +68,7 @@ export const auth = betterAuth({
     }),
     magicLink({
       expiresIn: 60 * 60 * 72,
-      disableSignUp: false,
+      disableSignUp: !publicSignupEnabled,
       sendMagicLink: async ({ email, url }) => {
         await sendMagicLinkEmail({ to: email, url });
       },

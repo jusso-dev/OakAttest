@@ -20,6 +20,7 @@
     "db:seed": "tsx db/seed/index.ts",
     "db:seed:plans": "tsx db/seed/plans.ts",
     "db:seed:frameworks": "tsx db/seed/frameworks.ts",
+    "db:seed:admin": "tsx db/seed/admin.ts",
     "framework:import": "tsx scripts/framework-import.ts",
     "platform:admin": "tsx scripts/grant-platform-admin.ts",
     "remotion": "remotion studio remotion/index.ts",

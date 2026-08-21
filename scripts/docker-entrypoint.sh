@@ -9,5 +9,6 @@ DATABASE_URL="$DATABASE_MIGRATION_URL" npm run db:migrate
 npm run db:postdeploy
 DATABASE_URL="$DATABASE_MIGRATION_URL" npm run db:seed:plans
 DATABASE_URL="$DATABASE_MIGRATION_URL" npm run db:seed:frameworks
+DATABASE_URL="$DATABASE_MIGRATION_URL" npm run db:seed:admin
 
 exec npm run start

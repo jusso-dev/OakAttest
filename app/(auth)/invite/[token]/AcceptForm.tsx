@@ -14,9 +14,11 @@ import Link from 'next/link';
 export function AcceptForm({
   token,
   kind,
+  publicSignupEnabled,
 }: {
   token: string;
   kind: 'tenant' | 'engagement' | 'partner';
+  publicSignupEnabled: boolean;
 }) {
   const router = useRouter();
   const { data: session } = useSession();
@@ -49,7 +51,8 @@ export function AcceptForm({
     return (
       <div className="space-y-3">
         <p className="text-sm text-slate-600">
-          You need to sign in or create an account before accepting this invitation.
+          You need to sign in{publicSignupEnabled ? ' or create an account' : ''} before accepting
+          this invitation.
         </p>
         <div className="flex gap-2">
           <Link
@@ -58,12 +61,14 @@ export function AcceptForm({
           >
             Sign in
           </Link>
-          <Link
-            href={`/sign-up?next=/invite/${token}`}
-            className="inline-flex h-9 items-center justify-center rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-4 text-sm font-medium text-slate-900 hover:bg-[var(--oak-mist)]"
-          >
-            Create account
-          </Link>
+          {publicSignupEnabled && (
+            <Link
+              href={`/sign-up?next=/invite/${token}`}
+              className="inline-flex h-9 items-center justify-center rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-4 text-sm font-medium text-slate-900 hover:bg-[var(--oak-mist)]"
+            >
+              Create account
+            </Link>
+          )}
         </div>
       </div>
     );

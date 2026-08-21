@@ -1,7 +1,9 @@
 import { notFound } from 'next/navigation';
+import { connection } from 'next/server';
 import { getInvitationDetails } from '@/app/actions/invitations';
 import { AcceptForm } from './AcceptForm';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { isPublicSignupEnabled } from '@/lib/auth/signup-policy';
 
 export const metadata = { title: 'Accept invitation · OakAttest' };
 
@@ -10,7 +12,9 @@ export default async function InvitePage({
 }: {
   params: Promise<{ token: string }>;
 }) {
+  await connection();
   const { token } = await params;
+  const publicSignupEnabled = isPublicSignupEnabled();
   const invitation = await getInvitationDetails(token);
   if (!invitation) notFound();
 
@@ -67,11 +71,16 @@ export default async function InvitePage({
         <CardTitle>{title}</CardTitle>
         <CardDescription>
           {description}{' '}
-          Sign in or create an account with <strong>{invitation.email}</strong> to accept.
+          {publicSignupEnabled ? 'Sign in or create an account' : 'Sign in'} with{' '}
+          <strong>{invitation.email}</strong> to accept.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <AcceptForm token={token} kind={invitation.kind} />
+        <AcceptForm
+          token={token}
+          kind={invitation.kind}
+          publicSignupEnabled={publicSignupEnabled}
+        />
       </CardContent>
     </Card>
   );
