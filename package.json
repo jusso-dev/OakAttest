@@ -14,6 +14,7 @@
     "screenshots:readme": "tsx scripts/readme-screenshots.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:postdeploy": "sh scripts/db-postdeploy.sh",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx db/seed/index.ts",
@@ -39,6 +40,7 @@
     "clsx": "^2.1.1",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
+    "drizzle-kit": "^0.31.10",
     "jszip": "^3.10.1",
     "lucide-react": "^1.21.0",
     "next": "16.3.0-canary.21",
@@ -56,6 +58,7 @@
     "resend": "^6.14.0",
     "sharp": "^0.34.5",
     "tailwind-merge": "^3.6.0",
+    "tsx": "^4.22.4",
     "uuid": "^14.0.1",
     "zod": "^4.4.3"
   },
@@ -71,12 +74,10 @@
     "@types/react-dom": "^19.2.3",
     "@types/uuid": "^10.0.0",
     "@vitest/coverage-v8": "^4.1.9",
-    "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.4",
     "eslint-config-next": "16.3.0-canary.21",
     "remotion": "^4.0.482",
     "tailwindcss": "^4.3.1",
-    "tsx": "^4.22.4",
     "typescript": "^5.9.3",
     "vitest": "^4.1.9"
   }

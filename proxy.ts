@@ -25,6 +25,7 @@ const PUBLIC_PATHS = [
 
 function isPublic(pathname: string): boolean {
   if (pathname.startsWith('/api/auth')) return true;
+  if (pathname === '/api/health') return true;
   // MCP has its own tenant-scoped bearer authentication in the route handler.
   if (pathname === '/api/mcp') return true;
   if (pathname.startsWith('/_next')) return true;
