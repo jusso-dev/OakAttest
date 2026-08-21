@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
 import type { SspData } from '@/lib/pdf/ssp';
+import { formatDateTime } from '@/lib/timezone';
 
 const SHEETS = [
   { name: 'Overview', builder: overviewRows },
@@ -48,29 +49,30 @@ function overviewRows(data: SspData): Row[] {
     pair('ISM revision', data.engagement.frameworkRevision),
     pair('Phase', data.engagement.phase),
     pair('Status', data.engagement.status),
-    pair('Exported at', new Date(data.exportedAt).toLocaleString('en-AU')),
-    pair('Engagement created', new Date(data.engagement.createdAt).toLocaleString('en-AU')),
-    pair('Engagement last updated', new Date(data.engagement.updatedAt).toLocaleString('en-AU')),
+    pair('Timezone', data.timeZone),
+    pair('Exported at', formatDateTime(data.exportedAt, data.timeZone)),
+    pair('Engagement created', formatDateTime(data.engagement.createdAt, data.timeZone)),
+    pair('Engagement last updated', formatDateTime(data.engagement.updatedAt, data.timeZone)),
     pair(
       'Started at',
-      data.engagement.startedAt ? new Date(data.engagement.startedAt).toLocaleString('en-AU') : '',
+      data.engagement.startedAt ? formatDateTime(data.engagement.startedAt, data.timeZone) : '',
     ),
     pair(
       'Target certification',
       data.engagement.targetCertificationAt
-        ? new Date(data.engagement.targetCertificationAt).toLocaleString('en-AU')
+        ? formatDateTime(data.engagement.targetCertificationAt, data.timeZone)
         : '',
     ),
     pair(
       'Certified at',
       data.engagement.certifiedAt
-        ? new Date(data.engagement.certifiedAt).toLocaleString('en-AU')
+        ? formatDateTime(data.engagement.certifiedAt, data.timeZone)
         : '',
     ),
     pair(
       'Boundary locked at',
       data.engagement.boundaryLockedAt
-        ? new Date(data.engagement.boundaryLockedAt).toLocaleString('en-AU')
+        ? formatDateTime(data.engagement.boundaryLockedAt, data.timeZone)
         : '',
     ),
     blank(),
@@ -115,7 +117,7 @@ function peopleRows(data: SspData): Row[] {
       text(member.name ?? '', 4),
       text(member.email, 4),
       text(member.role, 4),
-      text(member.joinedAt ? new Date(member.joinedAt).toLocaleString('en-AU') : '', 4),
+      text(member.joinedAt ? formatDateTime(member.joinedAt, data.timeZone) : '', 4),
     ]),
   ];
 }

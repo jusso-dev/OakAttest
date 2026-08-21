@@ -18,6 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { UserDate, UserDateTime } from '@/components/timezone/UserTimezone';
 
 export const metadata = { title: 'Subscription · OakAttest' };
 
@@ -159,7 +160,7 @@ export default async function SubscriptionAdminPage() {
             <p className="text-slate-700">
               Grace window ends{' '}
               <strong>
-                {new Date(entitlement.graceEndsAt).toLocaleString('en-AU')}
+                <UserDateTime value={entitlement.graceEndsAt} />
               </strong>
               .
             </p>
@@ -194,19 +195,19 @@ export default async function SubscriptionAdminPage() {
               <dt className="text-slate-600">Effective from</dt>
               <dd className="text-slate-900">
                 {sub.effectiveStartAt
-                  ? new Date(sub.effectiveStartAt).toLocaleDateString('en-AU')
+                  ? <UserDate value={sub.effectiveStartAt} />
                   : '—'}
               </dd>
               <dt className="text-slate-600">Effective until</dt>
               <dd className="text-slate-900">
                 {sub.effectiveEndAt
-                  ? new Date(sub.effectiveEndAt).toLocaleDateString('en-AU')
+                  ? <UserDate value={sub.effectiveEndAt} />
                   : '—'}
               </dd>
               <dt className="text-slate-600">Last webhook</dt>
               <dd className="text-slate-900">
                 {sub.lastWebhookAt
-                  ? new Date(sub.lastWebhookAt).toLocaleString('en-AU')
+                  ? <UserDateTime value={sub.lastWebhookAt} />
                   : 'never'}
               </dd>
             </dl>
@@ -248,7 +249,7 @@ export default async function SubscriptionAdminPage() {
                 {history.map((row) => (
                   <tr key={row.id} className="border-b border-[var(--field-border)]">
                     <td className="py-2 pr-3 text-slate-700">
-                      {new Date(row.createdAt).toLocaleString('en-AU')}
+                      <UserDateTime value={row.createdAt} />
                     </td>
                     <td className="py-2 pr-3 text-slate-900">{row.action}</td>
                     <td className="py-2 pr-3 text-slate-700">

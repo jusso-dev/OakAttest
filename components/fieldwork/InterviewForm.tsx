@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createInterview } from '@/app/actions/interviews';
 import { useUnsavedChanges } from '@/components/engagement/UnsavedChangesGuard';
+import { useUserTimeZone } from '@/components/timezone/UserTimezone';
 
 const schema = z.object({
   title: z.string().min(2).max(200),
@@ -22,6 +23,7 @@ const schema = z.object({
 type Values = z.infer<typeof schema>;
 
 export function InterviewForm({ engagementId }: { engagementId: string }) {
+  const { timeZone, toUtc } = useUserTimeZone();
   const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
@@ -47,7 +49,7 @@ export function InterviewForm({ engagementId }: { engagementId: string }) {
         engagementId,
         title: v.title,
         purpose: v.purpose,
-        scheduledAt: v.scheduledAt ? new Date(v.scheduledAt).toISOString() : undefined,
+        scheduledAt: v.scheduledAt ? toUtc(v.scheduledAt).toISOString() : undefined,
         durationMinutes: v.durationMinutes,
         location: v.location,
         attendees,
@@ -67,7 +69,7 @@ export function InterviewForm({ engagementId }: { engagementId: string }) {
           {errors.title && <p className="text-xs text-red-700">{errors.title.message}</p>}
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="scheduledAt">When</Label>
+          <Label htmlFor="scheduledAt">When ({timeZone})</Label>
           <Input id="scheduledAt" type="datetime-local" {...register('scheduledAt')} />
         </div>
         <div className="space-y-1.5">

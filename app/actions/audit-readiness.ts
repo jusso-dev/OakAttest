@@ -20,6 +20,8 @@ import { engagementControls, frameworkControls, frameworks } from '@/db/schema/f
 import { engagementMembers, tenants } from '@/db/schema/tenants';
 import { users } from '@/db/schema/auth';
 import { requireSession } from '@/lib/auth/session';
+import { userTimeZone } from '@/lib/auth/user-timezone';
+import { zonedDateEndToUtc, zonedDateTimeToUtc } from '@/lib/timezone';
 import { requirePermission } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
 import {
@@ -69,6 +71,7 @@ const requirementSchema = z.object({
 
 export async function upsertAuditReadinessProfile(input: z.infer<typeof profileSchema>) {
   const session = await requireSession();
+  const timeZone = await userTimeZone(session.user.id);
   const data = profileSchema.parse(input);
   const engagement = await requireAuditAccess(
     session.user.id,
@@ -81,8 +84,8 @@ export async function upsertAuditReadinessProfile(input: z.infer<typeof profileS
     throw new Error(`${engagement.frameworkLabel} does not support ${data.auditType}.`);
   }
 
-  const periodStart = parseDate(data.periodStart);
-  const periodEnd = parseDate(data.periodEnd);
+  const periodStart = parseCalendarDate(data.periodStart, timeZone);
+  const periodEnd = parseCalendarDate(data.periodEnd, timeZone);
   if (data.auditType === 'soc_2_type_2') {
     if (!periodStart || !periodEnd || periodEnd <= periodStart) {
       throw new Error('SOC 2 Type II needs an observation-period end after its start.');
@@ -92,7 +95,7 @@ export async function upsertAuditReadinessProfile(input: z.infer<typeof profileS
   const trustServiceCategories = data.auditType.startsWith('soc_2')
     ? Array.from(new Set(['security', ...data.trustServiceCategories]))
     : [];
-  const targetAuditAt = parseDate(data.targetAuditDate);
+  const targetAuditAt = parseCalendarDate(data.targetAuditDate, timeZone);
   if (!targetAuditAt) throw new Error('Target audit date is required.');
 
   const [existing] = await db
@@ -192,6 +195,7 @@ export async function updateAuditReadinessRequirement(
   input: z.infer<typeof requirementSchema>,
 ) {
   const session = await requireSession();
+  const timeZone = await userTimeZone(session.user.id);
   const data = requirementSchema.parse(input);
   const engagement = await requireAuditAccess(
     session.user.id,
@@ -266,7 +270,7 @@ export async function updateAuditReadinessRequirement(
       .set({
         status: data.status,
         ownerUserId: data.ownerUserId || null,
-        dueAt: parseDate(data.dueDate),
+        dueAt: parseDueDate(data.dueDate, timeZone),
         notes: data.notes || null,
         completedAt,
         updatedBy: session.user.id,
@@ -315,7 +319,7 @@ export async function updateAuditReadinessRequirement(
       afterJson: {
         status: data.status,
         ownerUserId: data.ownerUserId || null,
-        dueAt: parseDate(data.dueDate)?.toISOString() ?? null,
+        dueAt: parseDueDate(data.dueDate, timeZone)?.toISOString() ?? null,
         evidenceItemIds: data.evidenceItemIds,
       } as never,
     });
@@ -812,10 +816,13 @@ async function requireAuditAccess(
   return engagement;
 }
 
-function parseDate(value: string | null | undefined) {
+function parseCalendarDate(value: string | null | undefined, timeZone: string) {
   if (!value) return null;
-  const date = new Date(`${value}T00:00:00.000Z`);
-  return Number.isNaN(date.getTime()) ? null : date;
+  return zonedDateTimeToUtc(`${value}T09:00`, timeZone);
+}
+
+function parseDueDate(value: string | null | undefined, timeZone: string) {
+  return value ? zonedDateEndToUtc(value, timeZone) : null;
 }
 
 function sha256(value: string | Buffer) {

@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { MentionTextarea, type DirectoryUser } from './MentionTextarea';
 import { postEngagementNote } from '@/app/actions/notes';
 import { toggleEngagementWatch } from '@/app/actions/engagement-watch';
+import { UserDateTime } from '@/components/timezone/UserTimezone';
 
 type Audience = 'assessor' | 'client';
 type Note = {
@@ -75,9 +76,7 @@ function ThreadPanel({
                 <span className="text-sm font-semibold text-slate-950">
                   {n.author.name ?? n.author.email}
                 </span>
-                <time className="text-xs text-slate-500" dateTime={n.createdAt}>
-                  {new Date(n.createdAt).toLocaleString('en-AU')}
-                </time>
+                <span className="text-xs text-slate-500"><UserDateTime value={n.createdAt} /></span>
               </div>
               <p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">{n.body}</p>
             </li>

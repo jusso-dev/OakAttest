@@ -21,6 +21,9 @@ import { resolveActiveTenant } from '@/lib/auth/active-tenant';
 import { requirePermission, PermissionDeniedError } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { UserDateTime } from '@/components/timezone/UserTimezone';
+import { userTimeZone } from '@/lib/auth/user-timezone';
+import { zonedDateEndToUtc, zonedDateTimeToUtc } from '@/lib/timezone';
 
 export const metadata = { title: 'Audit log · OakAttest' };
 
@@ -45,6 +48,7 @@ export default async function AuditLogPage({
   }>;
 }) {
   const session = await requirePageSession();
+  const timeZone = await userTimeZone(session.user.id);
   const tenant = await resolveActiveTenant(session.user.id);
   if (!tenant) redirect('/onboarding');
 
@@ -76,9 +80,9 @@ export default async function AuditLogPage({
   if (resourceType) conditions.push(eq(auditLog.resourceType, resourceType));
   if (actorType && isActorType(actorType)) conditions.push(eq(auditLog.actorType, actorType));
   if (actor) conditions.push(ilike(users.email, `%${actor}%`));
-  const fromDate = parseDateStart(from);
+  const fromDate = parseDateStart(from, timeZone);
   if (fromDate) conditions.push(gte(auditLog.createdAt, fromDate));
-  const toDate = parseDateEnd(to);
+  const toDate = parseDateEnd(to, timeZone);
   if (toDate) conditions.push(lte(auditLog.createdAt, toDate));
   if (query) {
     const pattern = `%${query}%`;
@@ -339,7 +343,7 @@ export default async function AuditLogPage({
                 {rows.map((r) => (
                   <tr key={r.id} className="border-b border-[var(--field-border)] align-top">
                     <td className="py-2 pr-3 whitespace-nowrap text-slate-600">
-                      {new Date(r.createdAt).toLocaleString('en-AU')}
+                      <UserDateTime value={r.createdAt} />
                     </td>
                     <td className="py-2 pr-3 font-mono text-xs">{r.action}</td>
                     <td className="py-2 pr-3 text-slate-700">
@@ -553,16 +557,22 @@ function sortColumn(sort: SortKey) {
   }
 }
 
-function parseDateStart(value: string) {
+function parseDateStart(value: string, timeZone: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-  const date = new Date(`${value}T00:00:00.000Z`);
-  return Number.isNaN(date.getTime()) ? null : date;
+  try {
+    return zonedDateTimeToUtc(`${value}T00:00:00.000`, timeZone);
+  } catch {
+    return null;
+  }
 }
 
-function parseDateEnd(value: string) {
+function parseDateEnd(value: string, timeZone: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-  const date = new Date(`${value}T23:59:59.999Z`);
-  return Number.isNaN(date.getTime()) ? null : date;
+  try {
+    return zonedDateEndToUtc(value, timeZone);
+  } catch {
+    return null;
+  }
 }
 
 function isActorType(value: string): value is 'user' | 'system' | 'integration' {

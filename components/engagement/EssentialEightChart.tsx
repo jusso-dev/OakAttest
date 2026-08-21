@@ -1,20 +1,22 @@
 'use client';
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useUserTimeZone } from '@/components/timezone/UserTimezone';
 
 type Point = { strategy: string; maturity: number; recordedAt: string };
 
 export function EssentialEightChart({ data }: { data: Point[] }) {
+  const { formatDate } = useUserTimeZone();
   // Group points into one line per strategy, sorted by date.
   const byStrategy = new Map<string, Array<{ x: string; y: number }>>();
   for (const p of data) {
     const arr = byStrategy.get(p.strategy) ?? [];
-    arr.push({ x: new Date(p.recordedAt).toLocaleDateString('en-AU'), y: p.maturity });
+    arr.push({ x: formatDate(p.recordedAt), y: p.maturity });
     byStrategy.set(p.strategy, arr);
   }
 
   // Build a wide-table form suitable for Recharts LineChart with multiple series.
-  const allDates = Array.from(new Set(data.map((d) => new Date(d.recordedAt).toLocaleDateString('en-AU')))).sort();
+  const allDates = Array.from(new Set(data.map((d) => formatDate(d.recordedAt)))).sort();
   const rows = allDates.map((date) => {
     const row: Record<string, number | string> = { date };
     for (const [strategy, points] of byStrategy.entries()) {

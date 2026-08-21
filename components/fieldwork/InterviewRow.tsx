@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { recordInterview } from '@/app/actions/interviews';
+import { UserDateTime } from '@/components/timezone/UserTimezone';
 
 type Interview = {
   id: string;
@@ -58,7 +59,7 @@ export function InterviewRow({
           <p className="font-medium text-slate-900">{interview.title}</p>
           <p className="text-xs text-slate-600">
             {interview.scheduledAt
-              ? new Date(interview.scheduledAt).toLocaleString('en-AU')
+              ? <UserDateTime value={interview.scheduledAt} />
               : 'Not scheduled'}
             {interview.durationMinutes ? ` · ${interview.durationMinutes} min` : ''}
             {interview.location ? ` · ${interview.location}` : ''}

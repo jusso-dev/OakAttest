@@ -9,6 +9,7 @@ import {
   registerTenantKmsSigningKey,
   revokeTenantSigningKey,
 } from '@/app/actions/signing-keys';
+import { useUserTimeZone } from '@/components/timezone/UserTimezone';
 
 type SigningKeyRow = {
   id: string;
@@ -30,6 +31,7 @@ export function SigningKeysPanel({
   canManage: boolean;
 }) {
   const router = useRouter();
+  const { formatDate } = useUserTimeZone();
   const [kmsKeyArn, setKmsKeyArn] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -112,9 +114,9 @@ export function SigningKeysPanel({
                       {key.kmsKeyArn ?? key.keyType}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-slate-700">{statusForKey(key)}</td>
+                  <td className="px-3 py-2 text-slate-700">{statusForKey(key, formatDate)}</td>
                   <td className="px-3 py-2 text-slate-600">
-                    {new Date(key.createdAt).toLocaleDateString('en-AU')}
+                    {formatDate(key.createdAt)}
                   </td>
                   <td className="px-3 py-2 text-right">
                     {!key.revokedAt && (
@@ -141,8 +143,8 @@ export function SigningKeysPanel({
   );
 }
 
-function statusForKey(key: SigningKeyRow): string {
-  if (key.revokedAt) return `Revoked ${new Date(key.revokedAt).toLocaleDateString('en-AU')}`;
-  if (key.rotatedAt) return `Rotated ${new Date(key.rotatedAt).toLocaleDateString('en-AU')}`;
+function statusForKey(key: SigningKeyRow, format: (value: Date) => string): string {
+  if (key.revokedAt) return `Revoked ${format(key.revokedAt)}`;
+  if (key.rotatedAt) return `Rotated ${format(key.rotatedAt)}`;
   return 'Active';
 }

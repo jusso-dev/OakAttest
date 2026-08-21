@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createEvidenceRequest } from '@/app/actions/evidence';
 import { useUnsavedChanges } from '@/components/engagement/UnsavedChangesGuard';
+import { useUserTimeZone } from '@/components/timezone/UserTimezone';
 
 const schema = z.object({
   title: z.string().min(2).max(200),
@@ -26,6 +27,7 @@ export function EvidenceRequestForm({
   engagementId: string;
   controls: Array<{ id: string; controlId: string; description: string }>;
 }) {
+  const { timeZone, dateEndToUtc } = useUserTimeZone();
   const [serverError, setServerError] = useState<string | null>(null);
   const [selectedControls, setSelectedControls] = useState<string[]>([]);
   const {
@@ -48,7 +50,7 @@ export function EvidenceRequestForm({
         title: values.title,
         description: values.description,
         artifactType: values.artifactType,
-        dueAt: values.dueAt ? new Date(values.dueAt).toISOString() : undefined,
+        dueAt: values.dueAt ? dateEndToUtc(values.dueAt).toISOString() : undefined,
         ismControlIds: selectedControls,
       });
       reset();
@@ -84,7 +86,7 @@ export function EvidenceRequestForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="dueAt">Due date</Label>
+          <Label htmlFor="dueAt">Due date ({timeZone})</Label>
           <Input id="dueAt" type="date" {...register('dueAt')} />
         </div>
       </div>

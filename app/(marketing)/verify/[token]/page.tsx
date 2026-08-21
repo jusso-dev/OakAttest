@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { eq, or } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
+import { formatDate, formatDateTime } from '@/lib/timezone';
 import { certificationReports, tenantSigningKeys } from '@/db/schema/certification';
 import { engagements } from '@/db/schema/engagements';
 import { tenants } from '@/db/schema/tenants';
@@ -107,7 +108,7 @@ export default async function VerifyPage({
           <CardDescription>
             Certified by {tenant.name} on{' '}
             {engagement.certifiedAt
-              ? new Date(engagement.certifiedAt).toLocaleString('en-AU')
+              ? formatDateTime(engagement.certifiedAt, 'UTC')
               : '—'}
             .
           </CardDescription>
@@ -119,7 +120,7 @@ export default async function VerifyPage({
             {report.status === 'revoked' || report.revokedAt ? 'Revoked' : 'Signed'}
           </Row>
           <Row label="Signed at">
-            {report.signedAt ? new Date(report.signedAt).toLocaleString('en-AU') : '—'}
+            {report.signedAt ? formatDateTime(report.signedAt, 'UTC') : '—'}
           </Row>
           <Row label="Signature status">
             <span className={verification.valid ? 'text-emerald-700' : 'text-red-700'}>
@@ -193,8 +194,8 @@ function signingKeyStatus({
 }) {
   if (algorithm === MANAGED_HMAC_REPORT_ALGORITHM) return 'Deployment-managed';
   if (!hasKey) return 'Not found';
-  if (revokedAt) return `Revoked ${new Date(revokedAt).toLocaleDateString('en-AU')}`;
-  if (rotatedAt) return `Rotated ${new Date(rotatedAt).toLocaleDateString('en-AU')}`;
+  if (revokedAt) return `Revoked ${formatDate(revokedAt, 'UTC')}`;
+  if (rotatedAt) return `Rotated ${formatDate(rotatedAt, 'UTC')}`;
   return 'Active';
 }
 

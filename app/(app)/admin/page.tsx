@@ -16,6 +16,7 @@ import { RoleAccessGuide } from '@/components/admin/RoleAccessGuide';
 import { SecurityPolicyForm } from '@/components/admin/SecurityPolicyForm';
 import { SigningKeysPanel } from '@/components/admin/SigningKeysPanel';
 import { McpApiTokensPanel } from '@/components/admin/McpApiTokensPanel';
+import { UserDate } from '@/components/timezone/UserTimezone';
 
 export const metadata = { title: 'Tenant admin · OakAttest' };
 
@@ -142,7 +143,7 @@ export default async function AdminPage({
                     <span className="truncate text-slate-900">{invite.email}</span>
                     <span className="text-slate-600">{invite.role}</span>
                     <span className="text-slate-600">
-                      Expires {new Date(invite.expiresAt).toLocaleDateString('en-AU')}
+                      Expires <UserDate value={invite.expiresAt} />
                     </span>
                   </div>
                 ))}
@@ -246,7 +247,7 @@ export default async function AdminPage({
                   <td className="py-2 pr-3 text-slate-700">{m.email}</td>
                   <td className="py-2 pr-3">{m.role}</td>
                   <td className="py-2 pr-3 text-slate-600">
-                    {m.joinedAt ? new Date(m.joinedAt).toLocaleDateString('en-AU') : '—'}
+                    {m.joinedAt ? <UserDate value={m.joinedAt} /> : '—'}
                   </td>
                   {canManageTenant && (
                     <td className="py-2 pr-3">

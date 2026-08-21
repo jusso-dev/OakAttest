@@ -8,6 +8,7 @@ import {
   pdf,
 } from '@react-pdf/renderer';
 import type { Classification } from '@/db/schema/enums';
+import { formatDateTime as formatInTimeZone } from '@/lib/timezone';
 
 // Server-only renderer. The pdf() helper produces a buffer we upload to S3.
 // Styles are intentionally plain — government audiences prefer dense and
@@ -59,6 +60,7 @@ const styles = StyleSheet.create({
 });
 
 export type SspData = {
+  timeZone: string;
   engagement: {
     name: string;
     reference: string | null;
@@ -146,11 +148,11 @@ export function SspDocument({ data }: { data: SspData }) {
         </View>
         <View style={styles.row}>
           <View style={styles.cell}><Text style={styles.label}>Exported at</Text></View>
-          <View style={styles.cell}><Text>{formatDateTime(data.exportedAt)}</Text></View>
+          <View style={styles.cell}><Text>{formatDateTime(data.exportedAt, data.timeZone)}</Text></View>
         </View>
         <View style={styles.row}>
           <View style={styles.cell}><Text style={styles.label}>Engagement last updated</Text></View>
-          <View style={styles.cell}><Text>{formatDateTime(data.engagement.updatedAt)}</Text></View>
+          <View style={styles.cell}><Text>{formatDateTime(data.engagement.updatedAt, data.timeZone)}</Text></View>
         </View>
         <View style={styles.row}>
           <View style={styles.cell}><Text style={styles.label}>Status</Text></View>
@@ -158,11 +160,11 @@ export function SspDocument({ data }: { data: SspData }) {
         </View>
         <View style={styles.row}>
           <View style={styles.cell}><Text style={styles.label}>Target certification</Text></View>
-          <View style={styles.cell}><Text>{formatOptionalDate(data.engagement.targetCertificationAt)}</Text></View>
+          <View style={styles.cell}><Text>{formatOptionalDate(data.engagement.targetCertificationAt, data.timeZone)}</Text></View>
         </View>
         <View style={styles.row}>
           <View style={styles.cell}><Text style={styles.label}>Certified at</Text></View>
-          <View style={styles.cell}><Text>{formatOptionalDate(data.engagement.certifiedAt)}</Text></View>
+          <View style={styles.cell}><Text>{formatOptionalDate(data.engagement.certifiedAt, data.timeZone)}</Text></View>
         </View>
 
         <Text style={styles.sectionTitle}>2. System Overview</Text>
@@ -325,19 +327,19 @@ export function SspDocument({ data }: { data: SspData }) {
           <Text>
             {data.tenant.productName} · {data.tenant.name} · export v{data.exportVersion}
           </Text>
-          <Text>{data.exportedAt}</Text>
+          <Text>{formatDateTime(data.exportedAt, data.timeZone)}</Text>
         </View>
       </Page>
     </Document>
   );
 }
 
-function formatDateTime(value: string) {
-  return new Date(value).toLocaleString('en-AU');
+function formatDateTime(value: string, timeZone: string) {
+  return formatInTimeZone(value, timeZone);
 }
 
-function formatOptionalDate(value: string | null) {
-  return value ? formatDateTime(value) : '—';
+function formatOptionalDate(value: string | null, timeZone: string) {
+  return value ? formatDateTime(value, timeZone) : '—';
 }
 
 export async function renderSspPdf(data: SspData): Promise<Buffer> {

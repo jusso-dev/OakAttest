@@ -18,11 +18,13 @@ import {
   type TaskStatus,
 } from '@/lib/tasks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { userTimeZone } from '@/lib/auth/user-timezone';
 
 export const metadata = { title: 'Dashboard · OakAttest' };
 
 export default async function DashboardPage() {
   const session = await requirePageSession();
+  const timeZone = await userTimeZone(session.user.id);
   const tenant = await resolveActiveTenant(session.user.id);
   if (!tenant) redirect('/onboarding');
 
@@ -118,8 +120,8 @@ export default async function DashboardPage() {
           )
           .orderBy(asc(engagementTasks.dueAt), desc(engagementTasks.updatedAt))
       : [];
-  const overdueTasks = taskRows.filter((task) => isTaskOverdue(task));
-  const dueTodayTasks = taskRows.filter((task) => isTaskDueToday(task));
+  const overdueTasks = taskRows.filter((task) => isTaskOverdue(task, new Date(), timeZone));
+  const dueTodayTasks = taskRows.filter((task) => isTaskDueToday(task, new Date(), timeZone));
   const myTasks = taskRows.filter((task) => task.ownerUserId === session.user.id);
   const blockedTasks = taskRows.filter((task) => task.status === 'blocked');
   const taskAttention = Array.from(
@@ -194,7 +196,7 @@ export default async function DashboardPage() {
               </div>
               <div className="space-y-2">
                 {taskAttention.map((task) => (
-                  <TaskNotificationLink key={task.id} task={task} />
+                  <TaskNotificationLink key={task.id} task={task} timeZone={timeZone} />
                 ))}
                 {taskAttention.length === 0 ? (
                   <p className="text-sm text-slate-600">No open tasks need attention.</p>
@@ -319,6 +321,7 @@ function TaskSignal({
 
 function TaskNotificationLink({
   task,
+  timeZone,
 }: {
   task: {
     id: string;
@@ -333,9 +336,10 @@ function TaskNotificationLink({
     engagementName: string;
     engagementReference: string | null;
   };
+  timeZone: string;
 }) {
-  const overdue = isTaskOverdue(task);
-  const dueToday = isTaskDueToday(task);
+  const overdue = isTaskOverdue(task, new Date(), timeZone);
+  const dueToday = isTaskDueToday(task, new Date(), timeZone);
 
   return (
     <Link
@@ -351,7 +355,7 @@ function TaskNotificationLink({
           </p>
           <p className="mt-1 text-xs text-slate-600">
             Owner: {task.ownerName || task.ownerEmail || 'Unassigned'}
-            {task.dueAt ? ` · Due ${formatTaskDueDate(task.dueAt)}` : ''}
+            {task.dueAt ? ` · Due ${formatTaskDueDate(task.dueAt, timeZone)}` : ''}
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">

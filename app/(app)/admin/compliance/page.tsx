@@ -16,6 +16,9 @@ import { ReassessmentTaskButton } from '@/components/admin/ReassessmentTaskButto
 import { CompliancePolicyForm } from '@/components/admin/CompliancePolicyForm';
 import { addCalendarMonths, daysUntil, dueSoonDays, reassessmentMonthsFor } from '@/lib/compliance/policy';
 import type { Classification } from '@/db/schema/enums';
+import { UserDate } from '@/components/timezone/UserTimezone';
+import { userTimeZone } from '@/lib/auth/user-timezone';
+import { formatDateInput } from '@/lib/timezone';
 
 export const metadata = { title: 'Ongoing compliance · OakAttest' };
 
@@ -25,6 +28,7 @@ export const metadata = { title: 'Ongoing compliance · OakAttest' };
 // intervals defined by the assessor firm's policy.
 export default async function CompliancePage() {
   const session = await requirePageSession();
+  const timeZone = await userTimeZone(session.user.id);
   const tenant = await resolveActiveTenant(session.user.id);
   if (!tenant) redirect('/onboarding');
   await requirePermission(ACTIONS.complianceView, {
@@ -175,10 +179,10 @@ export default async function CompliancePage() {
                     </td>
                     <td className="py-2 pr-3">{r.classification.replace('_', ':')}</td>
                     <td className="py-2 pr-3 text-slate-600">
-                      {r.certifiedAt ? new Date(r.certifiedAt).toLocaleDateString('en-AU') : '—'}
+                      {r.certifiedAt ? <UserDate value={r.certifiedAt} /> : '—'}
                     </td>
                     <td className="py-2 pr-3 text-slate-600">
-                      {r.due ? r.due.toLocaleDateString('en-AU') : '—'}
+                      {r.due ? <UserDate value={r.due} /> : '—'}
                     </td>
                     <td className="py-2 pr-3">
                       {r.days === null ? (
@@ -219,7 +223,7 @@ export default async function CompliancePage() {
                       {r.due ? (
                         <ReassessmentTaskButton
                           engagementId={r.id}
-                          dueDate={r.due.toISOString().slice(0, 10)}
+                          dueDate={formatDateInput(r.due, timeZone)}
                         />
                       ) : null}
                     </td>

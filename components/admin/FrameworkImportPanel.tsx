@@ -11,6 +11,7 @@ import {
   seedBundledIsmControls,
   type IsmActionState,
 } from '@/app/actions/ism';
+import { UserDateTime } from '@/components/timezone/UserTimezone';
 
 type Release = {
   name: string;
@@ -171,7 +172,7 @@ export function FrameworkImportPanel({
                   )}
                 </td>
                 <td className="px-3 py-2 whitespace-nowrap text-slate-700">
-                  {new Date(row.importedAt).toLocaleString('en-AU')}
+                  <UserDateTime value={row.importedAt} />
                 </td>
                 <td className="max-w-xs truncate px-3 py-2 text-slate-600" title={row.sourceUrl}>
                   {row.sourceUrl}

@@ -4,6 +4,7 @@ import { cveScans, cveScanFindings } from '@/db/schema/cve';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CveSubmitForm } from '@/components/evidence/CveSubmitForm';
 import { requirePageSession } from '@/lib/auth/session';
+import { UserDateTime } from '@/components/timezone/UserTimezone';
 
 export const metadata = { title: 'CVE scan · OakAttest' };
 
@@ -59,7 +60,7 @@ async function ScanCard({ scan }: { scan: typeof cveScans.$inferSelect }) {
           {scan.sourceFilename ?? scan.source} — {scan.status}
         </CardTitle>
         <CardDescription>
-          Started {new Date(scan.startedAt).toLocaleString('en-AU')}.
+          Started <UserDateTime value={scan.startedAt} />.
           {scan.signedHash && (
             <>
               {' '}Signed hash <span className="font-mono">{scan.signedHash.slice(0, 16)}…</span>.

@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { inviteTenantMember } from '@/app/actions/tenants';
+import { useUserTimeZone } from '@/components/timezone/UserTimezone';
 
 type TenantRole = 'tenant_owner' | 'assessor_admin';
 
 export function TenantInviteForm({ tenantId }: { tenantId: string }) {
+  const { formatDateTime } = useUserTimeZone();
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<TenantRole>('assessor_admin');
   const [busy, setBusy] = useState(false);
@@ -23,7 +25,7 @@ export function TenantInviteForm({ tenantId }: { tenantId: string }) {
     setError(null);
     try {
       const result = await inviteTenantMember({ tenantId, email, role });
-      setMessage(`Invitation sent. It expires ${new Date(result.expiresAt).toLocaleString('en-AU')}.`);
+      setMessage(`Invitation sent. It expires ${formatDateTime(result.expiresAt)}.`);
       setInviteUrl(result.url);
       setEmail('');
       setRole('assessor_admin');

@@ -30,6 +30,7 @@ export const users = pgTable(
     banExpires: timestamp('ban_expires', { withTimezone: true }),
     name: text('name'),
     image: text('image'),
+    timeZone: text('time_zone').notNull().default('Australia/Sydney'),
     // Australian English: title fields are user-set, so no language enforcement.
     // Set on first login after acceptance of the data-handling terms.
     dataHandlingAcceptedAt: timestamp('data_handling_accepted_at', { withTimezone: true }),

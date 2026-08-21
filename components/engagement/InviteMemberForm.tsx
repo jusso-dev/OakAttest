@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { inviteToEngagement } from '@/app/actions/invitations';
+import { useUserTimeZone } from '@/components/timezone/UserTimezone';
 
 export function InviteMemberForm({ engagementId }: { engagementId: string }) {
+  const { formatDateTime } = useUserTimeZone();
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<
     'client_admin' | 'client_contributor' | 'read_only_observer'
@@ -22,7 +24,7 @@ export function InviteMemberForm({ engagementId }: { engagementId: string }) {
     try {
       const result = await inviteToEngagement({ engagementId, email, role });
       setMessage(
-        `Client invitation sent. Access is limited to this engagement and expires ${new Date(result.expiresAt).toLocaleString('en-AU')}.`,
+        `Client invitation sent. Access is limited to this engagement and expires ${formatDateTime(result.expiresAt)}.`,
       );
       setEmail('');
     } catch (err) {

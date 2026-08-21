@@ -5,6 +5,7 @@ import { buildEssentialEightReportKey } from '@/lib/storage/s3';
 describe('Essential Eight report export', () => {
   it('renders a PDF report and stores reports with a PDF object key', async () => {
     const data: EssentialEightReportData = {
+      timeZone: 'Australia/Sydney',
       tenant: { name: 'Assessor Co', productName: 'OakAttest' },
       engagement: {
         name: 'Example IRAP',

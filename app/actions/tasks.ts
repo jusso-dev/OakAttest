@@ -12,6 +12,8 @@ import { requireSession } from '@/lib/auth/session';
 import { requirePermission } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
 import { TASK_PRIORITIES, TASK_STATUSES } from '@/lib/tasks';
+import { userTimeZone } from '@/lib/auth/user-timezone';
+import { zonedDateEndToUtc } from '@/lib/timezone';
 
 const dateString = z
   .string()
@@ -50,11 +52,9 @@ async function engagementTenant(engagementId: string) {
   return row.tenantId;
 }
 
-function parseDueDate(value: string | null | undefined) {
+function parseDueDate(value: string | null | undefined, timeZone: string) {
   if (!value) return null;
-  const parsed = new Date(`${value}T09:00:00.000Z`);
-  if (Number.isNaN(parsed.getTime())) throw new Error('Invalid due date');
-  return parsed;
+  return zonedDateEndToUtc(value, timeZone);
 }
 
 async function assertAssignableUser(input: {
@@ -80,6 +80,7 @@ async function assertAssignableUser(input: {
 
 export async function createEngagementTask(input: z.infer<typeof createTaskSchema>) {
   const session = await requireSession();
+  const timeZone = await userTimeZone(session.user.id);
   const data = createTaskSchema.parse(input);
   const tenantId = await engagementTenant(data.engagementId);
 
@@ -94,7 +95,7 @@ export async function createEngagementTask(input: z.infer<typeof createTaskSchem
     ownerUserId: data.ownerUserId,
   });
 
-  const dueAt = parseDueDate(data.dueDate);
+  const dueAt = parseDueDate(data.dueDate, timeZone);
   const [task] = await db
     .insert(engagementTasks)
     .values({
@@ -134,6 +135,7 @@ export async function createEngagementTask(input: z.infer<typeof createTaskSchem
 
 export async function updateEngagementTask(input: z.infer<typeof updateTaskSchema>) {
   const session = await requireSession();
+  const timeZone = await userTimeZone(session.user.id);
   const data = updateTaskSchema.parse(input);
   const tenantId = await engagementTenant(data.engagementId);
 
@@ -176,7 +178,7 @@ export async function updateEngagementTask(input: z.infer<typeof updateTaskSchem
   }
   if (data.priority !== undefined) update.priority = data.priority;
   if (data.ownerUserId !== undefined) update.ownerUserId = data.ownerUserId || null;
-  if (data.dueDate !== undefined) update.dueAt = parseDueDate(data.dueDate);
+  if (data.dueDate !== undefined) update.dueAt = parseDueDate(data.dueDate, timeZone);
 
   const [task] = await db
     .update(engagementTasks)
@@ -233,7 +235,6 @@ export async function createReassessmentTask(input: z.infer<typeof reassessmentT
     engagementId: data.engagementId,
   });
 
-  const dueAt = parseDueDate(data.dueDate);
   const [existing] = await db
     .select({ id: engagementTasks.id })
     .from(engagementTasks)
@@ -269,7 +270,7 @@ export async function createReassessmentTask(input: z.infer<typeof reassessmentT
     priority: 'high',
     status: 'todo',
     ownerUserId: lead?.userId ?? null,
-    dueDate: dueAt?.toISOString().slice(0, 10) ?? data.dueDate,
+    dueDate: data.dueDate,
   });
 }
 

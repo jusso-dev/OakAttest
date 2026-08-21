@@ -24,4 +24,12 @@ describe('task helpers', () => {
     expect(summary.byStatus.done).toBe(1);
     expect(summary.byPriority.critical).toBe(1);
   });
+
+  it('evaluates deadline dates in the selected user timezone', () => {
+    const task = { status: 'todo' as const, priority: 'high' as const, dueAt: '2026-05-17T23:30:00.000Z' };
+    const now = new Date('2026-05-18T10:00:00.000Z');
+
+    expect(isTaskDueToday(task, now, 'Australia/Sydney')).toBe(true);
+    expect(isTaskOverdue(task, now, 'America/Los_Angeles')).toBe(true);
+  });
 });

@@ -6,6 +6,7 @@ import { updateAuditReadinessRequirement } from '@/app/actions/audit-readiness';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AUDIT_REQUIREMENT_STATUSES, type AuditRequirementStatus } from '@/lib/audit-readiness';
+import { UserDateTime } from '@/components/timezone/UserTimezone';
 
 export type AuditRequirementValue = {
   id: string;
@@ -81,7 +82,7 @@ function RequirementRow({ engagementId, item, members, evidenceOptions, canManag
       <div className="max-w-3xl">
         <h4 className="text-sm font-semibold text-slate-950">{item.title}</h4>
         <p className="mt-1 text-sm leading-6 text-slate-700">{item.guidance}</p>
-        <p className="mt-1 text-xs text-slate-500">Updated {new Date(item.updatedAt).toLocaleString('en-AU')}</p>
+        <p className="mt-1 text-xs text-slate-500">Updated <UserDateTime value={item.updatedAt} /></p>
       </div>
       <select value={status} disabled={!canManage} onChange={(event) => setStatus(event.target.value as AuditRequirementStatus)} className="h-9 rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3 text-sm disabled:opacity-60">
         {AUDIT_REQUIREMENT_STATUSES.map((value) => <option key={value} value={value}>{label(value)}</option>)}

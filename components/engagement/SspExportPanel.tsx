@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { deleteSspExport, generateSspBundle, getSspDownloadUrl } from '@/app/actions/ssp';
+import { UserDateTime } from '@/components/timezone/UserTimezone';
 
 type Exp = {
   id: string;
@@ -79,7 +80,7 @@ export function SspExportPanel({
                   SSP v{e.version} · {formatLabel(e.format)}
                 </p>
                 <p className="font-mono text-xs text-slate-600">
-                  {e.sha256.slice(0, 24)}… · {new Date(e.generatedAt).toLocaleString('en-AU')}
+                  {e.sha256.slice(0, 24)}… · <UserDateTime value={e.generatedAt} />
                 </p>
               </div>
               <div className="flex items-center gap-2">
