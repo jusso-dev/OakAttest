@@ -9,7 +9,9 @@ import {
   uniqueIndex,
   primaryKey,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import {
+  classificationEnum,
   evidenceRequestStatusEnum,
   evidenceReviewStatusEnum,
 } from './enums';
@@ -79,6 +81,10 @@ export const evidenceItems = pgTable(
     version: integer('version').notNull().default(1),
     supersedesId: uuid('supersedes_id'),
     description: text('description'),
+    dataClassification: classificationEnum('data_classification').notNull().default('OFFICIAL'),
+    ragStatus: text('rag_status').notNull().default('not_indexed'),
+    ragError: text('rag_error'),
+    ragIndexedAt: timestamp('rag_indexed_at', { withTimezone: true }),
     uploadedBy: uuid('uploaded_by').references(() => users.id),
     uploadedAt: timestamp('uploaded_at', { withTimezone: true }).notNull().defaultNow(),
     storageVerifiedAt: timestamp('storage_verified_at', { withTimezone: true }),
@@ -94,6 +100,31 @@ export const evidenceItems = pgTable(
     index('evidence_items_engagement_idx').on(t.engagementId),
     index('evidence_items_request_idx').on(t.evidenceRequestId),
     uniqueIndex('evidence_items_sha_engagement_uq').on(t.engagementId, t.sha256, t.version),
+  ],
+);
+
+export const evidenceDocumentChunks = pgTable(
+  'evidence_document_chunks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+    engagementId: uuid('engagement_id')
+      .notNull()
+      .references(() => engagements.id, { onDelete: 'cascade' }),
+    evidenceItemId: uuid('evidence_item_id')
+      .notNull()
+      .references(() => evidenceItems.id, { onDelete: 'cascade' }),
+    chunkIndex: integer('chunk_index').notNull(),
+    content: text('content').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('evidence_document_chunks_item_chunk_uq').on(t.evidenceItemId, t.chunkIndex),
+    index('evidence_document_chunks_engagement_idx').on(t.engagementId),
+    index('evidence_document_chunks_search_idx').using(
+      'gin',
+      sql`to_tsvector('english', ${t.content})`,
+    ),
   ],
 );
 

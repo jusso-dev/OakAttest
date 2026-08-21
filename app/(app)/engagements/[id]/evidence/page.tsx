@@ -24,7 +24,7 @@ export default async function EvidencePage({
   const session = await requirePageSession();
 
   const [engagement] = await db
-    .select({ tenantId: engagements.tenantId })
+    .select({ tenantId: engagements.tenantId, classification: engagements.classification })
     .from(engagements)
     .where(eq(engagements.id, id))
     .limit(1);
@@ -119,6 +119,7 @@ export default async function EvidencePage({
                           id: c.id,
                           controlId: c.controlId,
                         }))}
+                        workspaceClassification={engagement.classification}
                       />
                     )}
                   </div>
@@ -148,6 +149,7 @@ export default async function EvidencePage({
                     <th className="py-2 pr-3">v</th>
                     <th className="py-2 pr-3">SHA-256</th>
                     <th className="py-2 pr-3">Status</th>
+                    <th className="py-2 pr-3">Classification / search</th>
                     <th className="py-2 pr-3"></th>
                   </tr>
                 </thead>
@@ -165,6 +167,9 @@ export default async function EvidencePage({
                           <span className="rounded-full bg-[var(--oak-mist-strong)] px-2 py-0.5 text-xs text-slate-700">
                             {storageState === 'finalised' ? it.reviewStatus : storageState}
                           </span>
+                        </td>
+                        <td className="py-2 pr-3 text-xs text-slate-600">
+                          {it.dataClassification.replace('_', ': ')} · {it.ragStatus}
                         </td>
                         <td className="py-2 pr-3 text-right">
                           <div className="flex justify-end gap-2">

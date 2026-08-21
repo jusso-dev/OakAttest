@@ -26,6 +26,8 @@ import {
   verifyObjectChecksum,
 } from '@/lib/storage/s3';
 import { assertEvidenceFinalised } from '@/lib/evidence/state';
+import { assertClassificationAllowed } from '@/lib/classification/guard';
+import { indexEvidenceDocument } from '@/lib/rag/documents';
 
 async function tenantForEngagement(engagementId: string): Promise<string> {
   const [row] = await db
@@ -96,19 +98,37 @@ const startUploadSchema = z.object({
   filename: z.string().min(1).max(255),
   mimeType: z.string().max(120).optional(),
   sizeBytes: z.number().int().positive().max(2_000_000_000),
+  dataClassification: z.enum([
+    'OFFICIAL',
+    'OFFICIAL_SENSITIVE',
+    'PROTECTED',
+    'SECRET',
+    'TOP_SECRET',
+  ]),
   ismControlIds: z.array(z.string().uuid()).optional(),
 });
 
 export async function startEvidenceUpload(input: z.infer<typeof startUploadSchema>) {
   const session = await requireSession();
   const data = startUploadSchema.parse(input);
-  const tenantId = await tenantForEngagement(data.engagementId);
+  const [workspace] = await db
+    .select({
+      tenantId: engagements.tenantId,
+      classification: engagements.classification,
+    })
+    .from(engagements)
+    .where(eq(engagements.id, data.engagementId))
+    .limit(1);
+  if (!workspace) throw new Error('Engagement not found');
+  const tenantId = workspace.tenantId;
 
   await requirePermission(ACTIONS.evidenceUpload, {
     userId: session.user.id,
     tenantId,
     engagementId: data.engagementId,
   });
+
+  assertClassificationAllowed(workspace.classification, data.dataClassification);
 
   // Plan storage limit — checked before reserving the upload.
   await requireCanStore(tenantId, data.sizeBytes);
@@ -173,6 +193,7 @@ export async function startEvidenceUpload(input: z.infer<typeof startUploadSchem
       storageBucket: STORAGE_BUCKET,
       version: (previous?.version ?? 0) + 1,
       supersedesId: previous?.id ?? null,
+      dataClassification: data.dataClassification,
       uploadedBy: session.user.id,
     });
 
@@ -189,7 +210,11 @@ export async function startEvidenceUpload(input: z.infer<typeof startUploadSchem
       action: 'evidence.upload.started',
       resourceType: 'evidence_item',
       resourceId: id,
-      afterJson: { filename: data.filename, size: data.sizeBytes } as never,
+      afterJson: {
+        filename: data.filename,
+        size: data.sizeBytes,
+        dataClassification: data.dataClassification,
+      } as never,
     });
   });
 
@@ -227,6 +252,7 @@ export async function finaliseEvidenceUpload(input: z.infer<typeof finaliseSchem
     .select({
       storageKey: evidenceItems.storageKey,
       sizeBytes: evidenceItems.sizeBytes,
+      dataClassification: evidenceItems.dataClassification,
       quarantinedAt: evidenceItems.quarantinedAt,
     })
     .from(evidenceItems)
@@ -240,6 +266,15 @@ export async function finaliseEvidenceUpload(input: z.infer<typeof finaliseSchem
     .limit(1);
   if (!item) throw new Error('Evidence not found');
   if (item.quarantinedAt) throw new Error('Evidence upload is quarantined and cannot be finalised.');
+  const [workspace] = await db
+    .select({ classification: engagements.classification })
+    .from(engagements)
+    .where(
+      and(eq(engagements.id, data.engagementId), eq(engagements.tenantId, tenantId)),
+    )
+    .limit(1);
+  if (!workspace) throw new Error('Engagement not found');
+  assertClassificationAllowed(workspace.classification, item.dataClassification);
 
   let verification: Awaited<ReturnType<typeof verifyObjectChecksum>>;
   try {
@@ -282,6 +317,7 @@ export async function finaliseEvidenceUpload(input: z.infer<typeof finaliseSchem
       .set({
         sha256: data.sha256.toLowerCase(),
         description: data.description ?? null,
+        ragStatus: 'indexing',
         storageVerifiedAt: new Date(),
         storageVerification: JSON.stringify({
           method: 'storage_download_sha256',
@@ -305,8 +341,26 @@ export async function finaliseEvidenceUpload(input: z.infer<typeof finaliseSchem
       action: 'evidence.upload.finalised',
       resourceType: 'evidence_item',
       resourceId: data.evidenceItemId,
-      afterJson: { sha256: data.sha256.toLowerCase() } as never,
+      afterJson: {
+        sha256: data.sha256.toLowerCase(),
+        dataClassification: item.dataClassification,
+      } as never,
     });
+  });
+
+  const rag = await indexEvidenceDocument({
+    tenantId,
+    engagementId: data.engagementId,
+    evidenceItemId: data.evidenceItemId,
+  });
+  await db.insert(auditLog).values({
+    tenantId,
+    engagementId: data.engagementId,
+    actorUserId: session.user.id,
+    action: `evidence.rag.${rag.status}`,
+    resourceType: 'evidence_item',
+    resourceId: data.evidenceItemId,
+    afterJson: { status: rag.status, chunks: rag.chunks, error: rag.error ?? null } as never,
   });
 
   // Notify engagement watchers (assessors) of new evidence. Fire-and-forget.
@@ -321,7 +375,7 @@ export async function finaliseEvidenceUpload(input: z.infer<typeof finaliseSchem
   }).catch(() => {});
 
   revalidatePath(`/engagements/${data.engagementId}/evidence`);
-  return { ok: true };
+  return { ok: true, rag };
 }
 
 const reviewSchema = z.object({

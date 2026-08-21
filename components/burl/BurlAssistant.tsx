@@ -19,6 +19,10 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { BurlAttachmentSummary, BurlChatMessage } from '@/lib/burl/types';
 import type { BurlEngagementOption } from '@/lib/burl/context';
+import { startEvidenceUpload, finaliseEvidenceUpload } from '@/app/actions/evidence';
+import { sha256ForFile } from '@/lib/evidence/sha256';
+import type { Classification } from '@/db/schema/enums';
+import { MAX_SEARCH_DOCUMENT_BYTES } from '@/lib/rag/chunking';
 
 type UiMessage = BurlChatMessage & {
   id: string;
@@ -30,6 +34,22 @@ const starters = [
   'Map this PDF evidence to likely ISM controls.',
   'Draft a client evidence request for MFA coverage.',
 ];
+
+const CLASSIFICATIONS: Classification[] = [
+  'OFFICIAL',
+  'OFFICIAL_SENSITIVE',
+  'PROTECTED',
+  'SECRET',
+  'TOP_SECRET',
+];
+
+const CLASSIFICATION_LABELS: Record<Classification, string> = {
+  OFFICIAL: 'OFFICIAL',
+  OFFICIAL_SENSITIVE: 'OFFICIAL: Sensitive',
+  PROTECTED: 'PROTECTED',
+  SECRET: 'SECRET',
+  TOP_SECRET: 'TOP SECRET',
+};
 
 export function BurlAssistant({
   mode,
@@ -51,8 +71,12 @@ export function BurlAssistant({
   ]);
   const [input, setInput] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [dataClassification, setDataClassification] = useState<Classification | ''>('');
   const [selectedEngagementId, setSelectedEngagementId] = useState(inferredEngagementId ?? '');
   const effectiveEngagementId = inferredEngagementId ?? selectedEngagementId;
+  const workspaceClassification = engagements.find(
+    (engagement) => engagement.id === effectiveEngagementId,
+  )?.classification;
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +97,7 @@ export function BurlAssistant({
     setBusy(true);
     setError(null);
     setInput('');
-    setStatus(file ? 'Reading PDF evidence and engagement context...' : 'Preparing engagement context...');
+    setStatus(file ? 'Preparing document upload and workspace context...' : 'Preparing engagement context...');
 
     const userMessage: UiMessage = {
       id: crypto.randomUUID(),
@@ -93,6 +117,47 @@ export function BurlAssistant({
     ]);
 
     try {
+      if (file) {
+        if (!effectiveEngagementId || !workspaceClassification) {
+          throw new Error('Select an assessment workspace before uploading a searchable document.');
+        }
+        if (!dataClassification) {
+          throw new Error('Declare the document classification before upload.');
+        }
+        if (file.size > MAX_SEARCH_DOCUMENT_BYTES) {
+          throw new Error('Searchable documents are limited to 24 MB.');
+        }
+
+        setStatus('Uploading, verifying, and indexing the document for search...');
+        const started = await startEvidenceUpload({
+          engagementId: effectiveEngagementId,
+          filename: file.name,
+          mimeType: file.type || undefined,
+          sizeBytes: file.size,
+          dataClassification,
+        });
+        const sha256 = await sha256ForFile(file);
+        const upload = await fetch(started.uploadUrl, {
+          method: 'PUT',
+          headers: started.headers,
+          body: file,
+        });
+        if (!upload.ok) throw new Error(`Document upload failed: ${upload.status}`);
+        const finalised = await finaliseEvidenceUpload({
+          engagementId: effectiveEngagementId,
+          evidenceItemId: started.evidenceItemId,
+          sha256,
+          description: 'Uploaded from Burl for searchable assessment context.',
+        });
+        if (finalised.rag.status !== 'indexed') {
+          throw new Error(finalised.rag.error ?? 'Document could not be indexed for search.');
+        }
+        setStatus(`Indexed ${file.name}; searching it with the workspace context...`);
+        setFile(null);
+        setDataClassification('');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+
       const formData = new FormData();
       formData.set(
         'messages',
@@ -104,7 +169,6 @@ export function BurlAssistant({
         ),
       );
       if (effectiveEngagementId) formData.set('engagementId', effectiveEngagementId);
-      if (file) formData.set('file', file);
 
       const response = await fetch('/api/burl/chat/stream', {
         method: 'POST',
@@ -160,6 +224,7 @@ export function BurlAssistant({
         );
       }
       setFile(null);
+      setDataClassification('');
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err) {
       setError((err as Error).message);
@@ -280,20 +345,54 @@ export function BurlAssistant({
 
       <form onSubmit={sendMessage} className="border-t border-[var(--field-border)] p-3">
         {file && (
-          <div className="mb-2 flex items-center gap-2 rounded-md border border-[var(--field-border)] bg-[var(--oak-mist)] px-3 py-2 text-xs text-slate-700">
-            <FileText className="h-4 w-4 text-[var(--oak-shield)]" />
-            <span className="min-w-0 flex-1 truncate">{file.name}</span>
-            <button
-              type="button"
-              onClick={() => {
-                setFile(null);
-                if (fileInputRef.current) fileInputRef.current.value = '';
-              }}
-              className="rounded text-slate-600 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--oak-shield)]"
-              aria-label="Remove PDF"
-            >
-              <X className="h-4 w-4" />
-            </button>
+          <div className="mb-2 space-y-2 rounded-md border border-[var(--field-border)] bg-[var(--oak-mist)] px-3 py-2 text-xs text-slate-700">
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-[var(--oak-shield)]" />
+              <span className="min-w-0 flex-1 truncate">{file.name}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setFile(null);
+                  setDataClassification('');
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                }}
+                className="rounded text-slate-600 hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--oak-shield)]"
+                aria-label="Remove document"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            {workspaceClassification ? (
+              <>
+                <label className="block font-medium text-slate-800">
+                  Document classification
+                  <select
+                    value={dataClassification}
+                    onChange={(event) =>
+                      setDataClassification(event.target.value as Classification | '')
+                    }
+                    className="mt-1 h-9 w-full rounded-md border border-[var(--field-border)] bg-white px-2 text-xs text-slate-950"
+                    disabled={busy}
+                  >
+                    <option value="">Declare before upload</option>
+                    {CLASSIFICATIONS.slice(
+                      0,
+                      CLASSIFICATIONS.indexOf(workspaceClassification) + 1,
+                    ).map((classification) => (
+                      <option key={classification} value={classification}>
+                        {CLASSIFICATION_LABELS[classification]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p className="text-amber-800">
+                  {CLASSIFICATION_LABELS[workspaceClassification]} workspace. Do not upload
+                  higher-classified data; the server blocks it as a data-handling breach.
+                </p>
+              </>
+            ) : (
+              <p className="text-amber-800">Select an assessment workspace before upload.</p>
+            )}
           </div>
         )}
         {error && <p className="mb-2 text-xs text-red-700">{error}</p>}
@@ -307,7 +406,7 @@ export function BurlAssistant({
                 void sendMessage();
               }
             }}
-            placeholder="Ask about evidence, ISM controls, or attach a PDF..."
+            placeholder="Ask about evidence, controls, or upload a searchable document..."
             className="min-h-10 flex-1 resize-none rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3 py-2 text-sm text-slate-950 shadow-sm placeholder:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--oak-shield)]"
             rows={mode === 'page' ? 3 : 2}
             disabled={busy}
@@ -315,7 +414,7 @@ export function BurlAssistant({
           <input
             ref={fileInputRef}
             type="file"
-            accept="application/pdf,.pdf"
+            accept="application/pdf,text/plain,text/markdown,text/csv,application/json,.pdf,.txt,.md,.csv,.json,.xml,.log"
             className="hidden"
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
           />
@@ -324,8 +423,8 @@ export function BurlAssistant({
             onClick={() => fileInputRef.current?.click()}
             className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[var(--field-border)] text-slate-700 hover:bg-[var(--oak-mist)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--oak-shield)] disabled:opacity-50"
             disabled={busy}
-            aria-label="Attach PDF"
-            title="Attach PDF"
+            aria-label="Upload searchable document"
+            title="Upload searchable document"
           >
             <Paperclip className="h-4 w-4" />
           </button>

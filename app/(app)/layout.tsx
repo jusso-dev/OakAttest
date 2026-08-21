@@ -194,6 +194,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         id: engagement.id,
         name: engagement.name,
         reference: engagement.reference,
+        classification: engagement.classification,
       }))}
     >
       {children}

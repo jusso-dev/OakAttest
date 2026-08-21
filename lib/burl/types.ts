@@ -16,6 +16,6 @@ export type BurlAttachmentSummary = {
 export type BurlChatResponse = {
   reply: string;
   modelId: string;
-  provider: 'bedrock';
+  provider: 'bedrock' | 'hermes';
   attachment?: BurlAttachmentSummary;
 };

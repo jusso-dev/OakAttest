@@ -92,7 +92,7 @@ export function createOakAttestMcpServer(principal: McpPrincipal): McpServer {
         'generate_audit_package', 'download_audit_package',
       ],
       uploadProtocol: [
-        'Call start_evidence_upload with filename, MIME type, exact byte count, and links.',
+        'Call start_evidence_upload with filename, MIME type, exact byte count, declared data classification, and links. The upload is rejected above the engagement workspace classification.',
         'PUT the raw bytes to uploadUrl with every returned header.',
         'Compute SHA-256 over the exact bytes and call finalize_evidence_upload.',
       ],
@@ -264,6 +264,13 @@ export function createOakAttestMcpServer(principal: McpPrincipal): McpServer {
       filename: z.string().min(1).max(255),
       mimeType: z.string().max(120).optional(),
       sizeBytes: z.number().int().positive().max(2_000_000_000),
+      dataClassification: z.enum([
+        'OFFICIAL',
+        'OFFICIAL_SENSITIVE',
+        'PROTECTED',
+        'SECRET',
+        'TOP_SECRET',
+      ]).describe('Declared sensitivity of the uploaded bytes. Upload is blocked above the engagement workspace classification.'),
       controlIds: z.array(uuid).max(500).optional(),
     }),
     scope: 'evidence:write',

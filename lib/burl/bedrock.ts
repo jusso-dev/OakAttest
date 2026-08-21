@@ -21,10 +21,6 @@ export async function askBurlWithBedrock({
   messages: BurlChatMessage[];
   system: string;
 }) {
-  if (process.env.OAK_AI_PROVIDER && process.env.OAK_AI_PROVIDER !== 'bedrock') {
-    throw new Error(`Unsupported OAK_AI_PROVIDER "${process.env.OAK_AI_PROVIDER}".`);
-  }
-
   const bedrockMessages = toBedrockMessages(messages);
   const command = new ConverseCommand({
     modelId: burlModelId,
@@ -57,10 +53,6 @@ export async function* streamBurlWithBedrock({
   messages: BurlChatMessage[];
   system: string;
 }) {
-  if (process.env.OAK_AI_PROVIDER && process.env.OAK_AI_PROVIDER !== 'bedrock') {
-    throw new Error(`Unsupported OAK_AI_PROVIDER "${process.env.OAK_AI_PROVIDER}".`);
-  }
-
   const command = new ConverseStreamCommand({
     modelId: burlModelId,
     system: [{ text: system }],
