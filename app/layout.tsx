@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "OakAttest",
-  description: "IRAP assessment platform for ASD-registered assessor firms.",
+  description: 'Assessment platform for security and compliance teams.',
 };
 
 export default function RootLayout({

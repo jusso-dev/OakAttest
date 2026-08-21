@@ -3,7 +3,7 @@ import { headers } from 'next/headers';
 import { requireSession } from '@/lib/auth/session';
 import { resolveActiveTenant } from '@/lib/auth/active-tenant';
 import { recordAudit } from '@/lib/audit/log';
-import { burlModelId, streamBurlWithBedrock } from '@/lib/burl/bedrock';
+import { burlProviderMetadata, streamBurl } from '@/lib/burl/provider';
 import { buildBurlSystemPrompt } from '@/lib/burl/context';
 import { extractPdfText } from '@/lib/burl/pdf';
 import { evaluateBurlRequest } from '@/lib/burl/safety';
@@ -44,6 +44,7 @@ export async function POST(request: Request) {
       file instanceof File && file.size > 0 ? await readAttachment(file) : undefined;
     const messages: BurlChatMessage[] = parsed.messages;
     const userMessage = latestUserMessage(messages);
+    const provider = burlProviderMetadata();
     const safety = evaluateBurlRequest({
       messages,
       hasEngagementContext: Boolean(parsed.engagementId),
@@ -78,6 +79,7 @@ export async function POST(request: Request) {
       engagementId: parsed.engagementId,
       pdfText: attachment?.text,
       pdfFilename: attachment?.summary.filename,
+      retrievalQuery: userMessage,
     });
 
     const hdrs = await headers();
@@ -89,7 +91,15 @@ export async function POST(request: Request) {
         let wordBuffer = '';
 
         try {
-          for await (const chunk of streamBurlWithBedrock({ messages, system })) {
+          for await (const chunk of streamBurl({
+            messages,
+            system,
+            context: {
+              tenantId: activeTenant.tenantId,
+              userId: session.user.id,
+              engagementId: parsed.engagementId,
+            },
+          })) {
             fullText += chunk;
             wordBuffer += chunk;
             const emit = takeCompleteWords(wordBuffer);
@@ -108,7 +118,8 @@ export async function POST(request: Request) {
             resourceType: 'ai_assistant',
             resourceId: 'burl',
             afterJson: {
-              modelId: burlModelId,
+              modelId: provider.modelId,
+              provider: provider.provider,
               messageCount: messages.length,
               userMessage,
               userMessageCharacters: userMessage.length,

@@ -3,7 +3,7 @@ import { headers } from 'next/headers';
 import { requireSession } from '@/lib/auth/session';
 import { resolveActiveTenant } from '@/lib/auth/active-tenant';
 import { recordAudit } from '@/lib/audit/log';
-import { askBurlWithBedrock, burlModelId } from '@/lib/burl/bedrock';
+import { askBurl, burlProviderMetadata } from '@/lib/burl/provider';
 import { buildBurlSystemPrompt } from '@/lib/burl/context';
 import { extractPdfText } from '@/lib/burl/pdf';
 import { evaluateBurlRequest } from '@/lib/burl/safety';
@@ -44,6 +44,7 @@ export async function POST(request: Request) {
       file instanceof File && file.size > 0 ? await readAttachment(file) : undefined;
     const messages: BurlChatMessage[] = parsed.messages;
     const userMessage = latestUserMessage(messages);
+    const provider = burlProviderMetadata();
     const safety = evaluateBurlRequest({
       messages,
       hasEngagementContext: Boolean(parsed.engagementId),
@@ -71,7 +72,7 @@ export async function POST(request: Request) {
       const response: BurlChatResponse = {
         reply: safety.response,
         modelId: 'local-guardrail',
-        provider: 'bedrock',
+        provider: provider.provider,
         attachment: attachment?.summary,
       };
 
@@ -85,9 +86,18 @@ export async function POST(request: Request) {
       engagementId: parsed.engagementId,
       pdfText: attachment?.text,
       pdfFilename: attachment?.summary.filename,
+      retrievalQuery: userMessage,
     });
 
-    const reply = await askBurlWithBedrock({ messages, system });
+    const reply = await askBurl({
+      messages,
+      system,
+      context: {
+        tenantId: activeTenant.tenantId,
+        userId: session.user.id,
+        engagementId: parsed.engagementId,
+      },
+    });
 
     const hdrs = await headers();
     await recordAudit({
@@ -99,7 +109,8 @@ export async function POST(request: Request) {
       resourceType: 'ai_assistant',
       resourceId: 'burl',
       afterJson: {
-        modelId: burlModelId,
+        modelId: provider.modelId,
+        provider: provider.provider,
         messageCount: messages.length,
         userMessage,
         userMessageCharacters: userMessage.length,
@@ -111,8 +122,8 @@ export async function POST(request: Request) {
 
     const response: BurlChatResponse = {
       reply,
-      modelId: burlModelId,
-      provider: 'bedrock',
+      modelId: provider.modelId,
+      provider: provider.provider,
       attachment: attachment?.summary,
     };
 
