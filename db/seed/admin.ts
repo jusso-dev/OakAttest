@@ -2,6 +2,7 @@
 
 import 'dotenv/config';
 import { eq } from 'drizzle-orm';
+import { hashPassword } from 'better-auth/crypto';
 import { auth } from '@/lib/auth/auth';
 import { db } from '@/lib/db/client';
 import { users } from '@/db/schema/auth';
@@ -38,6 +39,22 @@ async function main() {
         .set({ role: 'admin', updatedAt: new Date() })
         .where(eq(users.id, existing.id));
     }
+
+    const authContext = await auth.$context;
+    const credentialAccount = await authContext.internalAdapter.findCredentialAccount(
+      existing.id,
+    );
+
+    if (!credentialAccount) {
+      await authContext.internalAdapter.createAccount({
+        userId: existing.id,
+        providerId: 'credential',
+        issuer: 'local:credential',
+        accountId: existing.id,
+        password: await hashPassword(password),
+      });
+    }
+
     console.log(`[seed] Default administrator ready: ${email}.`);
     return;
   }
