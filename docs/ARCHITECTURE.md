@@ -108,6 +108,8 @@ exhaustive list.
   ledger, common-control mappings, and governed evidence reuse
 - `/engagements/[id]/questionnaires` — CSV/XLSX/DOCX/PDF intake, assignment,
   evidence-cited human/Burl drafts, independent approval, finalisation, and CSV export
+- `/engagements/[id]/governance` — client-owned policy, personnel, access-review,
+  and vendor-risk registers with overdue work consolidated in the user's timezone
 - `/admin` — members, deployment data location, billing stub
 - `/admin/ism` — ISM OSCAL import, seed, and revision removal panel
 - `/admin/audit` — append-only viewer

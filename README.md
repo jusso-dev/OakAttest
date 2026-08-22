@@ -202,6 +202,8 @@ viewport captures so the README remains readable.
   control mappings, and assessor-approved same-client evidence reuse without copying objects.
 - CSV, XLSX, DOCX, and PDF questionnaire intake with assignments, accepted-evidence
   citations, Burl-assisted drafts, four-eyes approval, locked finalisation, and audited export.
+- Client-owned operational GRC registers for versioned policies and attestations,
+  personnel assurance, access reviews with remediation closure, and vendor risk monitoring.
 - Assessment coverage dashboard that highlights blockers across controls,
   evidence, findings, SSP material, Essential Eight, and certification.
 - Burl AI helper popup and dedicated workspace for ISM questions, PDF evidence

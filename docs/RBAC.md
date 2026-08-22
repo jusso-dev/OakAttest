@@ -35,6 +35,12 @@ assessors, and client administrators import, assign, finalise, and independently
 Assessors and client contributors may draft and submit cited answers but cannot approve them. Server-side
 four-eyes enforcement prevents any submitter from approving their own response; observers remain read only.
 
+Operational GRC records remain client-owned. Assessors, tenant administrators, and observers may inspect
+policy, personnel, access-review, and vendor-risk state as assessment evidence but cannot mutate it. Client
+contributors may draft policies, accept their own published-policy attestations, and maintain vendor due
+diligence. Only client administrators approve or publish policies, manage personnel and access reviews, and
+accept vendor residual risk.
+
 Audit readiness changes are limited to tenant owners, assessor admins, lead
 assessors, and client admins. Auditors use `read_only_observer`: they can inspect
 the workspace, evidence, findings, and immutable packages, but cannot change

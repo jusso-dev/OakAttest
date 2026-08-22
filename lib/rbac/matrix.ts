@@ -121,6 +121,16 @@ export const ACTIONS = {
   questionnaireRespond: 'questionnaire:respond',
   questionnaireReview: 'questionnaire:review',
 
+  // client-owned operational governance
+  governanceView: 'governance:view',
+  policyWrite: 'policy:write',
+  policyApprove: 'policy:approve',
+  policyAccept: 'policy:accept',
+  personnelManage: 'personnel:manage',
+  accessReviewManage: 'access_review:manage',
+  vendorManage: 'vendor:manage',
+  vendorRiskAccept: 'vendor:risk_accept',
+
   // exports
   sspExportDelete: 'ssp_export:delete',
 
@@ -334,6 +344,22 @@ export const PERMISSIONS: Record<Action, Allow> = {
     'client_contributor',
   ],
   [ACTIONS.questionnaireReview]: ['tenant_owner', 'assessor_admin', 'lead_assessor', 'client_admin'],
+  [ACTIONS.governanceView]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
+    'read_only_observer',
+  ],
+  [ACTIONS.policyWrite]: ['client_admin', 'client_contributor'],
+  [ACTIONS.policyApprove]: ['client_admin'],
+  [ACTIONS.policyAccept]: ['client_admin', 'client_contributor'],
+  [ACTIONS.personnelManage]: ['client_admin'],
+  [ACTIONS.accessReviewManage]: ['client_admin'],
+  [ACTIONS.vendorManage]: ['client_admin', 'client_contributor'],
+  [ACTIONS.vendorRiskAccept]: ['client_admin'],
 
   // Exports
   [ACTIONS.sspExportDelete]: [
@@ -361,6 +387,13 @@ export function assertIndependenceGuard(): void {
     ACTIONS.riskAccept,
     ACTIONS.systemAuthorise,
     ACTIONS.trustPortalManage,
+    ACTIONS.policyWrite,
+    ACTIONS.policyApprove,
+    ACTIONS.policyAccept,
+    ACTIONS.personnelManage,
+    ACTIONS.accessReviewManage,
+    ACTIONS.vendorManage,
+    ACTIONS.vendorRiskAccept,
   ]);
   for (const action of Object.values(ACTIONS)) {
     if (!action.startsWith('remediation_guidance:') && !clientAccountabilityActions.has(action)) continue;
