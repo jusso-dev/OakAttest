@@ -93,6 +93,15 @@ export const ACTIONS = {
   certificationGenerate: 'certification:generate',
   certificationSign: 'certification:sign',
 
+  // risk, authorisation, and continuous monitoring
+  assuranceLifecycleView: 'assurance_lifecycle:view',
+  riskAssess: 'risk:assess',
+  riskTreat: 'risk:treat',
+  riskAccept: 'risk:accept',
+  systemAuthorise: 'system:authorise',
+  monitoringManage: 'monitoring:manage',
+  monitoringEventCreate: 'monitoring_event:create',
+
   // exports
   sspExportDelete: 'ssp_export:delete',
 
@@ -223,6 +232,38 @@ export const PERMISSIONS: Record<Action, Allow> = {
   [ACTIONS.certificationGenerate]: ['lead_assessor'],
   [ACTIONS.certificationSign]: ['lead_assessor'],
 
+  // Risk and authorisation lifecycle. Business-risk acceptance and system
+  // authorisation remain client-accountable decisions, separate from assessors.
+  [ACTIONS.assuranceLifecycleView]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
+    'read_only_observer',
+  ],
+  [ACTIONS.riskAssess]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
+  ],
+  [ACTIONS.riskTreat]: ['client_admin', 'client_contributor'],
+  [ACTIONS.riskAccept]: ['client_admin'],
+  [ACTIONS.systemAuthorise]: ['client_admin'],
+  [ACTIONS.monitoringManage]: ['client_admin', 'client_contributor'],
+  [ACTIONS.monitoringEventCreate]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
+  ],
+
   // Exports
   [ACTIONS.sspExportDelete]: [
     'tenant_owner',
@@ -245,8 +286,12 @@ export const PERMISSIONS: Record<Action, Allow> = {
 // gets a remediation-guidance permission. Imported by the rbac test suite.
 export function assertIndependenceGuard(): void {
   const offenders: Array<{ action: Action; role: Role }> = [];
+  const clientAccountabilityActions: ReadonlySet<Action> = new Set([
+    ACTIONS.riskAccept,
+    ACTIONS.systemAuthorise,
+  ]);
   for (const action of Object.values(ACTIONS)) {
-    if (!action.startsWith('remediation_guidance:')) continue;
+    if (!action.startsWith('remediation_guidance:') && !clientAccountabilityActions.has(action)) continue;
     for (const role of PERMISSIONS[action]) {
       if (
         role === 'tenant_owner' ||

@@ -182,6 +182,10 @@ export async function updateFindingStatus(input: z.infer<typeof updateStatusSche
   const data = updateStatusSchema.parse(input);
   const tenantId = await tenantForEngagement(data.engagementId);
 
+  if (data.status === 'accepted_risk') {
+    throw new Error('Use the risk acceptance workflow so the accountable person and rationale are recorded.');
+  }
+
   await requirePermission(ACTIONS.findingUpdate, {
     userId: session.user.id,
     tenantId,
@@ -346,7 +350,7 @@ export async function acceptFindingRisk(input: z.infer<typeof acceptRiskSchema>)
   const data = acceptRiskSchema.parse(input);
   const tenantId = await tenantForEngagement(data.engagementId);
 
-  await requirePermission(ACTIONS.findingUpdate, {
+  await requirePermission(ACTIONS.riskAccept, {
     userId: session.user.id,
     tenantId,
     engagementId: data.engagementId,

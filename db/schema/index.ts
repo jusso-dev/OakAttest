@@ -22,3 +22,4 @@ export * from './collaboration';
 export * from './clients';
 export * from './audit-readiness';
 export * from './mcp';
+export * from './assurance-lifecycle';

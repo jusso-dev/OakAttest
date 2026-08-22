@@ -226,6 +226,10 @@ viewport captures so the README remains readable.
   status filters, severity, remediation actions, risk acceptance, and retest
   records.
 - Residual risk capture using a 5x5 likelihood and impact matrix.
+- Six-stage assurance lifecycle covering scoped assessment, system risk
+  treatment, client-owned risk acceptance, versioned authorisation decisions,
+  continuous monitoring, and material-change reassessment triggers. Dates are
+  entered and rendered in each user's saved IANA timezone.
 - Certification readiness checks before signing, including unresolved blockers
   and residual-risk prompts.
 - SSP bundle export as a zip containing PDF, Excel workbook, and the boundary
@@ -253,9 +257,14 @@ OakAttest follows the major IRAP assessment stages:
 3. Assess controls: ISM applicability, client implementation statements,
    assessor decisions, assessment methods, assessment objects, evidence quality,
    and limitations.
-4. Produce assessment artefacts: findings, residual risks, SSP bundle, control
-   matrix material, assessor attestation prompts, and authorisation package
-   guidance.
+4. Treat system risk: assign treatment owners and due dates, or capture a
+   time-bound acceptance from an accountable client administrator.
+5. Authorise operation: preserve versioned authorisation decisions, conditions,
+   expiry, and the supporting risk snapshot.
+6. Monitor and reassess: operate a scheduled monitoring plan and return material
+   changes, incidents, threats, and control failures to assessment.
+7. Produce assessment artefacts: findings, residual risks, SSP bundle, control
+   matrix material, assessor attestation prompts, and authorisation packages.
 
 The app does not claim that ASD certifies, endorses, or approves a system. It
 helps assessor firms and clients collect and structure the artefacts that inform
@@ -274,8 +283,10 @@ OakAttest separates assessor organisation access from engagement access.
   invites engagement members.
 - `assessor`: performs assessment work, applicability decisions, evidence
   review, fieldwork, and findings work.
-- `client_admin`: manages client-side participation for a specific engagement.
-- `client_contributor`: uploads evidence and writes implementation statements.
+- `client_admin`: manages client-side participation, risk acceptance, system
+  authorisation, and continuous monitoring for a specific engagement.
+- `client_contributor`: uploads evidence, writes implementation statements,
+  records risk treatments, and supports continuous monitoring.
 - `read_only_observer`: can inspect permitted engagement material and download
   evidence packages without editing; intended for auditors and peer reviewers.
 

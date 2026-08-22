@@ -15,8 +15,8 @@ Two role scopes: **tenant** (assessor firm) and **engagement** (per assessment).
 | -------------------- | ---------- | ------------------------------------------------------------- |
 | `lead_assessor`      | Engagement | Run the engagement, sign off findings, generate certification |
 | `assessor`           | Engagement | Review evidence, log findings, conduct interviews             |
-| `client_admin`       | Engagement | Invite client staff, manage system boundary, upload evidence  |
-| `client_contributor` | Engagement | Upload evidence, respond to evidence requests                 |
+| `client_admin`       | Engagement | Invite client staff, upload evidence, accept risk, authorise systems, manage monitoring |
+| `client_contributor` | Engagement | Upload evidence, respond to requests, treat risk, support monitoring |
 | `read_only_observer` | Engagement | View and download only (external auditor, liaison, peer reviewer) |
 
 Audit readiness changes are limited to tenant owners, assessor admins, lead
@@ -54,6 +54,7 @@ call it.
 ## Independence guard (§15)
 
 Anything tagged `remediation_guidance` is callable only by client-side roles
-(`client_admin`, `client_contributor`). Assessor-side roles cannot invoke
-those actions even with elevated tenant permissions. This is checked in
-`requirePermission` via a hard branch on `action` prefix.
+(`client_admin`, `client_contributor`). Risk acceptance and system authorisation
+are restricted further to `client_admin`. Assessor-side and tenant-level roles
+cannot invoke those accountable client decisions. The static permission matrix
+and `assertIndependenceGuard()` enforce these boundaries.
