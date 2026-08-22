@@ -53,6 +53,7 @@ export const accounts = pgTable(
     id: uuidv7(),
     userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     providerId: text('provider_id').notNull(),
+    issuer: text('issuer').notNull(),
     accountId: text('account_id').notNull(),
     accessToken: text('access_token'),
     refreshToken: text('refresh_token'),
@@ -65,7 +66,7 @@ export const accounts = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    uniqueIndex('accounts_provider_account_uq').on(t.providerId, t.accountId),
+    uniqueIndex('accounts_issuer_account_uq').on(t.issuer, t.accountId),
     index('accounts_user_idx').on(t.userId),
   ],
 );
