@@ -1,9 +1,16 @@
+import {
+  buildEssentialEightCriterion,
+  type EssentialEightCriterion,
+  type EssentialEightCriterionResult,
+} from '@/lib/essential-eight-criteria';
+
 type EssentialEightMapping = Array<{ strategy: string; maturityLevel?: number | null }> | null;
 
 export type MappedControlInput = {
   frameworkControlId: string;
   controlId: string;
   description: string;
+  revision?: string;
   status?: string | null;
   applicable?: string | null;
   mapping: EssentialEightMapping;
@@ -33,6 +40,8 @@ export type EssentialEightMappedControl = {
   status: string | null;
   applicable: string | null;
   maturityLevel: number | null;
+  criterion: EssentialEightCriterion;
+  workpaper: EssentialEightCriterionResult | null;
   evidence: Array<{
     id: string;
     filename: string;
@@ -52,13 +61,27 @@ export function groupEssentialEightMappedControls(opts: {
   controls: MappedControlInput[];
   evidence: MappedControlEvidenceInput[];
   findings: MappedControlFindingInput[];
+  workpapers?: EssentialEightCriterionResult[];
+  guideVersion?: string;
 }): Map<string, EssentialEightMappedControl[]> {
   const evidenceByControl = groupBy(opts.evidence, (item) => item.frameworkControlId);
   const findingsByControl = groupBy(opts.findings, (item) => item.frameworkControlId);
   const grouped = new Map<string, EssentialEightMappedControl[]>();
+  const workpaperByCriterion = new Map(
+    (opts.workpapers ?? []).map((workpaper) => [workpaper.criterionId, workpaper]),
+  );
 
   for (const control of opts.controls) {
     for (const mapping of control.mapping ?? []) {
+      const criterion = buildEssentialEightCriterion({
+        strategy: mapping.strategy as EssentialEightCriterion['strategy'],
+        frameworkControlId: control.frameworkControlId,
+        controlId: control.controlId,
+        description: control.description,
+        sourceRevision: control.revision ?? 'unknown',
+        maturityLevel: mapping.maturityLevel,
+        guideVersion: opts.guideVersion,
+      });
       const existing = grouped.get(mapping.strategy) ?? [];
       existing.push({
         frameworkControlId: control.frameworkControlId,
@@ -67,6 +90,8 @@ export function groupEssentialEightMappedControls(opts: {
         status: control.status ?? null,
         applicable: control.applicable ?? null,
         maturityLevel: mapping.maturityLevel ?? null,
+        criterion,
+        workpaper: workpaperByCriterion.get(criterion.criterionId) ?? null,
         evidence: (evidenceByControl.get(control.frameworkControlId) ?? []).map((item) => ({
           id: item.id,
           filename: item.filename,

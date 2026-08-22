@@ -28,8 +28,15 @@ import {
   putBuffer,
 } from '@/lib/storage/s3';
 import { calculateEssentialEightOverall, ESSENTIAL_EIGHT_STRATEGIES } from '@/lib/essential-eight';
-import { validateEssentialEightAssessment } from '@/lib/essential-eight-validation';
-import { E8_CRITERION_STATUSES } from '@/lib/essential-eight-criteria';
+import {
+  validateEssentialEightAssessment,
+  validateEssentialEightCriteriaForMaturity,
+} from '@/lib/essential-eight-validation';
+import {
+  E8_ASSESSMENT_GUIDE_VERSION,
+  E8_ASSESSMENT_OUTCOMES,
+  buildEssentialEightCriterion,
+} from '@/lib/essential-eight-criteria';
 import {
   renderEssentialEightReportPdf,
   type EssentialEightReportData,
@@ -60,6 +67,43 @@ const strategySchema = z.enum([
 
 const maturitySchema = z.enum(['ml0', 'ml1', 'ml2', 'ml3']);
 
+const criterionResultSchema = z.object({
+  criterionId: z.string().max(300),
+  strategy: strategySchema,
+  frameworkControlId: z.string().uuid(),
+  controlId: z.string().max(120),
+  criterionText: z.string().max(16000),
+  sourceRevision: z.string().max(120),
+  guideVersion: z.string().max(40),
+  maturity: z.enum(['ml1', 'ml2', 'ml3']),
+  outcome: z.enum(E8_ASSESSMENT_OUTCOMES),
+  assessmentMethods: z.string().max(2000).optional(),
+  assessmentObjects: z.string().max(2000).optional(),
+  populationSize: z.number().int().nonnegative().max(10_000_000).optional(),
+  sampleSize: z.number().int().nonnegative().max(10_000_000).optional(),
+  sampledItems: z.array(z.string().max(500)).max(1000).optional(),
+  testProcedure: z.string().max(8000).optional(),
+  testResult: z.string().max(8000).optional(),
+  evidenceQuality: z.enum(['excellent', 'good', 'fair', 'poor', 'insufficient']).optional(),
+  evidenceLimitations: z.string().max(4000).optional(),
+  evidenceRefs: z.array(z.string().uuid()).max(100).optional(),
+  alternateControl: z.string().max(8000).optional(),
+  equivalentProtectionConclusion: z.string().max(8000).optional(),
+  notApplicableJustification: z.string().max(4000).optional(),
+  exception: z
+    .object({
+      justification: z.string().max(4000),
+      authorityName: z.string().max(500),
+      authorityRole: z.string().max(500),
+      decisionReference: z.string().max(500).optional(),
+      approvedAt: z.string().date(),
+      expiresAt: z.string().date().optional(),
+    })
+    .optional(),
+  testedAt: z.string().date().optional(),
+  notes: z.string().max(4000).optional(),
+});
+
 const upsertSchema = z.object({
   engagementId: z.string().uuid(),
   strategy: strategySchema,
@@ -73,18 +117,7 @@ const upsertSchema = z.object({
   evidenceQuality: z.enum(['excellent', 'good', 'fair', 'poor', 'insufficient']).optional(),
   evidenceLimitations: z.string().max(4000).optional(),
   assessorConclusion: z.string().max(8000).optional(),
-  criteriaResults: z
-    .array(
-      z.object({
-        criterionId: z.string().max(120),
-        maturity: z.enum(['ml1', 'ml2', 'ml3']),
-        status: z.enum(E8_CRITERION_STATUSES),
-        notes: z.string().max(4000).optional(),
-        evidenceRefs: z.array(z.string().uuid()).optional(),
-      }),
-    )
-    .max(40)
-    .optional(),
+  criteriaResults: z.array(criterionResultSchema).max(300).optional(),
   exceptions: z
     .array(
       z.object({
@@ -169,25 +202,97 @@ export async function upsertEssentialEight(input: z.infer<typeof upsertSchema>) 
 
   // Both assessor and client may contribute here; the client owns the
   // remediation plan, the assessor confirms current maturity.
-  await requirePermission(ACTIONS.applicabilityDecide, {
-    userId: session.user.id,
-    tenantId,
-    engagementId: data.engagementId,
-  }).catch(async () => {
-    // Fall back to remediation_guidance write for client roles.
+  let canAssess = true;
+  try {
+    await requirePermission(ACTIONS.applicabilityDecide, {
+      userId: session.user.id,
+      tenantId,
+      engagementId: data.engagementId,
+    });
+  } catch {
+    canAssess = false;
     await requirePermission(ACTIONS.remediationGuidanceWrite, {
       userId: session.user.id,
       tenantId,
       engagementId: data.engagementId,
     });
-  });
+  }
 
-  validateEssentialEightAssessment({
-    currentMaturity: data.currentMaturity,
-    targetMaturity: data.targetMaturity,
-    evidenceQuality: data.evidenceQuality,
-    assessorConclusion: data.assessorConclusion,
-  });
+  if (canAssess) {
+    validateEssentialEightAssessment({
+      currentMaturity: data.currentMaturity,
+      targetMaturity: data.targetMaturity,
+      evidenceQuality: data.evidenceQuality,
+      assessorConclusion: data.assessorConclusion,
+    });
+  }
+
+  const mappedRows = await db
+    .select({
+      frameworkControlId: frameworkControls.id,
+      controlId: frameworkControls.controlId,
+      description: frameworkControls.description,
+      revision: frameworkControls.revision,
+      mapping: frameworkControls.essentialEightMapping,
+    })
+    .from(engagementControls)
+    .innerJoin(frameworkControls, eq(frameworkControls.id, engagementControls.frameworkControlId))
+    .where(eq(engagementControls.engagementId, data.engagementId));
+  const criteria = mappedRows.flatMap((row) =>
+    (row.mapping ?? [])
+      .filter((mapping) => mapping.strategy === data.strategy)
+      .map((mapping) =>
+        buildEssentialEightCriterion({
+          strategy: data.strategy,
+          frameworkControlId: row.frameworkControlId,
+          controlId: row.controlId,
+          description: row.description,
+          sourceRevision: row.revision,
+          maturityLevel: mapping.maturityLevel,
+          guideVersion: E8_ASSESSMENT_GUIDE_VERSION,
+        }),
+      ),
+  );
+  const criterionById = new Map(criteria.map((criterion) => [criterion.criterionId, criterion]));
+  const submittedResults = canAssess ? (data.criteriaResults ?? []) : [];
+  const unknown = submittedResults.find((result) => !criterionById.has(result.criterionId));
+  if (unknown) throw new Error(`Unknown Essential Eight criterion '${unknown.controlId}'.`);
+  const criteriaResults = submittedResults.map((result) => ({
+    ...result,
+    ...criterionById.get(result.criterionId)!,
+  }));
+
+  if (canAssess) {
+    validateEssentialEightCriteriaForMaturity({
+      currentMaturity: data.currentMaturity,
+      criteria,
+      results: criteriaResults,
+    });
+  }
+
+  const criterionEvidenceIds = Array.from(
+    new Set(criteriaResults.flatMap((result) => result.evidenceRefs ?? [])),
+  );
+  if (criterionEvidenceIds.length > 0) {
+    const acceptedEvidence = await db
+      .select({ id: evidenceItems.id, reviewStatus: evidenceItems.reviewStatus })
+      .from(evidenceItems)
+      .where(
+        and(
+          eq(evidenceItems.engagementId, data.engagementId),
+          inArray(evidenceItems.id, criterionEvidenceIds),
+        ),
+      );
+    const acceptedIds = new Set(
+      acceptedEvidence
+        .filter((item) => item.reviewStatus === 'accepted')
+        .map((item) => item.id),
+    );
+    const invalidEvidence = criterionEvidenceIds.find((id) => !acceptedIds.has(id));
+    if (invalidEvidence) {
+      throw new Error('Criterion evidence must belong to this assessment and be accepted.');
+    }
+  }
 
   await db.transaction(async (tx) => {
     const [existing] = await tx
@@ -205,19 +310,19 @@ export async function upsertEssentialEight(input: z.infer<typeof upsertSchema>) 
       await tx
         .update(essentialEightAssessments)
         .set({
-          currentMaturity: data.currentMaturity,
-          targetMaturity: data.targetMaturity,
+          currentMaturity: canAssess ? data.currentMaturity : existing.currentMaturity,
+          targetMaturity: canAssess ? data.targetMaturity : existing.targetMaturity,
           remediationPlan: data.remediationPlan ?? existing.remediationPlan,
-          evidenceRefs: (data.evidenceRefs ?? existing.evidenceRefs) as never,
-          assessmentMethods: data.assessmentMethods ?? existing.assessmentMethods,
-          assessmentObjects: data.assessmentObjects ?? existing.assessmentObjects,
-          sampleSize: data.sampleSize ?? existing.sampleSize,
-          evidenceQuality: data.evidenceQuality ?? existing.evidenceQuality,
-          evidenceLimitations: data.evidenceLimitations ?? existing.evidenceLimitations,
-          assessorConclusion: data.assessorConclusion ?? existing.assessorConclusion,
-          criteriaResults: (data.criteriaResults ?? existing.criteriaResults) as never,
-          exceptions: (data.exceptions ?? existing.exceptions) as never,
-          assessedBy: session.user.id,
+          evidenceRefs: (canAssess ? data.evidenceRefs ?? existing.evidenceRefs : existing.evidenceRefs) as never,
+          assessmentMethods: canAssess ? data.assessmentMethods ?? existing.assessmentMethods : existing.assessmentMethods,
+          assessmentObjects: canAssess ? data.assessmentObjects ?? existing.assessmentObjects : existing.assessmentObjects,
+          sampleSize: canAssess ? data.sampleSize ?? existing.sampleSize : existing.sampleSize,
+          evidenceQuality: canAssess ? data.evidenceQuality ?? existing.evidenceQuality : existing.evidenceQuality,
+          evidenceLimitations: canAssess ? data.evidenceLimitations ?? existing.evidenceLimitations : existing.evidenceLimitations,
+          assessorConclusion: canAssess ? data.assessorConclusion ?? existing.assessorConclusion : existing.assessorConclusion,
+          criteriaResults: (canAssess ? criteriaResults : existing.criteriaResults) as never,
+          exceptions: (canAssess ? data.exceptions ?? existing.exceptions : existing.exceptions) as never,
+          assessedBy: canAssess ? session.user.id : existing.assessedBy,
           updatedAt: new Date(),
         })
         .where(eq(essentialEightAssessments.id, existing.id));
@@ -226,23 +331,23 @@ export async function upsertEssentialEight(input: z.infer<typeof upsertSchema>) 
         engagementId: data.engagementId,
         tenantId,
         strategy: data.strategy,
-        currentMaturity: data.currentMaturity,
-        targetMaturity: data.targetMaturity,
+        currentMaturity: canAssess ? data.currentMaturity : 'ml0',
+        targetMaturity: canAssess ? data.targetMaturity : 'ml1',
         remediationPlan: data.remediationPlan ?? null,
-        evidenceRefs: (data.evidenceRefs ?? null) as never,
-        assessmentMethods: data.assessmentMethods ?? null,
-        assessmentObjects: data.assessmentObjects ?? null,
-        sampleSize: data.sampleSize ?? null,
-        evidenceQuality: data.evidenceQuality ?? null,
-        evidenceLimitations: data.evidenceLimitations ?? null,
-        assessorConclusion: data.assessorConclusion ?? null,
-        criteriaResults: (data.criteriaResults ?? null) as never,
-        exceptions: (data.exceptions ?? null) as never,
-        assessedBy: session.user.id,
+        evidenceRefs: (canAssess ? data.evidenceRefs ?? null : null) as never,
+        assessmentMethods: canAssess ? data.assessmentMethods ?? null : null,
+        assessmentObjects: canAssess ? data.assessmentObjects ?? null : null,
+        sampleSize: canAssess ? data.sampleSize ?? null : null,
+        evidenceQuality: canAssess ? data.evidenceQuality ?? null : null,
+        evidenceLimitations: canAssess ? data.evidenceLimitations ?? null : null,
+        assessorConclusion: canAssess ? data.assessorConclusion ?? null : null,
+        criteriaResults: (canAssess ? criteriaResults : []) as never,
+        exceptions: (canAssess ? data.exceptions ?? null : null) as never,
+        assessedBy: canAssess ? session.user.id : null,
       });
     }
 
-    if (!existing || existing.currentMaturity !== data.currentMaturity) {
+    if (canAssess && (!existing || existing.currentMaturity !== data.currentMaturity)) {
       await tx.insert(essentialEightHistory).values({
         engagementId: data.engagementId,
         tenantId,
@@ -256,16 +361,17 @@ export async function upsertEssentialEight(input: z.infer<typeof upsertSchema>) 
       tenantId,
       engagementId: data.engagementId,
       actorUserId: session.user.id,
-      action: 'essential_eight.upsert',
+      action: canAssess ? 'essential_eight.upsert' : 'essential_eight.remediation_plan.upsert',
       resourceType: 'essential_eight_assessment',
       afterJson: {
         strategy: data.strategy,
-        currentMaturity: data.currentMaturity,
-        targetMaturity: data.targetMaturity,
-        evidenceQuality: data.evidenceQuality,
-        evidenceRefs: data.evidenceRefs?.length ?? 0,
-        criteriaResults: data.criteriaResults?.length ?? 0,
-        exceptions: data.exceptions?.length ?? 0,
+        currentMaturity: canAssess ? data.currentMaturity : undefined,
+        targetMaturity: canAssess ? data.targetMaturity : undefined,
+        evidenceQuality: canAssess ? data.evidenceQuality : undefined,
+        evidenceRefs: canAssess ? data.evidenceRefs?.length ?? 0 : undefined,
+        criteriaResults: canAssess ? criteriaResults.length : undefined,
+        exceptions: canAssess ? data.exceptions?.length ?? 0 : undefined,
+        remediationPlanUpdated: Boolean(data.remediationPlan),
       } as never,
     });
   });
@@ -345,7 +451,12 @@ export async function generateEssentialEightReport(input: { engagementId: string
     .innerJoin(findingControls, eq(findingControls.findingId, findings.id))
     .where(eq(findings.engagementId, data.engagementId));
   const evidenceIds = Array.from(
-    new Set(rows.flatMap((row) => (Array.isArray(row.evidenceRefs) ? row.evidenceRefs : []))),
+    new Set(
+      rows.flatMap((row) => [
+        ...(Array.isArray(row.evidenceRefs) ? row.evidenceRefs : []),
+        ...(row.criteriaResults ?? []).flatMap((result) => result.evidenceRefs ?? []),
+      ]),
+    ),
   );
   const evidenceRows =
     evidenceIds.length > 0
@@ -422,6 +533,8 @@ export async function generateEssentialEightReport(input: { engagementId: string
     report: { version, generatedAt },
     profile: {
       targetMaturity,
+      assessmentGuideVersion: profile?.assessmentGuideVersion ?? '2024-08',
+      criteriaModelVersion: profile?.criteriaModelVersion ?? 'ism-mapped-v1',
       scope: profile?.scope ?? null,
       approach: profile?.approach ?? null,
       limitations: profile?.limitations ?? null,
@@ -440,7 +553,17 @@ export async function generateEssentialEightReport(input: { engagementId: string
         evidenceQuality: row?.evidenceQuality ?? null,
         evidenceLimitations: row?.evidenceLimitations ?? null,
         assessorConclusion: row?.assessorConclusion ?? null,
-        criteriaResults: row?.criteriaResults ?? [],
+        criteriaResults: (row?.criteriaResults ?? []).map((result) => ({
+          ...result,
+          evidence: (result.evidenceRefs ?? [])
+            .map((id) => evidenceById.get(id))
+            .filter((item): item is NonNullable<typeof item> => Boolean(item))
+            .map((item) => ({
+              filename: item.filename,
+              sha256: item.sha256,
+              reviewStatus: item.reviewStatus,
+            })),
+        })),
         exceptions: row?.exceptions ?? [],
         mappedControls: (controlsByStrategy.get(strategy.key) ?? []).map((control) => ({
           controlId: control.controlId,

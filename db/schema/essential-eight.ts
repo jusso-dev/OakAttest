@@ -17,6 +17,7 @@ import { engagements } from './engagements';
 import { tenants } from './tenants';
 import { users } from './auth';
 import { evidenceItems } from './evidence';
+import type { EssentialEightCriterionResult } from '@/lib/essential-eight-criteria';
 
 // One row per (engagement, strategy). Captures current and target maturity
 // and pointers to the evidence references that justify the assessment.
@@ -42,15 +43,7 @@ export const essentialEightAssessments = pgTable(
     evidenceQuality: text('evidence_quality'),
     evidenceLimitations: text('evidence_limitations'),
     assessorConclusion: text('assessor_conclusion'),
-    criteriaResults: jsonb('criteria_results').$type<
-      Array<{
-        criterionId: string;
-        maturity: 'ml1' | 'ml2' | 'ml3';
-        status: 'not_assessed' | 'met' | 'partially_met' | 'not_met' | 'not_applicable';
-        notes?: string;
-        evidenceRefs?: string[];
-      }>
-    >(),
+    criteriaResults: jsonb('criteria_results').$type<EssentialEightCriterionResult[]>(),
     exceptions: jsonb('exceptions').$type<
       Array<{
         scope?: string;
@@ -79,6 +72,8 @@ export const essentialEightProfiles = pgTable(
       .references(() => engagements.id, { onDelete: 'cascade' }),
     tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
     targetMaturity: maturityLevelEnum('target_maturity').notNull().default('ml1'),
+    assessmentGuideVersion: text('assessment_guide_version').notNull().default('2024-08'),
+    criteriaModelVersion: text('criteria_model_version').notNull().default('ism-mapped-v1'),
     scope: text('scope'),
     approach: text('approach'),
     limitations: text('limitations'),

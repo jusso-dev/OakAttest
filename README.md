@@ -190,8 +190,12 @@ viewport captures so the README remains readable.
   engagement-scoped client access.
 - IRAP engagement workflow covering scoping, evidence, fieldwork, findings,
   certification, and maintenance.
-- Essential Eight profile, maturity assessment, history, evidence fields, and
-  versioned PDF assessment reports within each engagement.
+- Essential Eight profile, maturity assessment, history, and versioned PDF
+  reports, with ASD-standard assessment outcomes and per-criterion workpapers
+  sourced from the engagement's pinned ISM revision. Workpapers retain test
+  procedures, representative samples, evidence quality, limitations, alternate
+  controls, and formal exception approvals against the August 2024 assessment
+  process guide.
 - Assessment coverage dashboard that highlights blockers across controls,
   evidence, findings, SSP material, Essential Eight, and certification.
 - Burl AI helper popup and dedicated workspace for ISM questions, PDF evidence

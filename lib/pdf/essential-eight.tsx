@@ -7,7 +7,11 @@ import {
   pdf,
 } from '@react-pdf/renderer';
 import { e8StrategyLabel, formatMaturity } from '@/lib/essential-eight';
-import { criteriaForStrategy } from '@/lib/essential-eight-criteria';
+import {
+  assessmentOutcome,
+  outcomeLabel,
+  type EssentialEightCriterionResult,
+} from '@/lib/essential-eight-criteria';
 import { formatDateTime } from '@/lib/timezone';
 
 const styles = StyleSheet.create({
@@ -55,6 +59,8 @@ export type EssentialEightReportData = {
   report: { version: number; generatedAt: string; sha256?: string | null };
   profile: {
     targetMaturity: string;
+    assessmentGuideVersion: string;
+    criteriaModelVersion: string;
     scope: string | null;
     approach: string | null;
     limitations: string | null;
@@ -74,13 +80,11 @@ export type EssentialEightReportData = {
     evidenceQuality: string | null;
     evidenceLimitations: string | null;
     assessorConclusion: string | null;
-    criteriaResults: Array<{
-      criterionId: string;
-      maturity: 'ml1' | 'ml2' | 'ml3';
-      status: string;
-      notes?: string;
-      evidenceRefs?: string[];
-    }>;
+    criteriaResults: Array<
+      EssentialEightCriterionResult & {
+        evidence: Array<{ filename: string; sha256: string; reviewStatus: string }>;
+      }
+    >;
     exceptions: Array<{
       scope?: string;
       justification?: string;
@@ -137,6 +141,8 @@ export function EssentialEightReportDocument({ data }: { data: EssentialEightRep
 
         <Text style={styles.sectionTitle}>3. Overall Package Maturity</Text>
         <InfoRow label="Target maturity" value={formatMaturity(data.profile.targetMaturity)} />
+        <InfoRow label="ASD assessment guide" value={data.profile.assessmentGuideVersion} />
+        <InfoRow label="Criteria model" value={data.profile.criteriaModelVersion} />
         <InfoRow label="Achieved maturity" value={formatMaturity(data.overall.achieved)} />
         <Text style={styles.small}>
           OakAttest calculates the package result as the lowest achieved maturity across all
@@ -162,11 +168,13 @@ export function EssentialEightReportDocument({ data }: { data: EssentialEightRep
               <Text style={styles.body}>Conclusion: {strategy.assessorConclusion}</Text>
             )}
             <Text style={styles.small}>
-              Criteria:{' '}
-              {criteriaForStrategy(strategy.strategy).map((criterion) => {
-                const result = (strategy.criteriaResults ?? []).find((item) => item.criterionId === criterion.id);
-                return `${formatMaturity(criterion.maturity)} ${result?.status ?? 'not_assessed'}`;
-              }).join('; ')}
+              Versioned criteria: {strategy.criteriaResults.length > 0
+                ? strategy.criteriaResults
+                    .map((result) =>
+                      `${result.controlId} ${formatMaturity(result.maturity)} ${outcomeLabel(assessmentOutcome(result))}`,
+                    )
+                    .join('; ')
+                : 'No criterion workpapers recorded'}
             </Text>
             {strategy.evidenceLimitations && (
               <Text style={styles.body}>Limitations: {strategy.evidenceLimitations}</Text>
@@ -197,7 +205,43 @@ export function EssentialEightReportDocument({ data }: { data: EssentialEightRep
           </View>
         ))}
 
-        <Text style={styles.sectionTitle}>5. Evidence Index</Text>
+        <Text style={styles.sectionTitle}>5. Criterion Workpapers</Text>
+        {data.strategies.flatMap((strategy) =>
+          strategy.criteriaResults.map((result) => (
+            <View key={result.criterionId} style={styles.strategyBox} wrap={false}>
+              <Text style={{ fontWeight: 700, marginBottom: 3 }}>
+                {result.controlId} - {outcomeLabel(assessmentOutcome(result))}
+              </Text>
+              <Text style={styles.small}>
+                {e8StrategyLabel(strategy.strategy)} · {formatMaturity(result.maturity)} · ISM {result.sourceRevision} · guide {result.guideVersion}
+              </Text>
+              <Text style={styles.body}>{result.criterionText}</Text>
+              <Text style={styles.small}>Method: {result.assessmentMethods || '-'}</Text>
+              <Text style={styles.small}>Objects: {result.assessmentObjects || '-'}</Text>
+              <Text style={styles.small}>
+                Population/sample: {result.populationSize ?? '-'} / {result.sampleSize ?? '-'}
+              </Text>
+              <Text style={styles.body}>Procedure: {result.testProcedure || '-'}</Text>
+              <Text style={styles.body}>Result: {result.testResult || '-'}</Text>
+              <Text style={styles.small}>
+                Evidence: {result.evidence.length > 0
+                  ? result.evidence.map((item) => `${item.filename} (${item.reviewStatus})`).join(', ')
+                  : 'None'}
+              </Text>
+              {result.alternateControl && (
+                <Text style={styles.body}>Alternate control: {result.alternateControl}</Text>
+              )}
+              {result.exception && (
+                <Text style={styles.body}>
+                  Exception approved by {result.exception.authorityName}, {result.exception.authorityRole} on {result.exception.approvedAt}
+                  {result.exception.decisionReference ? ` (${result.exception.decisionReference})` : ''}
+                </Text>
+              )}
+            </View>
+          )),
+        )}
+
+        <Text style={styles.sectionTitle}>6. Evidence Index</Text>
         <View style={styles.tableHeader}>
           <View style={styles.cell}><Text>Strategy</Text></View>
           <View style={styles.cell}><Text>Evidence</Text></View>

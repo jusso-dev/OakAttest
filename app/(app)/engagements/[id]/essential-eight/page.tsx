@@ -71,6 +71,7 @@ export default async function EssentialEightPage({
       frameworkControlId: frameworkControls.id,
       controlId: engagementControls.controlId,
       description: frameworkControls.description,
+      revision: frameworkControls.revision,
       status: engagementControls.status,
       applicable: engagementControls.applicable,
       mapping: frameworkControls.essentialEightMapping,
@@ -111,6 +112,8 @@ export default async function EssentialEightPage({
     controls: mappedControls,
     evidence: mappedEvidence,
     findings: mappedFindings,
+    workpapers: rows.flatMap((row) => row.criteriaResults ?? []),
+    guideVersion: profile?.assessmentGuideVersion,
   });
 
   return (
@@ -127,6 +130,8 @@ export default async function EssentialEightPage({
             engagementId={id}
             profile={{
               targetMaturity,
+              assessmentGuideVersion: profile?.assessmentGuideVersion ?? '2024-08',
+              criteriaModelVersion: profile?.criteriaModelVersion ?? 'ism-mapped-v1',
               scope: profile?.scope ?? '',
               approach: profile?.approach ?? '',
               limitations: profile?.limitations ?? '',
