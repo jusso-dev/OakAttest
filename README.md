@@ -204,6 +204,9 @@ viewport captures so the README remains readable.
   citations, Burl-assisted drafts, four-eyes approval, locked finalisation, and audited export.
 - Client-owned operational GRC registers for versioned policies and attestations,
   personnel assurance, access reviews with remediation closure, and vendor risk monitoring.
+- Versioned framework packs for ISM, NIST SP 800-53, FedRAMP, PSPF, SOC 2,
+  ISO 27001, and tenant-authored assessments, with OSCAL profile selection,
+  tenant-isolated CSV imports, effective/retired lifecycle, and immutable custom revisions.
 - Assessment coverage dashboard that highlights blockers across controls,
   evidence, findings, SSP material, Essential Eight, and certification.
 - Burl AI helper popup and dedicated workspace for ISM questions, PDF evidence

@@ -14,6 +14,7 @@ export const MUTATING_ACTIONS: ReadonlySet<string> = new Set([
   ACTIONS.tenantManageBranding,
   ACTIONS.tenantManageIpAllowlist,
   ACTIONS.tenantManageIsm,
+  ACTIONS.frameworkPackManage,
   ACTIONS.engagementCreate,
   ACTIONS.engagementUpdate,
   ACTIONS.engagementInvite,

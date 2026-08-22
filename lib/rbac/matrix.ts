@@ -52,6 +52,7 @@ export const ACTIONS = {
   tenantManageBranding: 'tenant:manage_branding',
   tenantManageIpAllowlist: 'tenant:manage_ip_allowlist',
   tenantManageIsm: 'tenant:manage_ism',
+  frameworkPackManage: 'framework_pack:manage',
 
   // client registry
   clientView: 'client:view',
@@ -156,6 +157,7 @@ export const PERMISSIONS: Record<Action, Allow> = {
   [ACTIONS.tenantManageBranding]: ['tenant_owner'],
   [ACTIONS.tenantManageIpAllowlist]: ['tenant_owner'],
   [ACTIONS.tenantManageIsm]: ['tenant_owner', 'assessor_admin'],
+  [ACTIONS.frameworkPackManage]: ['tenant_owner', 'assessor_admin'],
 
   // Client registry
   [ACTIONS.clientView]: ['tenant_owner', 'assessor_admin', 'lead_assessor', 'assessor'],

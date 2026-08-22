@@ -4,13 +4,13 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import crypto from 'node:crypto';
-import { and, eq, isNull, lte, or } from 'drizzle-orm';
+import { and, eq, gt, isNull, lte, or } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { engagements, clientOrganisations, systems } from '@/db/schema/engagements';
 import { clients, clientMissingFields } from '@/db/schema/clients';
 import { engagementMembers } from '@/db/schema/tenants';
-import { frameworkControls, engagementControls } from '@/db/schema/frameworks';
-import { resolveFrameworkId } from '@/lib/frameworks/registry';
+import { frameworkControls, engagementControls, frameworkPacks } from '@/db/schema/frameworks';
+import { resolveFrameworkId, selectPreferredFrameworkPack } from '@/lib/frameworks/registry';
 import { notifyEngagementWatchers } from '@/lib/engagement-watch';
 import { evidenceItemControls, evidenceRequestControls } from '@/db/schema/evidence';
 import { findingControls } from '@/db/schema/findings';
@@ -100,7 +100,18 @@ export async function createEngagement(input: z.infer<typeof createSchema>) {
 
   // The catalogue this engagement draws controls from. Only ISM ships a global
   // catalogue today; the selector defaults to it.
-  const frameworkId = await resolveFrameworkId(data.frameworkKey);
+  const frameworkId = await resolveFrameworkId(data.frameworkKey, data.tenantId);
+  const now = new Date();
+  const availablePacks = await db.select({ id: frameworkPacks.id, tenantId: frameworkPacks.tenantId }).from(frameworkPacks).where(and(
+    eq(frameworkPacks.frameworkId, frameworkId),
+    eq(frameworkPacks.revision, data.frameworkRevision),
+    eq(frameworkPacks.status, 'active'),
+    or(isNull(frameworkPacks.tenantId), eq(frameworkPacks.tenantId, data.tenantId)),
+    or(isNull(frameworkPacks.effectiveAt), lte(frameworkPacks.effectiveAt, now)),
+    or(isNull(frameworkPacks.expiresAt), gt(frameworkPacks.expiresAt, now)),
+  )).limit(2);
+  const pack = selectPreferredFrameworkPack(availablePacks, data.tenantId);
+  if (!pack) throw new Error('Selected framework pack is not active, current, or available to this tenant.');
 
   // Resolve the selected client from the registry and require complete details
   // before an engagement can start.
@@ -171,12 +182,11 @@ export async function createEngagement(input: z.infer<typeof createSchema>) {
           eq(frameworkControls.frameworkId, frameworkId),
           eq(frameworkControls.revision, data.frameworkRevision),
           lte(frameworkControls.minClassificationRank, classificationRank),
-          // Global catalogue rows (tenant_id NULL) plus this tenant's own
-          // client-imported rows (SOC 2 / ISO 27001).
-          or(
-            isNull(frameworkControls.tenantId),
-            eq(frameworkControls.tenantId, data.tenantId),
-          ),
+          // A tenant pack is an isolated materialised catalogue. A global pack
+          // uses only global rows. Never blend rows from the two revisions.
+          pack.tenantId === null
+            ? isNull(frameworkControls.tenantId)
+            : eq(frameworkControls.tenantId, data.tenantId),
         ),
       );
 
@@ -201,19 +211,27 @@ export async function createEngagement(input: z.infer<typeof createSchema>) {
 
     if (applicable.length > 0) {
       await tx.insert(engagementControls).values(
-        applicable.map((c) => ({
-          engagementId,
-          tenantId: data.tenantId,
-          frameworkId,
-          frameworkControlId: c.id,
-          controlId: c.controlId,
-          revision: c.revision,
-          status: providerInheritedIds.has(c.id) ? ('not_applicable' as const) : ('not_started' as const),
-          applicable: providerInheritedIds.has(c.id) ? 'no' : null,
-          applicabilityJustification: providerInheritedIds.has(c.id)
-            ? `Marked not applicable for a Cloud IRAP engagement because this control appears to be inherited from the ${providerName} provider layer for PROTECTED-and-below public cloud workloads. Verify against the provider IRAP package, Cloud Controls Matrix guidance, selected services, and the assessed system boundary.`
-            : null,
-        })),
+        applicable.map((c) => {
+          const raw = c.oscalRaw && typeof c.oscalRaw === 'object' ? c.oscalRaw as Record<string, unknown> : {};
+          const defaultApplicable = typeof raw.defaultApplicable === 'boolean' ? raw.defaultApplicable : null;
+          const packExcluded = defaultApplicable === false;
+          const packIncluded = defaultApplicable === true || data.frameworkKey === 'fedramp' || data.frameworkKey === 'nist-800-53';
+          return {
+            engagementId,
+            tenantId: data.tenantId,
+            frameworkId,
+            frameworkControlId: c.id,
+            controlId: c.controlId,
+            revision: c.revision,
+            status: providerInheritedIds.has(c.id) || packExcluded ? ('not_applicable' as const) : ('not_started' as const),
+            applicable: providerInheritedIds.has(c.id) || packExcluded ? 'no' : packIncluded ? 'yes' : null,
+            applicabilityJustification: providerInheritedIds.has(c.id)
+              ? `Marked not applicable for a Cloud IRAP engagement because this control appears to be inherited from the ${providerName} provider layer for PROTECTED-and-below public cloud workloads. Verify against the provider IRAP package, Cloud Controls Matrix guidance, selected services, and the assessed system boundary.`
+              : packExcluded
+                ? 'Excluded by the activated framework pack default. Assessor must confirm this applicability decision during scoping.'
+                : null,
+          };
+        }),
       );
     }
 
@@ -240,6 +258,7 @@ export async function createEngagement(input: z.infer<typeof createSchema>) {
         name: data.name,
         classification,
         frameworkRevision: data.frameworkRevision,
+        frameworkPackId: pack.id,
         controlCount: applicable.length,
         assessmentType: data.assessmentType,
         cloudProvider: data.cloudProvider,

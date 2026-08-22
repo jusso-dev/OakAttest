@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { isNull } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { frameworkControls, frameworkImports } from '@/db/schema/frameworks';
 import {
@@ -33,6 +33,24 @@ export async function importFrameworkCatalogue(opts: FrameworkImportOptions) {
 
   const sourceBytes = Buffer.from(JSON.stringify(opts.data));
   const sourceSha256 = crypto.createHash('sha256').update(sourceBytes).digest('hex');
+
+  // A revision is an immutable catalogue snapshot. Re-fetching the same bytes
+  // is idempotent; changed bytes must use a new upstream revision so pinned
+  // engagements never drift under their existing revision label.
+  const [existing] = await db.select({
+    sourceSha256: frameworkImports.sourceSha256,
+    controlCount: frameworkImports.controlCount,
+  }).from(frameworkImports).where(and(
+    eq(frameworkImports.frameworkId, frameworkId),
+    eq(frameworkImports.revision, revision),
+    isNull(frameworkImports.tenantId),
+  )).limit(1);
+  if (existing) {
+    if (existing.sourceSha256 !== sourceSha256) {
+      throw new Error(`Framework revision ${revision} already exists with different content. Import it under a new revision.`);
+    }
+    return { revision, count: existing.controlCount, sourceSha256, frameworkId };
+  }
 
   let count = 0;
 

@@ -1,0 +1,2 @@
+control_id,title,description,topic,guidance,default_applicable
+PSPF-EXAMPLE,Replace with current PSPF requirement,Import the current public PSPF requirement text and verify its source revision,Protective security,Record applicability evidence and accountable owner,true

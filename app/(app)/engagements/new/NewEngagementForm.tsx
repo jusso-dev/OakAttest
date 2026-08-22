@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -43,7 +43,7 @@ export function NewEngagementForm({
 }: {
   tenantId: string;
   frameworks: FrameworkOption[];
-  revisions: Array<{ revision: string; controlCount: number; frameworkKey: string }>;
+  revisions: Array<{ revision: string; controlCount: number; frameworkKey: string; label?: string }>;
   clients: ClientOption[];
 }) {
   const router = useRouter();
@@ -52,7 +52,7 @@ export function NewEngagementForm({
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormInput, unknown, FormValues>({
@@ -67,9 +67,10 @@ export function NewEngagementForm({
     },
   });
 
-  const selectedClientId = watch('clientId');
+  const selectedClientId = useWatch({ control, name: 'clientId' });
   const selectedClient = clients.find((c) => c.id === selectedClientId);
-  const selectedFrameworkKey = watch('frameworkKey');
+  const selectedFrameworkKey = useWatch({ control, name: 'frameworkKey' });
+  const selectedFrameworkRevision = useWatch({ control, name: 'frameworkRevision' });
   const frameworkRevisions = revisions.filter((r) => r.frameworkKey === selectedFrameworkKey);
   // Only frameworks with at least one imported catalogue revision are selectable.
   const selectableFrameworks = frameworks.filter((f) =>
@@ -83,8 +84,7 @@ export function NewEngagementForm({
   // Keep the revision valid for the selected framework, and reset ISM-only
   // fields to defaults when switching to a non-classification framework.
   useEffect(() => {
-    const current = watch('frameworkRevision');
-    if (!frameworkRevisions.some((r) => r.revision === current)) {
+    if (!frameworkRevisions.some((r) => r.revision === selectedFrameworkRevision)) {
       setValue('frameworkRevision', frameworkRevisions[0]?.revision ?? '');
     }
     if (!isClassified) {
@@ -159,7 +159,7 @@ export function NewEngagementForm({
             <select id="frameworkRevision" className={SELECT_CLASS} {...register('frameworkRevision')}>
               {frameworkRevisions.map((r) => (
                 <option key={r.revision} value={r.revision}>
-                  {r.revision} — {r.controlCount} controls
+                  {r.label ?? r.revision} — {r.controlCount} controls
                 </option>
               ))}
             </select>

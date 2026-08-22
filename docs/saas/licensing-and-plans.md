@@ -116,7 +116,8 @@ billing tests green.
   assignment, partner-aware onboarding + active-context resolution, partner-scoped RBAC.
 - Phase 4 — audit events for plan lifecycle; licensing tests.
 
-Framework feature keys (`ISO27001`, `NIST`, `SOC2`, `ISM`, `PSPF`) gate frameworks not yet
-built — only ISM + Essential Eight exist today. Gating ships ahead of the catalogues. NIST is
-pulled via official OSCAL; ISO 27001 + SOC 2 are client-imported via CSV (no redistribution);
+Framework feature keys (`ISO27001`, `NIST`, `SOC2`, `ISM`, `PSPF`) gate active framework-pack
+workflows. ISM and NIST use official catalogues; FedRAMP resolves tenant OSCAL profiles;
+PSPF uses the public-source CSV template; ISO 27001 and SOC 2 accept licensed tenant CSVs.
+Licensed text is never redistributed;
 see `../frameworks/multi-framework-plan.md`.

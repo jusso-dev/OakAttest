@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull, or } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { frameworks, type Framework } from '@/db/schema/frameworks';
 import { engagements } from '@/db/schema/engagements';
@@ -14,21 +14,38 @@ export type FrameworkMeta = {
 // the only framework with a global OSCAL catalogue today.
 export const DEFAULT_FRAMEWORK_KEY = 'ism';
 
-export async function getFrameworkByKey(key: string): Promise<Framework | null> {
-  const [row] = await db
+export function frameworkVisibleToTenant(frameworkTenantId: string | null, tenantId: string) {
+  return frameworkTenantId === null || frameworkTenantId === tenantId;
+}
+
+export function selectPreferredFrameworkPack<T extends { tenantId: string | null }>(
+  packs: T[],
+  tenantId: string,
+): T | null {
+  return packs.find((pack) => pack.tenantId === tenantId)
+    ?? packs.find((pack) => pack.tenantId === null)
+    ?? null;
+}
+
+export async function getFrameworkByKey(key: string, tenantId?: string): Promise<Framework | null> {
+  const rows = await db
     .select()
     .from(frameworks)
-    .where(eq(frameworks.key, key))
-    .limit(1);
-  return row ?? null;
+    .where(and(
+      eq(frameworks.key, key),
+      tenantId ? or(isNull(frameworks.tenantId), eq(frameworks.tenantId, tenantId)) : isNull(frameworks.tenantId),
+    ))
+    .limit(2);
+  return rows.find((row) => row.tenantId === tenantId) ?? rows.find((row) => row.tenantId === null) ?? null;
 }
 
 // Resolve a framework key to its id, throwing a clear error if the registry has
 // not been seeded with it yet.
 export async function resolveFrameworkId(
   key: string = DEFAULT_FRAMEWORK_KEY,
+  tenantId?: string,
 ): Promise<string> {
-  const framework = await getFrameworkByKey(key);
+  const framework = await getFrameworkByKey(key, tenantId);
   if (!framework) {
     throw new Error(
       `Unknown framework '${key}'. Seed it in the frameworks registry first.`,
@@ -37,8 +54,10 @@ export async function resolveFrameworkId(
   return framework.id;
 }
 
-export async function listFrameworks(): Promise<Framework[]> {
-  return db.select().from(frameworks).orderBy(frameworks.label);
+export async function listFrameworks(tenantId?: string): Promise<Framework[]> {
+  return db.select().from(frameworks)
+    .where(tenantId ? or(isNull(frameworks.tenantId), eq(frameworks.tenantId, tenantId)) : isNull(frameworks.tenantId))
+    .orderBy(frameworks.label);
 }
 
 // The framework metadata for an engagement. Drives framework-aware UI: which

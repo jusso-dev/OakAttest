@@ -9,6 +9,11 @@ Two role scopes: **tenant** (assessor firm) and **engagement** (per assessment).
 | `tenant_owner`   | Tenant | Billing, member management, all engagements               |
 | `assessor_admin` | Tenant | Create engagements, assign assessors, view all engagements |
 
+Tenant owners and assessor administrators may manage framework packs. Only a platform
+administrator may import or replace a shared official catalogue. Tenant profile results,
+CSV packs, and custom controls remain tenant-scoped; engagement and client roles cannot
+author, activate, or retire them.
+
 ## Engagement roles
 
 | Role                 | Scope      | Capabilities                                                  |

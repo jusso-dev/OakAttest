@@ -1,6 +1,6 @@
 # OakAttest Multi-Framework Plan (OSCAL + client CSV)
 
-Status: planning. Goal: generalise OakAttest beyond the Australian ISM + Essential Eight so it
+Status: implemented through framework packs and tenant custom revisions (2026-08-22). This record explains how OakAttest generalised beyond the Australian ISM + Essential Eight so it
 can assess against **NIST SP 800-53, FedRAMP, SOC 2, and ISO/IEC 27001** using the same
 "pull controls" pipeline, with room for more frameworks later.
 
@@ -72,7 +72,7 @@ This is why the model below separates **catalogue source** from **scoping strate
 
 ## 3. Target data model
 
-### 3.1 New: `frameworks` registry
+### 3.1 Implemented: `frameworks` registry and `framework_packs`
 ```
 frameworks
   id              uuid pk
@@ -134,7 +134,8 @@ Replace the single hardcoded cumulative rule with a per-framework strategy resol
   };
   ```
   `extractMinClassification` and `extractEssentialEight` move behind the `ism` strategy.
-- Add a profile resolver for OSCAL `baseline_profile` frameworks (NIST/FedRAMP).
+- Resolve OSCAL selection directives for `baseline_profile` frameworks
+  (NIST/FedRAMP), retaining parameter/alteration directives as pack metadata.
 - Add a **client CSV importer** for `selection` frameworks (SOC2/ISO) — the client uploads
   their own licensed control set; we never fetch or ship the copyrighted text (§4.1).
 - `scripts/ism-import.ts` → `scripts/framework-import.ts <frameworkKey> [revision]`.
@@ -190,10 +191,10 @@ onto existing `ism_controls`/engagements. Keep dual-write so current ISM flows a
 with `scoping_mode='classification'` and the E8 overlay. Retire `ism_*` tables. Add the
 isolation/regression tests.
 
-**Phase 3 — NIST 800-53 + FedRAMP.** Implement `baseline_profile` scoping + OSCAL profile
-resolver. Wire their official OSCAL sources. First true multi-framework engagements.
+**Phase 3 — NIST 800-53 + FedRAMP (complete).** `baseline_profile` selection + OSCAL profile
+materialisation over imported official NIST catalogues.
 
-**Phase 4 — SOC 2 + ISO 27001.** Implement `selection` scoping (TSC categories / SoA) and the
+**Phase 4 — SOC 2 + ISO 27001 (complete).** Implement `selection` scoping (TSC categories / SoA) and the
 **client CSV importer** (§4.1) with tenant-scoped control rows. Ship CSV templates, not control
 text. Add framework-specific report/SSP section sets.
 
