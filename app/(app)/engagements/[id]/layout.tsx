@@ -140,6 +140,12 @@ export default async function EngagementLayout({
           >
             Automation
           </a>
+          <a
+            href={`/engagements/${row.id}/questionnaires`}
+            className="inline-flex h-8 items-center rounded-md border border-[var(--field-border)] bg-[var(--panel-surface)] px-3 text-sm font-medium text-slate-900 hover:bg-[var(--oak-mist)]"
+          >
+            Questionnaires
+          </a>
           {auditTypesForFramework(framework.key).length > 0 ? (
             <a
               href={`/engagements/${row.id}/audit-readiness`}

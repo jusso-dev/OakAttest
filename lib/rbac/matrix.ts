@@ -115,6 +115,12 @@ export const ACTIONS = {
   evidenceReusePropose: 'evidence_reuse:propose',
   evidenceReuseReview: 'evidence_reuse:review',
 
+  // security questionnaire workflow
+  questionnaireView: 'questionnaire:view',
+  questionnaireManage: 'questionnaire:manage',
+  questionnaireRespond: 'questionnaire:respond',
+  questionnaireReview: 'questionnaire:review',
+
   // exports
   sspExportDelete: 'ssp_export:delete',
 
@@ -309,6 +315,25 @@ export const PERMISSIONS: Record<Action, Allow> = {
   ],
   [ACTIONS.evidenceReusePropose]: ['lead_assessor', 'assessor', 'client_admin', 'client_contributor'],
   [ACTIONS.evidenceReuseReview]: ['lead_assessor', 'assessor'],
+  [ACTIONS.questionnaireView]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
+    'read_only_observer',
+  ],
+  [ACTIONS.questionnaireManage]: ['tenant_owner', 'assessor_admin', 'lead_assessor', 'client_admin'],
+  [ACTIONS.questionnaireRespond]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
+  ],
+  [ACTIONS.questionnaireReview]: ['tenant_owner', 'assessor_admin', 'lead_assessor', 'client_admin'],
 
   // Exports
   [ACTIONS.sspExportDelete]: [

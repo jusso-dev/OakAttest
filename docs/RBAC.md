@@ -30,6 +30,11 @@ roles may run an active connector. Clients and assessors can propose same-client
 assessor roles approve, reject, or revoke a reuse decision. Tenant owners, assessor administrators, and
 lead assessors author tenant-scoped common-control mappings.
 
+Questionnaire state is visible to engagement members. Tenant owners, assessor administrators, lead
+assessors, and client administrators import, assign, finalise, and independently review responses.
+Assessors and client contributors may draft and submit cited answers but cannot approve them. Server-side
+four-eyes enforcement prevents any submitter from approving their own response; observers remain read only.
+
 Audit readiness changes are limited to tenant owners, assessor admins, lead
 assessors, and client admins. Auditors use `read_only_observer`: they can inspect
 the workspace, evidence, findings, and immutable packages, but cannot change

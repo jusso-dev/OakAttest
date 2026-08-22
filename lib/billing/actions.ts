@@ -42,6 +42,9 @@ export const MUTATING_ACTIONS: ReadonlySet<string> = new Set([
   ACTIONS.commonControlManage,
   ACTIONS.evidenceReusePropose,
   ACTIONS.evidenceReuseReview,
+  ACTIONS.questionnaireManage,
+  ACTIONS.questionnaireRespond,
+  ACTIONS.questionnaireReview,
   ACTIONS.sspExportDelete,
   ACTIONS.remediationGuidanceWrite,
 ]);

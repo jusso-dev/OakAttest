@@ -25,3 +25,4 @@ export * from './mcp';
 export * from './assurance-lifecycle';
 export * from './trust-portal';
 export * from './assurance-connectors';
+export * from './questionnaires';

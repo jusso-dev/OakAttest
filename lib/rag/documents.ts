@@ -143,7 +143,9 @@ export async function searchEvidenceDocuments({
 
   return db
     .select({
+      evidenceItemId: evidenceItems.id,
       filename: evidenceItems.filename,
+      sha256: evidenceItems.sha256,
       dataClassification: evidenceItems.dataClassification,
       chunkIndex: evidenceDocumentChunks.chunkIndex,
       content: evidenceDocumentChunks.content,
@@ -156,6 +158,7 @@ export async function searchEvidenceDocuments({
         eq(evidenceDocumentChunks.tenantId, tenantId),
         eq(evidenceDocumentChunks.engagementId, engagementId),
         eq(evidenceItems.ragStatus, 'indexed'),
+        eq(evidenceItems.reviewStatus, 'accepted'),
         isNotNull(evidenceItems.storageVerifiedAt),
         isNull(evidenceItems.quarantinedAt),
         sql`to_tsvector('english', ${evidenceDocumentChunks.content}) @@ websearch_to_tsquery('english', ${normalizedQuery})`,

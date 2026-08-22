@@ -106,6 +106,8 @@ exhaustive list.
   auditor access, and timestamped evidence packages
 - `/engagements/[id]/connectors` — role-only assurance connectors, machine-test
   ledger, common-control mappings, and governed evidence reuse
+- `/engagements/[id]/questionnaires` — CSV/XLSX/DOCX/PDF intake, assignment,
+  evidence-cited human/Burl drafts, independent approval, finalisation, and CSV export
 - `/admin` — members, deployment data location, billing stub
 - `/admin/ism` — ISM OSCAL import, seed, and revision removal panel
 - `/admin/audit` — append-only viewer
@@ -116,4 +118,5 @@ exhaustive list.
 - `/api/auth/[...all]` — BetterAuth handler
 - `/api/interviews/[id]/ics` — calendar export
 - `/api/engagements/[id]/findings/csv` — findings register CSV
+- `/api/engagements/[id]/questionnaires/[questionnaireId]/csv` — audited questionnaire export
 - `/api/mcp` — bearer-authenticated Streamable HTTP assessment automation
