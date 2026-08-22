@@ -1,0 +1,41 @@
+name: Standalone CLI validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "tools/OakAttest.Cli/**"
+      - ".github/workflows/cli.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oakattest-cli-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: [self-hosted, linux]
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build
+        run: dotnet build tools/OakAttest.Cli/OakAttest.Cli.csproj --configuration Release
+
+      - name: Verify help and unauthenticated failure
+        shell: bash
+        run: |
+          dotnet run --project tools/OakAttest.Cli/OakAttest.Cli.csproj --configuration Release --no-build -- --help | grep -F "list clients|assessments"
+          if dotnet run --project tools/OakAttest.Cli/OakAttest.Cli.csproj --configuration Release --no-build -- --json list assessments; then
+            echo "Expected an unauthenticated command to fail" >&2
+            exit 1
+          fi
