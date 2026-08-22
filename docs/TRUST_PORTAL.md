@@ -46,4 +46,3 @@ revocation state, grant expiry, and remaining download count. It then issues a 6
 - Email delivery is optional in development. Production approval links require working Resend settings.
 - S3 access uses the host IAM role through the AWS SDK default credential provider chain. Do not set static
   AWS access keys in Coolify.
-
