@@ -30,6 +30,7 @@ export type EngagementCoverageCounts = {
   undecidedControls: number;
   missingStatements: number;
   applicableControlsWithoutEvidence: number;
+  failingAutomatedTests: number;
   poorEvidenceControls: number;
   openEvidenceRequests: number;
   pendingEvidence: number;
@@ -54,6 +55,7 @@ export async function getEngagementCoverage(engagementId: string): Promise<Engag
     [{ value: undecidedControls }],
     [{ value: missingStatements }],
     [{ value: applicableControlsWithoutEvidence }],
+    [{ value: failingAutomatedTests }],
     [{ value: poorEvidenceControls }],
     [{ value: openEvidenceRequests }],
     [{ value: pendingEvidence }],
@@ -100,6 +102,78 @@ export async function getEngagementCoverage(engagementId: string): Promise<Engag
             and ei.engagement_id = ec.engagement_id
             and ei.storage_verified_at is not null
             and ei.quarantined_at is null
+        )
+        and not exists (
+          select 1
+          from evidence_reuse_links erl
+          join evidence_items source_ei on source_ei.id = erl.source_evidence_item_id
+          join client_organisations source_client on source_client.engagement_id = erl.source_engagement_id
+            and source_client.tenant_id = erl.tenant_id
+          join client_organisations target_client on target_client.engagement_id = erl.target_engagement_id
+            and target_client.tenant_id = erl.tenant_id
+          join engagements target_engagement on target_engagement.id = erl.target_engagement_id
+          where erl.target_engagement_id = ec.engagement_id
+            and erl.target_framework_control_id = ec.framework_control_id
+            and erl.tenant_id = ec.tenant_id
+            and erl.status = 'approved'
+            and erl.revoked_at is null
+            and erl.valid_until > now()
+            and source_ei.tenant_id = ec.tenant_id
+            and source_ei.engagement_id = erl.source_engagement_id
+            and source_ei.review_status = 'accepted'
+            and source_ei.storage_verified_at is not null
+            and source_ei.quarantined_at is null
+            and source_client.client_id is not null
+            and source_client.client_id = target_client.client_id
+            and case source_ei.data_classification
+              when 'OFFICIAL' then 1
+              when 'OFFICIAL_SENSITIVE' then 2
+              when 'PROTECTED' then 3
+              when 'SECRET' then 4
+              when 'TOP_SECRET' then 5
+              else 99
+            end <= target_engagement.classification_rank
+        )
+        and not exists (
+          select 1
+          from assurance_test_result_controls atrc
+          join assurance_test_results atr on atr.id = atrc.result_id
+          join assurance_connectors ac on ac.id = atr.connector_id
+          where atrc.framework_control_id = ec.framework_control_id
+            and atr.engagement_id = ec.engagement_id
+            and atr.tenant_id = ec.tenant_id
+            and ac.status = 'active'
+            and atr.outcome = 'pass'
+            and atr.review_status = 'accepted'
+            and atr.observed_at >= now() - make_interval(mins => ac.schedule_minutes * 2)
+            and not exists (
+              select 1 from assurance_test_results newer
+              where newer.connector_id = atr.connector_id
+                and newer.test_key = atr.test_key
+                and newer.observed_at > atr.observed_at
+            )
+        )
+    `),
+    db.execute<{ value: number }>(sql`
+      select count(distinct atr.id)::int as value
+      from assurance_test_results atr
+      join assurance_connectors ac on ac.id = atr.connector_id
+      where atr.engagement_id = ${engagementId}
+        and exists (
+          select 1 from assurance_test_result_controls atrc
+          where atrc.result_id = atr.id
+        )
+        and not exists (
+          select 1 from assurance_test_results newer
+          where newer.connector_id = atr.connector_id
+            and newer.test_key = atr.test_key
+            and newer.observed_at > atr.observed_at
+        )
+        and (
+          ac.status <> 'active'
+          or atr.outcome <> 'pass'
+          or atr.review_status <> 'accepted'
+          or atr.observed_at < now() - make_interval(mins => ac.schedule_minutes * 2)
         )
     `),
     countRows(
@@ -210,6 +284,7 @@ export async function getEngagementCoverage(engagementId: string): Promise<Engag
     undecidedControls,
     missingStatements,
     applicableControlsWithoutEvidence,
+    failingAutomatedTests,
     poorEvidenceControls,
     openEvidenceRequests,
     pendingEvidence,
@@ -238,6 +313,7 @@ export function buildEngagementCoverage(
     blocker('undecided-controls', 'scope', 'Controls missing applicability decisions', counts.undecidedControls, href('scope'), 'danger'),
     blocker('missing-statements', 'scope', 'Applicable controls missing implementation statements', counts.missingStatements, href('scope'), 'danger'),
     blocker('missing-control-evidence', 'evidence', 'Applicable controls missing verified linked evidence', counts.applicableControlsWithoutEvidence, href('evidence'), 'danger'),
+    blocker('automated-tests-not-current', 'evidence', 'Mapped automated tests are not current, passing, and assessor-accepted', counts.failingAutomatedTests, href('connectors'), 'danger'),
     blocker('poor-evidence', 'evidence', 'Controls with poor or insufficient evidence quality', counts.poorEvidenceControls, href('scope'), 'warning'),
     blocker('open-evidence-requests', 'evidence', 'Open or partially satisfied evidence requests', counts.openEvidenceRequests, href('evidence'), 'danger'),
     blocker('pending-evidence', 'evidence', 'Evidence pending review', counts.pendingEvidence, href('evidence'), 'danger'),

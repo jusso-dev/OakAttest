@@ -3,20 +3,21 @@ import { isTaskDueToday, isTaskOverdue, summarizeTasks } from '@/lib/tasks';
 
 describe('task helpers', () => {
   it('summarises task states, priorities, and overdue items', () => {
-    const now = new Date(2026, 4, 17, 20, 0, 0);
+    const timeZone = 'Australia/Sydney';
+    const now = new Date('2026-05-17T10:00:00.000Z');
     const tasks = [
-      { status: 'todo', priority: 'high', dueAt: new Date(2026, 4, 16, 9, 0, 0) },
-      { status: 'in_progress', priority: 'medium', dueAt: new Date(2026, 4, 17, 9, 0, 0) },
-      { status: 'done', priority: 'low', dueAt: new Date(2026, 4, 15, 9, 0, 0) },
+      { status: 'todo', priority: 'high', dueAt: new Date('2026-05-15T23:00:00.000Z') },
+      { status: 'in_progress', priority: 'medium', dueAt: new Date('2026-05-16T23:00:00.000Z') },
+      { status: 'done', priority: 'low', dueAt: new Date('2026-05-14T23:00:00.000Z') },
       { status: 'blocked', priority: 'critical', dueAt: null },
     ] as const;
 
-    expect(isTaskOverdue(tasks[0], now)).toBe(true);
-    expect(isTaskOverdue(tasks[1], now)).toBe(false);
-    expect(isTaskDueToday(tasks[1], now)).toBe(true);
-    expect(isTaskOverdue(tasks[2], now)).toBe(false);
+    expect(isTaskOverdue(tasks[0], now, timeZone)).toBe(true);
+    expect(isTaskOverdue(tasks[1], now, timeZone)).toBe(false);
+    expect(isTaskDueToday(tasks[1], now, timeZone)).toBe(true);
+    expect(isTaskOverdue(tasks[2], now, timeZone)).toBe(false);
 
-    const summary = summarizeTasks(tasks, now);
+    const summary = summarizeTasks(tasks, now, timeZone);
     expect(summary.overdue).toBe(1);
     expect(summary.dueToday).toBe(1);
     expect(summary.byStatus.todo).toBe(1);

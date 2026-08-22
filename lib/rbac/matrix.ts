@@ -52,6 +52,7 @@ export const ACTIONS = {
   tenantManageBranding: 'tenant:manage_branding',
   tenantManageIpAllowlist: 'tenant:manage_ip_allowlist',
   tenantManageIsm: 'tenant:manage_ism',
+  frameworkPackManage: 'framework_pack:manage',
 
   // client registry
   clientView: 'client:view',
@@ -93,6 +94,44 @@ export const ACTIONS = {
   certificationGenerate: 'certification:generate',
   certificationSign: 'certification:sign',
 
+  // risk, authorisation, and continuous monitoring
+  assuranceLifecycleView: 'assurance_lifecycle:view',
+  riskAssess: 'risk:assess',
+  riskTreat: 'risk:treat',
+  riskAccept: 'risk:accept',
+  systemAuthorise: 'system:authorise',
+  monitoringManage: 'monitoring:manage',
+  monitoringEventCreate: 'monitoring_event:create',
+
+  // public assurance publication
+  trustPortalView: 'trust_portal:view',
+  trustPortalManage: 'trust_portal:manage',
+
+  // automated assurance and reusable evidence
+  connectorView: 'connector:view',
+  connectorManage: 'connector:manage',
+  connectorRun: 'connector:run',
+  commonControlManage: 'common_control:manage',
+  evidenceReuseView: 'evidence_reuse:view',
+  evidenceReusePropose: 'evidence_reuse:propose',
+  evidenceReuseReview: 'evidence_reuse:review',
+
+  // security questionnaire workflow
+  questionnaireView: 'questionnaire:view',
+  questionnaireManage: 'questionnaire:manage',
+  questionnaireRespond: 'questionnaire:respond',
+  questionnaireReview: 'questionnaire:review',
+
+  // client-owned operational governance
+  governanceView: 'governance:view',
+  policyWrite: 'policy:write',
+  policyApprove: 'policy:approve',
+  policyAccept: 'policy:accept',
+  personnelManage: 'personnel:manage',
+  accessReviewManage: 'access_review:manage',
+  vendorManage: 'vendor:manage',
+  vendorRiskAccept: 'vendor:risk_accept',
+
   // exports
   sspExportDelete: 'ssp_export:delete',
 
@@ -118,6 +157,7 @@ export const PERMISSIONS: Record<Action, Allow> = {
   [ACTIONS.tenantManageBranding]: ['tenant_owner'],
   [ACTIONS.tenantManageIpAllowlist]: ['tenant_owner'],
   [ACTIONS.tenantManageIsm]: ['tenant_owner', 'assessor_admin'],
+  [ACTIONS.frameworkPackManage]: ['tenant_owner', 'assessor_admin'],
 
   // Client registry
   [ACTIONS.clientView]: ['tenant_owner', 'assessor_admin', 'lead_assessor', 'assessor'],
@@ -223,6 +263,106 @@ export const PERMISSIONS: Record<Action, Allow> = {
   [ACTIONS.certificationGenerate]: ['lead_assessor'],
   [ACTIONS.certificationSign]: ['lead_assessor'],
 
+  // Risk and authorisation lifecycle. Business-risk acceptance and system
+  // authorisation remain client-accountable decisions, separate from assessors.
+  [ACTIONS.assuranceLifecycleView]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
+    'read_only_observer',
+  ],
+  [ACTIONS.riskAssess]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
+  ],
+  [ACTIONS.riskTreat]: ['client_admin', 'client_contributor'],
+  [ACTIONS.riskAccept]: ['client_admin'],
+  [ACTIONS.systemAuthorise]: ['client_admin'],
+  [ACTIONS.monitoringManage]: ['client_admin', 'client_contributor'],
+  [ACTIONS.monitoringEventCreate]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
+  ],
+  [ACTIONS.trustPortalView]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
+    'read_only_observer',
+  ],
+  [ACTIONS.trustPortalManage]: ['client_admin'],
+  [ACTIONS.connectorView]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
+    'read_only_observer',
+  ],
+  [ACTIONS.connectorManage]: ['tenant_owner', 'assessor_admin', 'lead_assessor', 'client_admin'],
+  [ACTIONS.connectorRun]: ['tenant_owner', 'assessor_admin', 'lead_assessor', 'assessor', 'client_admin', 'client_contributor'],
+  [ACTIONS.commonControlManage]: ['tenant_owner', 'assessor_admin', 'lead_assessor'],
+  [ACTIONS.evidenceReuseView]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
+    'read_only_observer',
+  ],
+  [ACTIONS.evidenceReusePropose]: ['lead_assessor', 'assessor', 'client_admin', 'client_contributor'],
+  [ACTIONS.evidenceReuseReview]: ['lead_assessor', 'assessor'],
+  [ACTIONS.questionnaireView]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
+    'read_only_observer',
+  ],
+  [ACTIONS.questionnaireManage]: ['tenant_owner', 'assessor_admin', 'lead_assessor', 'client_admin'],
+  [ACTIONS.questionnaireRespond]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
+  ],
+  [ACTIONS.questionnaireReview]: ['tenant_owner', 'assessor_admin', 'lead_assessor', 'client_admin'],
+  [ACTIONS.governanceView]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
+    'read_only_observer',
+  ],
+  [ACTIONS.policyWrite]: ['client_admin', 'client_contributor'],
+  [ACTIONS.policyApprove]: ['client_admin'],
+  [ACTIONS.policyAccept]: ['client_admin', 'client_contributor'],
+  [ACTIONS.personnelManage]: ['client_admin'],
+  [ACTIONS.accessReviewManage]: ['client_admin'],
+  [ACTIONS.vendorManage]: ['client_admin', 'client_contributor'],
+  [ACTIONS.vendorRiskAccept]: ['client_admin'],
+
   // Exports
   [ACTIONS.sspExportDelete]: [
     'tenant_owner',
@@ -245,8 +385,20 @@ export const PERMISSIONS: Record<Action, Allow> = {
 // gets a remediation-guidance permission. Imported by the rbac test suite.
 export function assertIndependenceGuard(): void {
   const offenders: Array<{ action: Action; role: Role }> = [];
+  const clientAccountabilityActions: ReadonlySet<Action> = new Set([
+    ACTIONS.riskAccept,
+    ACTIONS.systemAuthorise,
+    ACTIONS.trustPortalManage,
+    ACTIONS.policyWrite,
+    ACTIONS.policyApprove,
+    ACTIONS.policyAccept,
+    ACTIONS.personnelManage,
+    ACTIONS.accessReviewManage,
+    ACTIONS.vendorManage,
+    ACTIONS.vendorRiskAccept,
+  ]);
   for (const action of Object.values(ACTIONS)) {
-    if (!action.startsWith('remediation_guidance:')) continue;
+    if (!action.startsWith('remediation_guidance:') && !clientAccountabilityActions.has(action)) continue;
     for (const role of PERMISSIONS[action]) {
       if (
         role === 'tenant_owner' ||

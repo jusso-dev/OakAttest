@@ -30,7 +30,6 @@ const ACORN_CAP = 'oklch(40% 0.07 60)';
 const GLOW = 'oklch(64% 0.17 150)';
 const CUT_BG = 'oklch(22% 0.05 158)';
 const CUT_BG2 = 'oklch(16% 0.045 158)';
-const LEAF_LIGHT = 'oklch(80% 0.13 150)';
 const PAPER = 'oklch(98% 0.01 150)';
 const FONT = 'Geist, "Helvetica Neue", Arial, sans-serif';
 
@@ -91,9 +90,6 @@ export function OakAttestScene() {
   const waterO = interpolate(frame, [0, 22, 244, 262], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
   const waterX = interpolate(frame, [0, 26], [-130, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: easeOut });
 
-  // Water droplets falling from her can toward the sprout (visual cause).
-  const watering = frame >= 26 && frame < 150;
-
   // Oak grows from the watering.
   const treeGrow = spring({ frame: frame - 34, fps, config: { damping: 200, mass: 1.3 } });
   const treeScale = interpolate(treeGrow, [0, 1], [0.001, 1]);
@@ -103,7 +99,7 @@ export function OakAttestScene() {
   // Acorn: grow on branch, swing, fall, collect.
   const acornGrow = interpolate(frame, [140, 158], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: easeOut });
   const swing = Math.sin(((frame - 158) / 16) * Math.PI) * 7;
-  let aX = BRANCH_X;
+  const aX = BRANCH_X;
   let aY = BRANCH_Y;
   let aRot = frame >= 158 && frame < 180 ? swing : 0;
   let aScale = acornGrow;

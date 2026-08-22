@@ -56,6 +56,15 @@ preserves the original OSCAL control verbatim (`oscal_raw` JSONB) so
 re-rendering, params, and props are lossless. Engagements pin to a specific
 revision; new revisions surface a `Compare and migrate` banner.
 
+## Framework packs
+
+`frameworks` holds global framework definitions and tenant-authored methods.
+`framework_packs` is the selectable lifecycle boundary; `framework_controls`
+contains either global catalogue rows or one tenant's materialised rows. New
+engagements require an active, current pack and snapshot only that pack's control
+scope. Tenant packs take precedence over a global pack with the same revision,
+without merging their controls. See [FRAMEWORK_PACKS.md](FRAMEWORK_PACKS.md).
+
 ## Authorisation flow
 
 1. `proxy.ts` (Next.js 16 renamed middleware) blocks unauthenticated requests
@@ -104,12 +113,22 @@ exhaustive list.
 - `/engagements/[id]/certification` — draft, sign, public verify URL
 - `/engagements/[id]/audit-readiness` — ISO 27001 Stage 1 or SOC 2 readiness,
   auditor access, and timestamped evidence packages
+- `/engagements/[id]/connectors` — role-only assurance connectors, machine-test
+  ledger, common-control mappings, and governed evidence reuse
+- `/engagements/[id]/questionnaires` — CSV/XLSX/DOCX/PDF intake, assignment,
+  evidence-cited human/Burl drafts, independent approval, finalisation, and CSV export
+- `/engagements/[id]/governance` — client-owned policy, personnel, access-review,
+  and vendor-risk registers with overdue work consolidated in the user's timezone
 - `/admin` — members, deployment data location, billing stub
-- `/admin/ism` — ISM OSCAL import, seed, and revision removal panel
+- `/admin/frameworks` — official catalogue imports, tenant CSV/profile packs,
+  pack lifecycle, and custom assessment builder
 - `/admin/audit` — append-only viewer
 - `/admin/branding`, `/admin/ip-allowlist`, `/admin/compliance`
 - `/verify/[token]` — public certification verification
+- `/trust/[slug]` — immutable PUBLIC assurance snapshot and controlled PDF request
+- `/trust/access/[token]` — expiring, download-limited signed PDF redirect
 - `/api/auth/[...all]` — BetterAuth handler
 - `/api/interviews/[id]/ics` — calendar export
 - `/api/engagements/[id]/findings/csv` — findings register CSV
+- `/api/engagements/[id]/questionnaires/[questionnaireId]/csv` — audited questionnaire export
 - `/api/mcp` — bearer-authenticated Streamable HTTP assessment automation

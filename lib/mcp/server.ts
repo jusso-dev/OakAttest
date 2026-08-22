@@ -1,5 +1,5 @@
 import { McpServer, type CallToolResult } from '@modelcontextprotocol/server';
-import { and, asc, desc, eq, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, isNull, lte, or } from 'drizzle-orm';
 import { z } from 'zod';
 import { createClient } from '@/app/actions/clients';
 import { createEngagement, updateEngagementState } from '@/app/actions/engagements';
@@ -47,7 +47,7 @@ import { findings } from '@/db/schema/findings';
 import {
   engagementControls,
   frameworkControls,
-  frameworkImports,
+  frameworkPacks,
   frameworks,
 } from '@/db/schema/frameworks';
 import { engagementMembers } from '@/db/schema/tenants';
@@ -569,22 +569,43 @@ async function recordToolCall(
 
 async function listFrameworks(principal: McpPrincipal) {
   await requirePermission(ACTIONS.engagementView, { userId: principal.actor.id, tenantId: principal.tenantId });
-  const [frameworkRows, imports] = await Promise.all([
-    db.select().from(frameworks).orderBy(frameworks.label),
+  const now = new Date();
+  const [frameworkRows, packs] = await Promise.all([
+    db.select().from(frameworks)
+      .where(and(
+        eq(frameworks.lifecycleStatus, 'active'),
+        or(isNull(frameworks.tenantId), eq(frameworks.tenantId, principal.tenantId)),
+      ))
+      .orderBy(frameworks.label),
     db
-      .select({ frameworkId: frameworkImports.frameworkId, revision: frameworkImports.revision, controlCount: frameworkImports.controlCount, completedAt: frameworkImports.completedAt })
-      .from(frameworkImports)
-      .where(isNull(frameworkImports.tenantId))
-      .orderBy(desc(frameworkImports.completedAt)),
+      .select({
+        frameworkId: frameworkPacks.frameworkId,
+        revision: frameworkPacks.revision,
+        label: frameworkPacks.label,
+        controlCount: frameworkPacks.controlCount,
+        tenantId: frameworkPacks.tenantId,
+        activatedAt: frameworkPacks.activatedAt,
+      })
+      .from(frameworkPacks)
+      .where(and(
+        eq(frameworkPacks.status, 'active'),
+        or(isNull(frameworkPacks.tenantId), eq(frameworkPacks.tenantId, principal.tenantId)),
+        or(isNull(frameworkPacks.effectiveAt), lte(frameworkPacks.effectiveAt, now)),
+        or(isNull(frameworkPacks.expiresAt), gt(frameworkPacks.expiresAt, now)),
+      ))
+      .orderBy(desc(frameworkPacks.activatedAt)),
   ]);
-  const tenantImports = await db
-    .select({ frameworkId: frameworkImports.frameworkId, revision: frameworkImports.revision, controlCount: frameworkImports.controlCount, completedAt: frameworkImports.completedAt })
-    .from(frameworkImports)
-    .where(eq(frameworkImports.tenantId, principal.tenantId))
-    .orderBy(desc(frameworkImports.completedAt));
+  const selectedPacks = new Map<string, typeof packs[number]>();
+  for (const pack of packs) {
+    const key = `${pack.frameworkId}:${pack.revision}`;
+    const selected = selectedPacks.get(key);
+    if (!selected || (selected.tenantId === null && pack.tenantId === principal.tenantId)) {
+      selectedPacks.set(key, pack);
+    }
+  }
   return frameworkRows.map((framework) => ({
     ...framework,
-    revisions: [...imports, ...tenantImports].filter((row) => row.frameworkId === framework.id),
+    revisions: Array.from(selectedPacks.values()).filter((row) => row.frameworkId === framework.id),
   }));
 }
 

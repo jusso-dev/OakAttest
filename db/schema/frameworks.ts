@@ -25,10 +25,15 @@ export const frameworks = pgTable(
   'frameworks',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    // NULL = built-in/public framework. SET = private tenant-authored framework.
+    tenantId: uuid('tenant_id').references(() => tenants.id, { onDelete: 'cascade' }),
     // Stable key used by licensing (FRAMEWORK_FEATURE) and engagement creation:
     // 'ism' | 'nist-800-53' | 'fedramp' | 'soc2' | 'iso-27001'.
     key: text('key').notNull(),
     label: text('label').notNull(),
+    description: text('description'),
+    authority: text('authority'),
+    lifecycleStatus: text('lifecycle_status').notNull().default('active'),
     // How an engagement's initial control set is derived:
     //   'classification'    – cumulative inclusion by min rank (ISM today)
     //   'baseline_profile'  – OSCAL profile selects controls (NIST/FedRAMP)
@@ -48,9 +53,57 @@ export const frameworks = pgTable(
     classificationScheme: jsonb('classification_scheme').$type<
       Record<string, number>
     >(),
+    createdBy: uuid('created_by').references(() => users.id),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex('frameworks_key_uq').on(t.key)],
+  (t) => [
+    uniqueIndex('frameworks_global_key_uq').on(t.key).where(sql`${t.tenantId} is null`),
+    uniqueIndex('frameworks_tenant_key_uq').on(t.tenantId, t.key).where(sql`${t.tenantId} is not null`),
+    index('frameworks_tenant_idx').on(t.tenantId),
+  ],
+);
+
+// A selectable framework revision/profile with lifecycle and provenance.
+// Existing catalogue imports are backfilled as active packs. OSCAL profile
+// resolution and custom builder revisions add rows here before an engagement
+// may pin them.
+export const frameworkPacks = pgTable(
+  'framework_packs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    frameworkId: uuid('framework_id').notNull().references(() => frameworks.id, { onDelete: 'cascade' }),
+    tenantId: uuid('tenant_id').references(() => tenants.id, { onDelete: 'cascade' }),
+    revision: text('revision').notNull(),
+    label: text('label').notNull(),
+    description: text('description'),
+    status: text('status').notNull().default('draft'),
+    sourceKind: text('source_kind').notNull(),
+    sourceUrl: text('source_url'),
+    sourceSha256: text('source_sha256'),
+    baseFrameworkId: uuid('base_framework_id').references(() => frameworks.id),
+    baseRevision: text('base_revision'),
+    controlCount: integer('control_count').notNull().default(0),
+    effectiveAt: timestamp('effective_at', { withTimezone: true }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    authoredBy: uuid('authored_by').references(() => users.id),
+    approvedBy: uuid('approved_by').references(() => users.id),
+    activatedAt: timestamp('activated_at', { withTimezone: true }),
+    retiredAt: timestamp('retired_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('framework_packs_global_revision_uq')
+      .on(t.frameworkId, t.revision)
+      .where(sql`${t.tenantId} is null`),
+    uniqueIndex('framework_packs_tenant_revision_uq')
+      .on(t.frameworkId, t.tenantId, t.revision)
+      .where(sql`${t.tenantId} is not null`),
+    index('framework_packs_framework_status_idx').on(t.frameworkId, t.status),
+    index('framework_packs_tenant_idx').on(t.tenantId),
+  ],
 );
 
 // The catalogue. One row per (framework, control_id, revision). Older revisions
@@ -187,3 +240,4 @@ export const frameworkImports = pgTable(
 
 export type Framework = typeof frameworks.$inferSelect;
 export type FrameworkControl = typeof frameworkControls.$inferSelect;
+export type FrameworkPack = typeof frameworkPacks.$inferSelect;

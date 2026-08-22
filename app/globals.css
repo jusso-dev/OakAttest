@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../tokens.css";
 
 :root {
   --oak-shield: #0f3f2c;
@@ -21,6 +22,11 @@
   --color-oak-mist: var(--oak-mist);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
+
+html,
+body {
+  overflow-x: clip;
 }
 
 body {

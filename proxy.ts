@@ -19,6 +19,8 @@ const PUBLIC_PATHS = [
   '/sign-up',
   '/mfa',
   '/invite',
+  '/trust',
+  '/verify',
   '/forgot-password',
   '/reset-password',
 ];

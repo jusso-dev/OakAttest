@@ -1,0 +1,85 @@
+name: Pull request validation
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oakattest-pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: [self-hosted, linux]
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: oakattest_ci
+          POSTGRES_PASSWORD: oakattest_ci
+          POSTGRES_DB: oakattest_ci
+        ports:
+          - 5432
+        options: >-
+          --health-cmd "pg_isready -U oakattest_ci -d oakattest_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    env:
+      BETTER_AUTH_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: ci-only-secret-at-least-thirty-two-characters
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure database connection
+        run: echo "DATABASE_URL=postgresql://oakattest_ci:oakattest_ci@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/oakattest_ci" >> "$GITHUB_ENV"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test -- --run
+
+      - name: Validate migration journal
+        run: npx drizzle-kit check
+
+      - name: Apply migrations from zero
+        run: npm run db:migrate
+
+      - name: Seed framework registry
+        run: npm run db:seed:frameworks
+
+      - name: Production build
+        run: npm run build
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build ARM64 runtime image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          push: false
+          tags: ghcr.io/yumaitau/oakattest:pr-${{ github.event.pull_request.number || github.run_id }}

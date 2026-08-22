@@ -9,15 +9,42 @@ Two role scopes: **tenant** (assessor firm) and **engagement** (per assessment).
 | `tenant_owner`   | Tenant | Billing, member management, all engagements               |
 | `assessor_admin` | Tenant | Create engagements, assign assessors, view all engagements |
 
+Tenant owners and assessor administrators may manage framework packs. Only a platform
+administrator may import or replace a shared official catalogue. Tenant profile results,
+CSV packs, and custom controls remain tenant-scoped; engagement and client roles cannot
+author, activate, or retire them.
+
 ## Engagement roles
 
 | Role                 | Scope      | Capabilities                                                  |
 | -------------------- | ---------- | ------------------------------------------------------------- |
 | `lead_assessor`      | Engagement | Run the engagement, sign off findings, generate certification |
 | `assessor`           | Engagement | Review evidence, log findings, conduct interviews             |
-| `client_admin`       | Engagement | Invite client staff, manage system boundary, upload evidence  |
-| `client_contributor` | Engagement | Upload evidence, respond to evidence requests                 |
+| `client_admin`       | Engagement | Invite client staff, upload evidence, accept risk, authorise systems, manage monitoring |
+| `client_contributor` | Engagement | Upload evidence, respond to requests, treat risk, support monitoring |
 | `read_only_observer` | Engagement | View and download only (external auditor, liaison, peer reviewer) |
+
+Trust Portal state is visible to engagement members. Only `client_admin` can configure public wording,
+approve a PUBLIC release, decide controlled PDF requests, disable a publication, or revoke an access link.
+This is a client-accountability boundary: assessor and tenant-administration roles cannot publish on the
+client's behalf.
+
+Connector state and evidence-reuse records are visible to engagement members. Tenant owners, assessor
+administrators, lead assessors, and client administrators configure connectors; non-observer engagement
+roles may run an active connector. Clients and assessors can propose same-client evidence reuse, but only
+assessor roles approve, reject, or revoke a reuse decision. Tenant owners, assessor administrators, and
+lead assessors author tenant-scoped common-control mappings.
+
+Questionnaire state is visible to engagement members. Tenant owners, assessor administrators, lead
+assessors, and client administrators import, assign, finalise, and independently review responses.
+Assessors and client contributors may draft and submit cited answers but cannot approve them. Server-side
+four-eyes enforcement prevents any submitter from approving their own response; observers remain read only.
+
+Operational GRC records remain client-owned. Assessors, tenant administrators, and observers may inspect
+policy, personnel, access-review, and vendor-risk state as assessment evidence but cannot mutate it. Client
+contributors may draft policies, accept their own published-policy attestations, and maintain vendor due
+diligence. Only client administrators approve or publish policies, manage personnel and access reviews, and
+accept vendor residual risk.
 
 Audit readiness changes are limited to tenant owners, assessor admins, lead
 assessors, and client admins. Auditors use `read_only_observer`: they can inspect
@@ -54,6 +81,7 @@ call it.
 ## Independence guard (§15)
 
 Anything tagged `remediation_guidance` is callable only by client-side roles
-(`client_admin`, `client_contributor`). Assessor-side roles cannot invoke
-those actions even with elevated tenant permissions. This is checked in
-`requirePermission` via a hard branch on `action` prefix.
+(`client_admin`, `client_contributor`). Risk acceptance and system authorisation
+are restricted further to `client_admin`. Assessor-side and tenant-level roles
+cannot invoke those accountable client decisions. The static permission matrix
+and `assertIndependenceGuard()` enforce these boundaries.

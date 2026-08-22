@@ -5,10 +5,10 @@
 //
 // Catalogue availability differs (see docs/frameworks/multi-framework-plan.md):
 //   - ism, nist-800-53: official OSCAL catalogue → import by URL/release.
-//   - fedramp: NIST baseline + FedRAMP profile → needs the profile resolver
-//     (Phase 3); registered so it is visible.
-//   - soc2, iso-27001: copyrighted → client imports their licensed CSV (Phase 4).
+//   - fedramp: NIST baseline + uploaded FedRAMP OSCAL profile.
+//   - soc2, iso-27001: copyrighted → client imports their licensed CSV.
 import 'dotenv/config';
+import { isNull } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { frameworks } from '@/db/schema/frameworks';
 
@@ -16,6 +16,8 @@ const ROWS = [
   {
     key: 'ism',
     label: 'Australian Government ISM',
+    description: 'Australian Government Information Security Manual controls.',
+    authority: 'Australian Signals Directorate',
     scopingMode: 'classification',
     sourceKind: 'oscal_github_tags',
     sourceConfig: { repo: 'AustralianCyberSecurityCentre/ism-oscal' },
@@ -31,6 +33,8 @@ const ROWS = [
   {
     key: 'nist-800-53',
     label: 'NIST SP 800-53 Rev 5',
+    description: 'NIST security and privacy control catalogue with selectable OSCAL profiles.',
+    authority: 'National Institute of Standards and Technology',
     scopingMode: 'baseline_profile',
     sourceKind: 'oscal_url',
     sourceConfig: {
@@ -42,10 +46,12 @@ const ROWS = [
   {
     key: 'fedramp',
     label: 'FedRAMP (NIST 800-53 baselines)',
+    description: 'FedRAMP baselines resolved from official OSCAL profiles over NIST SP 800-53.',
+    authority: 'FedRAMP',
     scopingMode: 'baseline_profile',
     sourceKind: 'oscal_url',
     sourceConfig: {
-      note: 'FedRAMP baselines are OSCAL profiles over NIST 800-53; profile resolver pending (Phase 3).',
+      note: 'Upload an official FedRAMP OSCAL profile and resolve it against an imported NIST 800-53 revision.',
     },
     overlays: [],
     classificationScheme: null,
@@ -53,18 +59,33 @@ const ROWS = [
   {
     key: 'soc2',
     label: 'SOC 2 (Trust Services Criteria)',
+    description: 'Tenant-supplied licensed Trust Services Criteria control set.',
+    authority: 'AICPA',
     scopingMode: 'selection',
     sourceKind: 'csv_client_import',
-    sourceConfig: { note: 'Client uploads their licensed AICPA TSC control set via CSV (Phase 4).' },
+    sourceConfig: { note: 'Client uploads their licensed AICPA TSC control set via CSV.' },
     overlays: [],
     classificationScheme: null,
   },
   {
     key: 'iso-27001',
     label: 'ISO/IEC 27001 (Annex A)',
+    description: 'Tenant-supplied licensed ISO/IEC 27001 Annex A control set.',
+    authority: 'ISO/IEC',
     scopingMode: 'selection',
     sourceKind: 'csv_client_import',
-    sourceConfig: { note: 'Client uploads their licensed Annex A control set via CSV (Phase 4).' },
+    sourceConfig: { note: 'Client uploads their licensed Annex A control set via CSV.' },
+    overlays: [],
+    classificationScheme: null,
+  },
+  {
+    key: 'pspf',
+    label: 'Protective Security Policy Framework',
+    description: 'Australian Government protective security policy assessment pack.',
+    authority: 'Australian Government',
+    scopingMode: 'selection',
+    sourceKind: 'csv_client_import',
+    sourceConfig: { template: '/templates/pspf-controls-template.csv' },
     overlays: [],
     classificationScheme: null,
   },
@@ -77,6 +98,8 @@ async function main() {
       .values({
         key: row.key,
         label: row.label,
+        description: row.description,
+        authority: row.authority,
         scopingMode: row.scopingMode,
         sourceKind: row.sourceKind,
         sourceConfig: row.sourceConfig as Record<string, unknown>,
@@ -85,8 +108,11 @@ async function main() {
       })
       .onConflictDoUpdate({
         target: frameworks.key,
+        targetWhere: isNull(frameworks.tenantId),
         set: {
           label: row.label,
+          description: row.description,
+          authority: row.authority,
           scopingMode: row.scopingMode,
           sourceKind: row.sourceKind,
           sourceConfig: row.sourceConfig as Record<string, unknown>,
@@ -95,14 +121,12 @@ async function main() {
         },
       });
   }
-  // eslint-disable-next-line no-console
   console.log(`[seed] Framework registry: ${ROWS.length} frameworks upserted.`);
 }
 
 main()
   .then(() => process.exit(0))
   .catch((err) => {
-    // eslint-disable-next-line no-console
     console.error(err);
     process.exit(1);
   });

@@ -5,6 +5,10 @@ import { Resend } from 'resend';
 import { MagicLinkEmail } from './templates/MagicLink';
 import { EngagementInviteEmail } from './templates/EngagementInvite';
 import { TenantInviteEmail } from './templates/TenantInvite';
+import {
+  TrustPortalAccessGrantedEmail,
+  TrustPortalAccessRequestEmail,
+} from './templates/TrustPortalAccess';
 
 const apiKey = process.env.RESEND_API_KEY;
 const from = process.env.EMAIL_FROM ?? 'OakAttest <no-reply@oakattest.example>';
@@ -61,5 +65,43 @@ export async function sendTenantInviteEmail({
     to,
     subject: `${inviterName} has invited you to ${tenantName} on OakAttest`,
     react: TenantInviteEmail({ url, tenantName, inviterName }),
+  });
+}
+
+export async function sendTrustPortalAccessRequestEmail({
+  to,
+  requesterEmail,
+  requesterOrganisation,
+  portalTitle,
+}: {
+  to: string;
+  requesterEmail: string;
+  requesterOrganisation: string;
+  portalTitle: string;
+}) {
+  await send({
+    to,
+    subject: `Access requested for ${portalTitle}`,
+    react: TrustPortalAccessRequestEmail({ portalTitle, requesterEmail, requesterOrganisation }),
+  });
+}
+
+export async function sendTrustPortalAccessGrantedEmail({
+  to,
+  portalTitle,
+  accessUrl,
+  expiresAt,
+  maxDownloads,
+}: {
+  to: string;
+  portalTitle: string;
+  accessUrl: string;
+  expiresAt: string;
+  maxDownloads: number;
+}) {
+  await send({
+    to,
+    subject: `Access approved for ${portalTitle}`,
+    react: TrustPortalAccessGrantedEmail({ portalTitle, accessUrl, expiresAt, maxDownloads }),
   });
 }

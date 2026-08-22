@@ -22,3 +22,8 @@ export * from './collaboration';
 export * from './clients';
 export * from './audit-readiness';
 export * from './mcp';
+export * from './assurance-lifecycle';
+export * from './trust-portal';
+export * from './assurance-connectors';
+export * from './questionnaires';
+export * from './operational-grc';
