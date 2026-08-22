@@ -23,3 +23,4 @@ export * from './clients';
 export * from './audit-readiness';
 export * from './mcp';
 export * from './assurance-lifecycle';
+export * from './trust-portal';

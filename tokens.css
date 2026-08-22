@@ -1,0 +1,59 @@
+:root {
+  --color-paper: oklch(97% 0.01 145);
+  --color-paper-2: oklch(99% 0.008 90);
+  --color-paper-3: oklch(94% 0.025 145);
+  --color-rule: oklch(86% 0.018 250);
+  --color-rule-2: oklch(76% 0.035 150);
+  --color-muted: oklch(48% 0.035 258);
+  --color-neutral: oklch(38% 0.04 258);
+  --color-ink-2: oklch(30% 0.045 258);
+  --color-ink: oklch(20% 0.04 265);
+  --color-accent: oklch(35% 0.075 155);
+  --color-accent-hover: oklch(42% 0.085 155);
+  --color-accent-ink: oklch(99% 0.008 90);
+  --color-focus: oklch(35% 0.075 155);
+  --color-warning: oklch(42% 0.09 75);
+  --color-warning-paper: oklch(98% 0.025 90);
+  --color-error: oklch(49% 0.18 28);
+  --color-success: oklch(40% 0.09 155);
+  --color-transparent: transparent;
+
+  --font-display: var(--font-geist-sans, Arial), Helvetica, sans-serif;
+  --font-body: var(--font-geist-sans, Arial), Helvetica, sans-serif;
+  --font-outlier: var(--font-geist-mono, monospace);
+
+  --space-3xs: 0.125rem;
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --space-2xl: 4rem;
+  --space-3xl: 6rem;
+  --space-4xl: 9rem;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.25rem;
+  --text-lg: 1.5625rem;
+  --text-xl: 1.953rem;
+  --text-2xl: 2.441rem;
+  --text-display: clamp(2.5rem, 6vw + 0.5rem, 4.75rem);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
+
+  --rule-hair: 1px;
+  --rule-fine: 2px;
+  --rule-focus: 3px;
+  --radius-card: 0.5rem;
+  --radius-pill: 999px;
+  --radius-input: 0.375rem;
+  --shadow-card: 0 1px 2px oklch(20% 0.04 265 / 0.05);
+}

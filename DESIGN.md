@@ -119,7 +119,178 @@ The palette is a restrained product palette: readable slate neutrals with a deep
 
 **The Readability Rule.** Light fields must always carry Assessment Ink text. Never inherit browser dark-mode body colour into form controls.
 
-## 3. Typography
+## 3. Exports
+
+The canonical runtime export is [`tokens.css`](tokens.css). The equivalent formats below keep the same
+Assessment Ledger decisions available to other consumers. Do not edit generated consumers independently.
+
+### CSS custom properties
+
+```css
+:root {
+  --color-paper: oklch(97% 0.01 145);
+  --color-paper-2: oklch(99% 0.008 90);
+  --color-paper-3: oklch(94% 0.025 145);
+  --color-rule: oklch(86% 0.018 250);
+  --color-rule-2: oklch(76% 0.035 150);
+  --color-muted: oklch(48% 0.035 258);
+  --color-neutral: oklch(38% 0.04 258);
+  --color-ink-2: oklch(30% 0.045 258);
+  --color-ink: oklch(20% 0.04 265);
+  --color-accent: oklch(35% 0.075 155);
+  --color-accent-hover: oklch(42% 0.085 155);
+  --color-accent-ink: oklch(99% 0.008 90);
+  --color-focus: oklch(35% 0.075 155);
+  --color-warning: oklch(42% 0.09 75);
+  --color-warning-paper: oklch(98% 0.025 90);
+  --color-error: oklch(49% 0.18 28);
+  --color-success: oklch(40% 0.09 155);
+  --font-display: var(--font-geist-sans, Arial), Helvetica, sans-serif;
+  --font-body: var(--font-geist-sans, Arial), Helvetica, sans-serif;
+  --font-outlier: var(--font-geist-mono, monospace);
+  --space-3xs: 0.125rem;
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --space-2xl: 4rem;
+  --space-3xl: 6rem;
+  --space-4xl: 9rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.25rem;
+  --text-lg: 1.5625rem;
+  --text-xl: 1.953rem;
+  --text-2xl: 2.441rem;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
+  --radius-card: 0.5rem;
+  --radius-input: 0.375rem;
+  --radius-pill: 999px;
+}
+```
+
+### Tailwind CSS 4 theme
+
+```css
+@theme inline {
+  --color-paper: var(--color-paper);
+  --color-paper-2: var(--color-paper-2);
+  --color-paper-3: var(--color-paper-3);
+  --color-rule: var(--color-rule);
+  --color-muted: var(--color-muted);
+  --color-neutral: var(--color-neutral);
+  --color-ink: var(--color-ink);
+  --color-accent: var(--color-accent);
+  --color-accent-hover: var(--color-accent-hover);
+  --color-accent-ink: var(--color-accent-ink);
+  --color-warning: var(--color-warning);
+  --color-error: var(--color-error);
+  --color-success: var(--color-success);
+  --font-display: var(--font-display);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-outlier);
+  --spacing-1: var(--space-2xs);
+  --spacing-2: var(--space-xs);
+  --spacing-3: var(--space-sm);
+  --spacing-4: var(--space-md);
+  --spacing-6: var(--space-lg);
+  --spacing-10: var(--space-xl);
+  --spacing-16: var(--space-2xl);
+  --spacing-24: var(--space-3xl);
+  --radius-sm: var(--radius-input);
+  --radius-md: var(--radius-card);
+}
+```
+
+### DTCG `tokens.json`
+
+```json
+{
+  "color": {
+    "$type": "color",
+    "paper": { "$value": "oklch(97% 0.01 145)" },
+    "panel": { "$value": "oklch(99% 0.008 90)" },
+    "raised": { "$value": "oklch(94% 0.025 145)" },
+    "rule": { "$value": "oklch(86% 0.018 250)" },
+    "muted": { "$value": "oklch(48% 0.035 258)" },
+    "neutral": { "$value": "oklch(38% 0.04 258)" },
+    "ink": { "$value": "oklch(20% 0.04 265)" },
+    "accent": { "$value": "oklch(35% 0.075 155)" },
+    "accentHover": { "$value": "oklch(42% 0.085 155)" },
+    "accentInk": { "$value": "oklch(99% 0.008 90)" },
+    "warning": { "$value": "oklch(42% 0.09 75)" },
+    "error": { "$value": "oklch(49% 0.18 28)" },
+    "success": { "$value": "oklch(40% 0.09 155)" }
+  },
+  "space": {
+    "$type": "dimension",
+    "3xs": { "$value": "0.125rem" },
+    "2xs": { "$value": "0.25rem" },
+    "xs": { "$value": "0.5rem" },
+    "sm": { "$value": "0.75rem" },
+    "md": { "$value": "1rem" },
+    "lg": { "$value": "1.5rem" },
+    "xl": { "$value": "2.5rem" },
+    "2xl": { "$value": "4rem" },
+    "3xl": { "$value": "6rem" },
+    "4xl": { "$value": "9rem" }
+  },
+  "radius": {
+    "$type": "dimension",
+    "input": { "$value": "0.375rem" },
+    "card": { "$value": "0.5rem" },
+    "pill": { "$value": "999px" }
+  },
+  "duration": {
+    "$type": "duration",
+    "micro": { "$value": "120ms" },
+    "short": { "$value": "220ms" },
+    "long": { "$value": "420ms" }
+  },
+  "font": {
+    "$type": "fontFamily",
+    "body": { "$value": ["Geist", "Arial", "Helvetica", "sans-serif"] },
+    "mono": { "$value": ["Geist Mono", "monospace"] }
+  }
+}
+```
+
+### shadcn variables
+
+```css
+:root {
+  --background: var(--color-paper);
+  --foreground: var(--color-ink);
+  --card: var(--color-paper-2);
+  --card-foreground: var(--color-ink);
+  --popover: var(--color-paper-2);
+  --popover-foreground: var(--color-ink);
+  --primary: var(--color-accent);
+  --primary-foreground: var(--color-accent-ink);
+  --secondary: var(--color-paper-3);
+  --secondary-foreground: var(--color-ink-2);
+  --muted: var(--color-paper-3);
+  --muted-foreground: var(--color-muted);
+  --accent: var(--color-paper-3);
+  --accent-foreground: var(--color-accent);
+  --destructive: var(--color-error);
+  --destructive-foreground: var(--color-accent-ink);
+  --border: var(--color-rule);
+  --input: var(--color-rule-2);
+  --ring: var(--color-focus);
+  --radius: var(--radius-card);
+}
+```
+
+## 4. Typography
 
 **Display Font:** Geist, with Arial, Helvetica, and sans-serif fallback
 **Body Font:** Geist, with Arial, Helvetica, and sans-serif fallback
@@ -137,7 +308,7 @@ The palette is a restrained product palette: readable slate neutrals with a deep
 ### Named Rules
 **The No Display Drama Rule.** Do not use oversized marketing typography inside authenticated product screens.
 
-## 4. Elevation
+## 5. Elevation
 
 OakAttest uses low elevation. Depth comes from warm white panels on an oak-mist background, 1px borders, and a small shadow on cards. Shadows should help distinguish surfaces, not create visual drama.
 
@@ -148,7 +319,7 @@ OakAttest uses low elevation. Depth comes from warm white panels on an oak-mist 
 ### Named Rules
 **The Flat-By-Default Rule.** Tables, forms, and nav items are bordered or tonal at rest. Reserve heavier shadows for overlays.
 
-## 5. Components
+## 6. Components
 
 ### Buttons
 - **Shape:** Compact rounded rectangle, 6px radius.
@@ -179,7 +350,7 @@ OakAttest uses low elevation. Depth comes from warm white panels on an oak-mist 
 - **Use:** Product surfaces use the shield mark plus live OakAttest text so it scales cleanly in compact layouts.
 - **Treatment:** Keep the logo on light surfaces. Do not recolour or place it on dark or high-noise backgrounds.
 
-## 6. Do's and Don'ts
+## 7. Do's and Don'ts
 
 ### Do:
 - **Do** use Oak Shield (#0f3f2c) only for primary actions, identity, and rare emphasis.

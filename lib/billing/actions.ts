@@ -36,6 +36,7 @@ export const MUTATING_ACTIONS: ReadonlySet<string> = new Set([
   ACTIONS.systemAuthorise,
   ACTIONS.monitoringManage,
   ACTIONS.monitoringEventCreate,
+  ACTIONS.trustPortalManage,
   ACTIONS.sspExportDelete,
   ACTIONS.remediationGuidanceWrite,
 ]);

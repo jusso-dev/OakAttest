@@ -102,6 +102,10 @@ export const ACTIONS = {
   monitoringManage: 'monitoring:manage',
   monitoringEventCreate: 'monitoring_event:create',
 
+  // public assurance publication
+  trustPortalView: 'trust_portal:view',
+  trustPortalManage: 'trust_portal:manage',
+
   // exports
   sspExportDelete: 'ssp_export:delete',
 
@@ -263,6 +267,16 @@ export const PERMISSIONS: Record<Action, Allow> = {
     'client_admin',
     'client_contributor',
   ],
+  [ACTIONS.trustPortalView]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
+    'read_only_observer',
+  ],
+  [ACTIONS.trustPortalManage]: ['client_admin'],
 
   // Exports
   [ACTIONS.sspExportDelete]: [
@@ -289,6 +303,7 @@ export function assertIndependenceGuard(): void {
   const clientAccountabilityActions: ReadonlySet<Action> = new Set([
     ACTIONS.riskAccept,
     ACTIONS.systemAuthorise,
+    ACTIONS.trustPortalManage,
   ]);
   for (const action of Object.values(ACTIONS)) {
     if (!action.startsWith('remediation_guidance:') && !clientAccountabilityActions.has(action)) continue;

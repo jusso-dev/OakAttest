@@ -196,6 +196,8 @@ viewport captures so the README remains readable.
   procedures, representative samples, evidence quality, limitations, alternate
   controls, and formal exception approvals against the August 2024 assessment
   process guide.
+- Client-controlled Trust Portal publishing immutable PUBLIC snapshots of signed
+  assessment artefacts, with verification links and expiring, audited PDF access.
 - Assessment coverage dashboard that highlights blockers across controls,
   evidence, findings, SSP material, Essential Eight, and certification.
 - Burl AI helper popup and dedicated workspace for ISM questions, PDF evidence

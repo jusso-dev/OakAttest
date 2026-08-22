@@ -109,6 +109,8 @@ exhaustive list.
 - `/admin/audit` — append-only viewer
 - `/admin/branding`, `/admin/ip-allowlist`, `/admin/compliance`
 - `/verify/[token]` — public certification verification
+- `/trust/[slug]` — immutable PUBLIC assurance snapshot and controlled PDF request
+- `/trust/access/[token]` — expiring, download-limited signed PDF redirect
 - `/api/auth/[...all]` — BetterAuth handler
 - `/api/interviews/[id]/ics` — calendar export
 - `/api/engagements/[id]/findings/csv` — findings register CSV

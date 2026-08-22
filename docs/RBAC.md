@@ -19,6 +19,11 @@ Two role scopes: **tenant** (assessor firm) and **engagement** (per assessment).
 | `client_contributor` | Engagement | Upload evidence, respond to requests, treat risk, support monitoring |
 | `read_only_observer` | Engagement | View and download only (external auditor, liaison, peer reviewer) |
 
+Trust Portal state is visible to engagement members. Only `client_admin` can configure public wording,
+approve a PUBLIC release, decide controlled PDF requests, disable a publication, or revoke an access link.
+This is a client-accountability boundary: assessor and tenant-administration roles cannot publish on the
+client's behalf.
+
 Audit readiness changes are limited to tenant owners, assessor admins, lead
 assessors, and client admins. Auditors use `read_only_observer`: they can inspect
 the workspace, evidence, findings, and immutable packages, but cannot change
