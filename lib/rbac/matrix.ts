@@ -106,6 +106,15 @@ export const ACTIONS = {
   trustPortalView: 'trust_portal:view',
   trustPortalManage: 'trust_portal:manage',
 
+  // automated assurance and reusable evidence
+  connectorView: 'connector:view',
+  connectorManage: 'connector:manage',
+  connectorRun: 'connector:run',
+  commonControlManage: 'common_control:manage',
+  evidenceReuseView: 'evidence_reuse:view',
+  evidenceReusePropose: 'evidence_reuse:propose',
+  evidenceReuseReview: 'evidence_reuse:review',
+
   // exports
   sspExportDelete: 'ssp_export:delete',
 
@@ -277,6 +286,29 @@ export const PERMISSIONS: Record<Action, Allow> = {
     'read_only_observer',
   ],
   [ACTIONS.trustPortalManage]: ['client_admin'],
+  [ACTIONS.connectorView]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
+    'read_only_observer',
+  ],
+  [ACTIONS.connectorManage]: ['tenant_owner', 'assessor_admin', 'lead_assessor', 'client_admin'],
+  [ACTIONS.connectorRun]: ['tenant_owner', 'assessor_admin', 'lead_assessor', 'assessor', 'client_admin', 'client_contributor'],
+  [ACTIONS.commonControlManage]: ['tenant_owner', 'assessor_admin', 'lead_assessor'],
+  [ACTIONS.evidenceReuseView]: [
+    'tenant_owner',
+    'assessor_admin',
+    'lead_assessor',
+    'assessor',
+    'client_admin',
+    'client_contributor',
+    'read_only_observer',
+  ],
+  [ACTIONS.evidenceReusePropose]: ['lead_assessor', 'assessor', 'client_admin', 'client_contributor'],
+  [ACTIONS.evidenceReuseReview]: ['lead_assessor', 'assessor'],
 
   // Exports
   [ACTIONS.sspExportDelete]: [

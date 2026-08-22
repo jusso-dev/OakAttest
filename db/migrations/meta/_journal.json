@@ -169,6 +169,13 @@
       "when": 1790001100000,
       "tag": "0023_trust_portal",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790001200000,
+      "tag": "0024_assurance_connectors",
+      "breakpoints": true
     }
   ]
 }

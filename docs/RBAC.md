@@ -24,6 +24,12 @@ approve a PUBLIC release, decide controlled PDF requests, disable a publication,
 This is a client-accountability boundary: assessor and tenant-administration roles cannot publish on the
 client's behalf.
 
+Connector state and evidence-reuse records are visible to engagement members. Tenant owners, assessor
+administrators, lead assessors, and client administrators configure connectors; non-observer engagement
+roles may run an active connector. Clients and assessors can propose same-client evidence reuse, but only
+assessor roles approve, reject, or revoke a reuse decision. Tenant owners, assessor administrators, and
+lead assessors author tenant-scoped common-control mappings.
+
 Audit readiness changes are limited to tenant owners, assessor admins, lead
 assessors, and client admins. Auditors use `read_only_observer`: they can inspect
 the workspace, evidence, findings, and immutable packages, but cannot change

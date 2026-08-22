@@ -198,6 +198,8 @@ viewport captures so the README remains readable.
   process guide.
 - Client-controlled Trust Portal publishing immutable PUBLIC snapshots of signed
   assessment artefacts, with verification links and expiring, audited PDF access.
+- Role-only AWS Security Hub assurance connector, scheduled machine tests,
+  control mappings, and assessor-approved same-client evidence reuse without copying objects.
 - Assessment coverage dashboard that highlights blockers across controls,
   evidence, findings, SSP material, Essential Eight, and certification.
 - Burl AI helper popup and dedicated workspace for ISM questions, PDF evidence

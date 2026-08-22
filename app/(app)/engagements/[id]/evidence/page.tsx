@@ -201,7 +201,9 @@ export default async function EvidencePage({
 
       <p className="text-xs text-slate-600">
         See <Link href={`/engagements/${id}/evidence/cve`} className="underline">CVE scan as evidence</Link>{' '}
-        for supply-chain snapshots.
+        for supply-chain snapshots, or open{' '}
+        <Link href={`/engagements/${id}/connectors`} className="underline">assurance automation</Link>{' '}
+        for connector observations and governed evidence reuse.
       </p>
     </div>
   );

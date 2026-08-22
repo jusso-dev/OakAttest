@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import { syncAvailableIsmReleases } from '@/lib/frameworks/sync';
+import { runDueAssuranceConnectors } from '@/lib/connectors/run';
 
 export type JobStatus = {
   name: string;
@@ -21,6 +22,11 @@ const jobDefinitions = [
     name: 'ISM releases',
     schedule: process.env.ISM_RELEASE_SYNC_CRON ?? '0 3 * * *',
     run: async () => syncAvailableIsmReleases(),
+  },
+  {
+    name: 'Assurance connectors',
+    schedule: process.env.ASSURANCE_CONNECTOR_CRON ?? '*/5 * * * *',
+    run: async () => runDueAssuranceConnectors(),
   },
 ] as const;
 

@@ -104,6 +104,8 @@ exhaustive list.
 - `/engagements/[id]/certification` — draft, sign, public verify URL
 - `/engagements/[id]/audit-readiness` — ISO 27001 Stage 1 or SOC 2 readiness,
   auditor access, and timestamped evidence packages
+- `/engagements/[id]/connectors` — role-only assurance connectors, machine-test
+  ledger, common-control mappings, and governed evidence reuse
 - `/admin` — members, deployment data location, billing stub
 - `/admin/ism` — ISM OSCAL import, seed, and revision removal panel
 - `/admin/audit` — append-only viewer
