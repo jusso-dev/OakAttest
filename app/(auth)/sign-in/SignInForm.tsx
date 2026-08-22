@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { signIn } from '@/lib/auth/client';
+import { safeNextPath } from '@/lib/auth/redirect';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email address'),
@@ -38,7 +39,7 @@ export function SignInForm() {
       setServerError(result.error.message ?? 'Unable to sign in');
       return;
     }
-    router.push(next?.startsWith('/') ? next : '/dashboard');
+    router.replace(safeNextPath(next));
   }
 
   return (

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getSessionCookie } from 'better-auth/cookies';
 
 // Edge proxy (Next.js 16's renamed "middleware") enforces session-level
 // invariants documented in §5:
@@ -42,7 +43,10 @@ export default function proxy(req: NextRequest) {
 
   if (isPublic(pathname)) return NextResponse.next();
 
-  const sessionCookie = req.cookies.get('better-auth.session_token')?.value;
+  // Better Auth prefixes its cookies with `__Secure-` in production. Use its
+  // cookie resolver so this optimistic gate recognises both HTTPS production
+  // sessions and unprefixed local-development sessions.
+  const sessionCookie = getSessionCookie(req);
   if (!sessionCookie) {
     const url = req.nextUrl.clone();
     url.pathname = '/signin';
