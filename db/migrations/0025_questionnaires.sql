@@ -74,22 +74,22 @@ CREATE TABLE "questionnaire_answer_citations" (
 
 ALTER TABLE "questionnaires" ADD CONSTRAINT "questionnaires_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
 ALTER TABLE "questionnaires" ADD CONSTRAINT "questionnaires_engagement_id_engagements_id_fk" FOREIGN KEY ("engagement_id") REFERENCES "public"."engagements"("id") ON DELETE cascade;
-ALTER TABLE "questionnaires" ADD CONSTRAINT "questionnaires_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id");
-ALTER TABLE "questionnaires" ADD CONSTRAINT "questionnaires_finalised_by_user_id_fk" FOREIGN KEY ("finalised_by") REFERENCES "public"."user"("id");
+ALTER TABLE "questionnaires" ADD CONSTRAINT "questionnaires_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id");
+ALTER TABLE "questionnaires" ADD CONSTRAINT "questionnaires_finalised_by_user_id_fk" FOREIGN KEY ("finalised_by") REFERENCES "public"."users"("id");
 
 ALTER TABLE "questionnaire_questions" ADD CONSTRAINT "questionnaire_questions_questionnaire_id_questionnaires_id_fk" FOREIGN KEY ("questionnaire_id") REFERENCES "public"."questionnaires"("id") ON DELETE cascade;
 ALTER TABLE "questionnaire_questions" ADD CONSTRAINT "questionnaire_questions_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
 ALTER TABLE "questionnaire_questions" ADD CONSTRAINT "questionnaire_questions_engagement_id_engagements_id_fk" FOREIGN KEY ("engagement_id") REFERENCES "public"."engagements"("id") ON DELETE cascade;
-ALTER TABLE "questionnaire_questions" ADD CONSTRAINT "questionnaire_questions_assigned_to_user_id_user_id_fk" FOREIGN KEY ("assigned_to_user_id") REFERENCES "public"."user"("id");
-ALTER TABLE "questionnaire_questions" ADD CONSTRAINT "questionnaire_questions_assigned_by_user_id_fk" FOREIGN KEY ("assigned_by") REFERENCES "public"."user"("id");
+ALTER TABLE "questionnaire_questions" ADD CONSTRAINT "questionnaire_questions_assigned_to_user_id_user_id_fk" FOREIGN KEY ("assigned_to_user_id") REFERENCES "public"."users"("id");
+ALTER TABLE "questionnaire_questions" ADD CONSTRAINT "questionnaire_questions_assigned_by_user_id_fk" FOREIGN KEY ("assigned_by") REFERENCES "public"."users"("id");
 
 ALTER TABLE "questionnaire_answers" ADD CONSTRAINT "questionnaire_answers_question_id_questionnaire_questions_id_fk" FOREIGN KEY ("question_id") REFERENCES "public"."questionnaire_questions"("id") ON DELETE cascade;
 ALTER TABLE "questionnaire_answers" ADD CONSTRAINT "questionnaire_answers_questionnaire_id_questionnaires_id_fk" FOREIGN KEY ("questionnaire_id") REFERENCES "public"."questionnaires"("id") ON DELETE cascade;
 ALTER TABLE "questionnaire_answers" ADD CONSTRAINT "questionnaire_answers_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
 ALTER TABLE "questionnaire_answers" ADD CONSTRAINT "questionnaire_answers_engagement_id_engagements_id_fk" FOREIGN KEY ("engagement_id") REFERENCES "public"."engagements"("id") ON DELETE cascade;
-ALTER TABLE "questionnaire_answers" ADD CONSTRAINT "questionnaire_answers_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id");
-ALTER TABLE "questionnaire_answers" ADD CONSTRAINT "questionnaire_answers_submitted_by_user_id_fk" FOREIGN KEY ("submitted_by") REFERENCES "public"."user"("id");
-ALTER TABLE "questionnaire_answers" ADD CONSTRAINT "questionnaire_answers_reviewed_by_user_id_fk" FOREIGN KEY ("reviewed_by") REFERENCES "public"."user"("id");
+ALTER TABLE "questionnaire_answers" ADD CONSTRAINT "questionnaire_answers_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id");
+ALTER TABLE "questionnaire_answers" ADD CONSTRAINT "questionnaire_answers_submitted_by_user_id_fk" FOREIGN KEY ("submitted_by") REFERENCES "public"."users"("id");
+ALTER TABLE "questionnaire_answers" ADD CONSTRAINT "questionnaire_answers_reviewed_by_user_id_fk" FOREIGN KEY ("reviewed_by") REFERENCES "public"."users"("id");
 
 ALTER TABLE "questionnaire_answer_citations" ADD CONSTRAINT "questionnaire_answer_citations_answer_id_questionnaire_answers_id_fk" FOREIGN KEY ("answer_id") REFERENCES "public"."questionnaire_answers"("id") ON DELETE cascade;
 ALTER TABLE "questionnaire_answer_citations" ADD CONSTRAINT "questionnaire_answer_citations_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");

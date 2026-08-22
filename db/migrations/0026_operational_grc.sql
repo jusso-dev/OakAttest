@@ -130,39 +130,39 @@ CREATE TABLE "vendor_risk_records" (
 
 ALTER TABLE "governance_policies" ADD CONSTRAINT "governance_policies_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
 ALTER TABLE "governance_policies" ADD CONSTRAINT "governance_policies_engagement_id_engagements_id_fk" FOREIGN KEY ("engagement_id") REFERENCES "public"."engagements"("id") ON DELETE cascade;
-ALTER TABLE "governance_policies" ADD CONSTRAINT "governance_policies_owner_user_id_user_id_fk" FOREIGN KEY ("owner_user_id") REFERENCES "public"."user"("id");
-ALTER TABLE "governance_policies" ADD CONSTRAINT "governance_policies_approved_by_user_id_fk" FOREIGN KEY ("approved_by") REFERENCES "public"."user"("id");
-ALTER TABLE "governance_policies" ADD CONSTRAINT "governance_policies_published_by_user_id_fk" FOREIGN KEY ("published_by") REFERENCES "public"."user"("id");
-ALTER TABLE "governance_policies" ADD CONSTRAINT "governance_policies_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id");
+ALTER TABLE "governance_policies" ADD CONSTRAINT "governance_policies_owner_user_id_user_id_fk" FOREIGN KEY ("owner_user_id") REFERENCES "public"."users"("id");
+ALTER TABLE "governance_policies" ADD CONSTRAINT "governance_policies_approved_by_user_id_fk" FOREIGN KEY ("approved_by") REFERENCES "public"."users"("id");
+ALTER TABLE "governance_policies" ADD CONSTRAINT "governance_policies_published_by_user_id_fk" FOREIGN KEY ("published_by") REFERENCES "public"."users"("id");
+ALTER TABLE "governance_policies" ADD CONSTRAINT "governance_policies_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id");
 
 ALTER TABLE "policy_attestations" ADD CONSTRAINT "policy_attestations_policy_id_governance_policies_id_fk" FOREIGN KEY ("policy_id") REFERENCES "public"."governance_policies"("id") ON DELETE cascade;
 ALTER TABLE "policy_attestations" ADD CONSTRAINT "policy_attestations_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
 ALTER TABLE "policy_attestations" ADD CONSTRAINT "policy_attestations_engagement_id_engagements_id_fk" FOREIGN KEY ("engagement_id") REFERENCES "public"."engagements"("id") ON DELETE cascade;
-ALTER TABLE "policy_attestations" ADD CONSTRAINT "policy_attestations_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id");
+ALTER TABLE "policy_attestations" ADD CONSTRAINT "policy_attestations_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id");
 
 ALTER TABLE "personnel_assurance_records" ADD CONSTRAINT "personnel_assurance_records_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
 ALTER TABLE "personnel_assurance_records" ADD CONSTRAINT "personnel_assurance_records_engagement_id_engagements_id_fk" FOREIGN KEY ("engagement_id") REFERENCES "public"."engagements"("id") ON DELETE cascade;
-ALTER TABLE "personnel_assurance_records" ADD CONSTRAINT "personnel_assurance_records_owner_user_id_user_id_fk" FOREIGN KEY ("owner_user_id") REFERENCES "public"."user"("id");
-ALTER TABLE "personnel_assurance_records" ADD CONSTRAINT "personnel_assurance_records_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id");
-ALTER TABLE "personnel_assurance_records" ADD CONSTRAINT "personnel_assurance_records_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."user"("id");
+ALTER TABLE "personnel_assurance_records" ADD CONSTRAINT "personnel_assurance_records_owner_user_id_user_id_fk" FOREIGN KEY ("owner_user_id") REFERENCES "public"."users"("id");
+ALTER TABLE "personnel_assurance_records" ADD CONSTRAINT "personnel_assurance_records_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id");
+ALTER TABLE "personnel_assurance_records" ADD CONSTRAINT "personnel_assurance_records_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."users"("id");
 
 ALTER TABLE "access_review_campaigns" ADD CONSTRAINT "access_review_campaigns_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
 ALTER TABLE "access_review_campaigns" ADD CONSTRAINT "access_review_campaigns_engagement_id_engagements_id_fk" FOREIGN KEY ("engagement_id") REFERENCES "public"."engagements"("id") ON DELETE cascade;
-ALTER TABLE "access_review_campaigns" ADD CONSTRAINT "access_review_campaigns_owner_user_id_user_id_fk" FOREIGN KEY ("owner_user_id") REFERENCES "public"."user"("id");
-ALTER TABLE "access_review_campaigns" ADD CONSTRAINT "access_review_campaigns_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id");
+ALTER TABLE "access_review_campaigns" ADD CONSTRAINT "access_review_campaigns_owner_user_id_user_id_fk" FOREIGN KEY ("owner_user_id") REFERENCES "public"."users"("id");
+ALTER TABLE "access_review_campaigns" ADD CONSTRAINT "access_review_campaigns_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id");
 
 ALTER TABLE "access_review_items" ADD CONSTRAINT "access_review_items_campaign_id_access_review_campaigns_id_fk" FOREIGN KEY ("campaign_id") REFERENCES "public"."access_review_campaigns"("id") ON DELETE cascade;
 ALTER TABLE "access_review_items" ADD CONSTRAINT "access_review_items_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
 ALTER TABLE "access_review_items" ADD CONSTRAINT "access_review_items_engagement_id_engagements_id_fk" FOREIGN KEY ("engagement_id") REFERENCES "public"."engagements"("id") ON DELETE cascade;
-ALTER TABLE "access_review_items" ADD CONSTRAINT "access_review_items_reviewer_user_id_user_id_fk" FOREIGN KEY ("reviewer_user_id") REFERENCES "public"."user"("id");
-ALTER TABLE "access_review_items" ADD CONSTRAINT "access_review_items_decided_by_user_id_fk" FOREIGN KEY ("decided_by") REFERENCES "public"."user"("id");
+ALTER TABLE "access_review_items" ADD CONSTRAINT "access_review_items_reviewer_user_id_user_id_fk" FOREIGN KEY ("reviewer_user_id") REFERENCES "public"."users"("id");
+ALTER TABLE "access_review_items" ADD CONSTRAINT "access_review_items_decided_by_user_id_fk" FOREIGN KEY ("decided_by") REFERENCES "public"."users"("id");
 
 ALTER TABLE "vendor_risk_records" ADD CONSTRAINT "vendor_risk_records_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
 ALTER TABLE "vendor_risk_records" ADD CONSTRAINT "vendor_risk_records_engagement_id_engagements_id_fk" FOREIGN KEY ("engagement_id") REFERENCES "public"."engagements"("id") ON DELETE cascade;
-ALTER TABLE "vendor_risk_records" ADD CONSTRAINT "vendor_risk_records_owner_user_id_user_id_fk" FOREIGN KEY ("owner_user_id") REFERENCES "public"."user"("id");
-ALTER TABLE "vendor_risk_records" ADD CONSTRAINT "vendor_risk_records_risk_accepted_by_user_id_fk" FOREIGN KEY ("risk_accepted_by") REFERENCES "public"."user"("id");
-ALTER TABLE "vendor_risk_records" ADD CONSTRAINT "vendor_risk_records_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id");
-ALTER TABLE "vendor_risk_records" ADD CONSTRAINT "vendor_risk_records_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."user"("id");
+ALTER TABLE "vendor_risk_records" ADD CONSTRAINT "vendor_risk_records_owner_user_id_user_id_fk" FOREIGN KEY ("owner_user_id") REFERENCES "public"."users"("id");
+ALTER TABLE "vendor_risk_records" ADD CONSTRAINT "vendor_risk_records_risk_accepted_by_user_id_fk" FOREIGN KEY ("risk_accepted_by") REFERENCES "public"."users"("id");
+ALTER TABLE "vendor_risk_records" ADD CONSTRAINT "vendor_risk_records_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id");
+ALTER TABLE "vendor_risk_records" ADD CONSTRAINT "vendor_risk_records_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."users"("id");
 
 CREATE UNIQUE INDEX "governance_policies_group_version_uq" ON "governance_policies" ("policy_group_id", "version");
 CREATE INDEX "governance_policies_engagement_idx" ON "governance_policies" ("engagement_id", "status");

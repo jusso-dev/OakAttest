@@ -110,23 +110,23 @@ CREATE TABLE "monitoring_events" (
 
 ALTER TABLE "system_risks" ADD CONSTRAINT "system_risks_engagement_id_engagements_id_fk" FOREIGN KEY ("engagement_id") REFERENCES "public"."engagements"("id") ON DELETE cascade;
 ALTER TABLE "system_risks" ADD CONSTRAINT "system_risks_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
-ALTER TABLE "system_risks" ADD CONSTRAINT "system_risks_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id");
-ALTER TABLE "system_risks" ADD CONSTRAINT "system_risks_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."user"("id");
+ALTER TABLE "system_risks" ADD CONSTRAINT "system_risks_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id");
+ALTER TABLE "system_risks" ADD CONSTRAINT "system_risks_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."users"("id");
 ALTER TABLE "risk_treatment_decisions" ADD CONSTRAINT "risk_treatment_decisions_risk_id_system_risks_id_fk" FOREIGN KEY ("risk_id") REFERENCES "public"."system_risks"("id") ON DELETE cascade;
 ALTER TABLE "risk_treatment_decisions" ADD CONSTRAINT "risk_treatment_decisions_engagement_id_engagements_id_fk" FOREIGN KEY ("engagement_id") REFERENCES "public"."engagements"("id") ON DELETE cascade;
 ALTER TABLE "risk_treatment_decisions" ADD CONSTRAINT "risk_treatment_decisions_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
-ALTER TABLE "risk_treatment_decisions" ADD CONSTRAINT "risk_treatment_decisions_recorded_by_user_id_fk" FOREIGN KEY ("recorded_by") REFERENCES "public"."user"("id");
+ALTER TABLE "risk_treatment_decisions" ADD CONSTRAINT "risk_treatment_decisions_recorded_by_user_id_fk" FOREIGN KEY ("recorded_by") REFERENCES "public"."users"("id");
 ALTER TABLE "system_authorisations" ADD CONSTRAINT "system_authorisations_engagement_id_engagements_id_fk" FOREIGN KEY ("engagement_id") REFERENCES "public"."engagements"("id") ON DELETE cascade;
 ALTER TABLE "system_authorisations" ADD CONSTRAINT "system_authorisations_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
-ALTER TABLE "system_authorisations" ADD CONSTRAINT "system_authorisations_decided_by_user_id_fk" FOREIGN KEY ("decided_by") REFERENCES "public"."user"("id");
+ALTER TABLE "system_authorisations" ADD CONSTRAINT "system_authorisations_decided_by_user_id_fk" FOREIGN KEY ("decided_by") REFERENCES "public"."users"("id");
 ALTER TABLE "continuous_monitoring_plans" ADD CONSTRAINT "continuous_monitoring_plans_engagement_id_engagements_id_fk" FOREIGN KEY ("engagement_id") REFERENCES "public"."engagements"("id") ON DELETE cascade;
 ALTER TABLE "continuous_monitoring_plans" ADD CONSTRAINT "continuous_monitoring_plans_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
-ALTER TABLE "continuous_monitoring_plans" ADD CONSTRAINT "continuous_monitoring_plans_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."user"("id");
+ALTER TABLE "continuous_monitoring_plans" ADD CONSTRAINT "continuous_monitoring_plans_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."users"("id");
 ALTER TABLE "monitoring_events" ADD CONSTRAINT "monitoring_events_engagement_id_engagements_id_fk" FOREIGN KEY ("engagement_id") REFERENCES "public"."engagements"("id") ON DELETE cascade;
 ALTER TABLE "monitoring_events" ADD CONSTRAINT "monitoring_events_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
 ALTER TABLE "monitoring_events" ADD CONSTRAINT "monitoring_events_related_risk_id_system_risks_id_fk" FOREIGN KEY ("related_risk_id") REFERENCES "public"."system_risks"("id") ON DELETE set null;
-ALTER TABLE "monitoring_events" ADD CONSTRAINT "monitoring_events_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id");
-ALTER TABLE "monitoring_events" ADD CONSTRAINT "monitoring_events_closed_by_user_id_fk" FOREIGN KEY ("closed_by") REFERENCES "public"."user"("id");
+ALTER TABLE "monitoring_events" ADD CONSTRAINT "monitoring_events_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id");
+ALTER TABLE "monitoring_events" ADD CONSTRAINT "monitoring_events_closed_by_user_id_fk" FOREIGN KEY ("closed_by") REFERENCES "public"."users"("id");
 
 CREATE UNIQUE INDEX "system_risks_engagement_sequence_uq" ON "system_risks" ("engagement_id", "sequence");
 CREATE UNIQUE INDEX "system_risks_engagement_code_uq" ON "system_risks" ("engagement_id", "code");

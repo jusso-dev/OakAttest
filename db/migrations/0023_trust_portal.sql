@@ -77,25 +77,25 @@ CREATE TABLE "trust_portal_access_grants" (
 
 ALTER TABLE "trust_portals" ADD CONSTRAINT "trust_portals_engagement_id_engagements_id_fk" FOREIGN KEY ("engagement_id") REFERENCES "public"."engagements"("id") ON DELETE cascade;
 ALTER TABLE "trust_portals" ADD CONSTRAINT "trust_portals_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
-ALTER TABLE "trust_portals" ADD CONSTRAINT "trust_portals_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id");
-ALTER TABLE "trust_portals" ADD CONSTRAINT "trust_portals_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."user"("id");
+ALTER TABLE "trust_portals" ADD CONSTRAINT "trust_portals_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id");
+ALTER TABLE "trust_portals" ADD CONSTRAINT "trust_portals_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."users"("id");
 ALTER TABLE "trust_portal_publications" ADD CONSTRAINT "trust_portal_publications_portal_id_trust_portals_id_fk" FOREIGN KEY ("portal_id") REFERENCES "public"."trust_portals"("id") ON DELETE cascade;
 ALTER TABLE "trust_portal_publications" ADD CONSTRAINT "trust_portal_publications_engagement_id_engagements_id_fk" FOREIGN KEY ("engagement_id") REFERENCES "public"."engagements"("id") ON DELETE cascade;
 ALTER TABLE "trust_portal_publications" ADD CONSTRAINT "trust_portal_publications_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
 ALTER TABLE "trust_portal_publications" ADD CONSTRAINT "trust_portal_publications_certification_report_id_certification_reports_id_fk" FOREIGN KEY ("certification_report_id") REFERENCES "public"."certification_reports"("id");
-ALTER TABLE "trust_portal_publications" ADD CONSTRAINT "trust_portal_publications_approved_by_user_id_fk" FOREIGN KEY ("approved_by") REFERENCES "public"."user"("id");
-ALTER TABLE "trust_portal_publications" ADD CONSTRAINT "trust_portal_publications_revoked_by_user_id_fk" FOREIGN KEY ("revoked_by") REFERENCES "public"."user"("id");
+ALTER TABLE "trust_portal_publications" ADD CONSTRAINT "trust_portal_publications_approved_by_user_id_fk" FOREIGN KEY ("approved_by") REFERENCES "public"."users"("id");
+ALTER TABLE "trust_portal_publications" ADD CONSTRAINT "trust_portal_publications_revoked_by_user_id_fk" FOREIGN KEY ("revoked_by") REFERENCES "public"."users"("id");
 ALTER TABLE "trust_portal_access_requests" ADD CONSTRAINT "trust_portal_access_requests_portal_id_trust_portals_id_fk" FOREIGN KEY ("portal_id") REFERENCES "public"."trust_portals"("id") ON DELETE cascade;
 ALTER TABLE "trust_portal_access_requests" ADD CONSTRAINT "trust_portal_access_requests_publication_id_trust_portal_publications_id_fk" FOREIGN KEY ("publication_id") REFERENCES "public"."trust_portal_publications"("id") ON DELETE cascade;
 ALTER TABLE "trust_portal_access_requests" ADD CONSTRAINT "trust_portal_access_requests_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
-ALTER TABLE "trust_portal_access_requests" ADD CONSTRAINT "trust_portal_access_requests_decided_by_user_id_fk" FOREIGN KEY ("decided_by") REFERENCES "public"."user"("id");
+ALTER TABLE "trust_portal_access_requests" ADD CONSTRAINT "trust_portal_access_requests_decided_by_user_id_fk" FOREIGN KEY ("decided_by") REFERENCES "public"."users"("id");
 ALTER TABLE "trust_portal_access_grants" ADD CONSTRAINT "trust_portal_access_grants_request_id_trust_portal_access_requests_id_fk" FOREIGN KEY ("request_id") REFERENCES "public"."trust_portal_access_requests"("id") ON DELETE cascade;
 ALTER TABLE "trust_portal_access_grants" ADD CONSTRAINT "trust_portal_access_grants_portal_id_trust_portals_id_fk" FOREIGN KEY ("portal_id") REFERENCES "public"."trust_portals"("id") ON DELETE cascade;
 ALTER TABLE "trust_portal_access_grants" ADD CONSTRAINT "trust_portal_access_grants_publication_id_trust_portal_publications_id_fk" FOREIGN KEY ("publication_id") REFERENCES "public"."trust_portal_publications"("id") ON DELETE cascade;
 ALTER TABLE "trust_portal_access_grants" ADD CONSTRAINT "trust_portal_access_grants_certification_report_id_certification_reports_id_fk" FOREIGN KEY ("certification_report_id") REFERENCES "public"."certification_reports"("id");
 ALTER TABLE "trust_portal_access_grants" ADD CONSTRAINT "trust_portal_access_grants_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
-ALTER TABLE "trust_portal_access_grants" ADD CONSTRAINT "trust_portal_access_grants_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id");
-ALTER TABLE "trust_portal_access_grants" ADD CONSTRAINT "trust_portal_access_grants_revoked_by_user_id_fk" FOREIGN KEY ("revoked_by") REFERENCES "public"."user"("id");
+ALTER TABLE "trust_portal_access_grants" ADD CONSTRAINT "trust_portal_access_grants_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id");
+ALTER TABLE "trust_portal_access_grants" ADD CONSTRAINT "trust_portal_access_grants_revoked_by_user_id_fk" FOREIGN KEY ("revoked_by") REFERENCES "public"."users"("id");
 ALTER TABLE "trust_portals" ADD CONSTRAINT "trust_portals_current_publication_id_trust_portal_publications_id_fk" FOREIGN KEY ("current_publication_id") REFERENCES "public"."trust_portal_publications"("id") ON DELETE set null;
 
 CREATE UNIQUE INDEX "trust_portals_engagement_uq" ON "trust_portals" ("engagement_id");

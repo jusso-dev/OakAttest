@@ -111,31 +111,31 @@ CREATE TABLE "evidence_reuse_links" (
 
 ALTER TABLE "assurance_connectors" ADD CONSTRAINT "assurance_connectors_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
 ALTER TABLE "assurance_connectors" ADD CONSTRAINT "assurance_connectors_engagement_id_engagements_id_fk" FOREIGN KEY ("engagement_id") REFERENCES "public"."engagements"("id") ON DELETE cascade;
-ALTER TABLE "assurance_connectors" ADD CONSTRAINT "assurance_connectors_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id");
-ALTER TABLE "assurance_connectors" ADD CONSTRAINT "assurance_connectors_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."user"("id");
+ALTER TABLE "assurance_connectors" ADD CONSTRAINT "assurance_connectors_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id");
+ALTER TABLE "assurance_connectors" ADD CONSTRAINT "assurance_connectors_updated_by_user_id_fk" FOREIGN KEY ("updated_by") REFERENCES "public"."users"("id");
 
 ALTER TABLE "assurance_test_runs" ADD CONSTRAINT "assurance_test_runs_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
 ALTER TABLE "assurance_test_runs" ADD CONSTRAINT "assurance_test_runs_engagement_id_engagements_id_fk" FOREIGN KEY ("engagement_id") REFERENCES "public"."engagements"("id") ON DELETE cascade;
 ALTER TABLE "assurance_test_runs" ADD CONSTRAINT "assurance_test_runs_connector_id_assurance_connectors_id_fk" FOREIGN KEY ("connector_id") REFERENCES "public"."assurance_connectors"("id") ON DELETE cascade;
-ALTER TABLE "assurance_test_runs" ADD CONSTRAINT "assurance_test_runs_requested_by_user_id_fk" FOREIGN KEY ("requested_by") REFERENCES "public"."user"("id");
+ALTER TABLE "assurance_test_runs" ADD CONSTRAINT "assurance_test_runs_requested_by_user_id_fk" FOREIGN KEY ("requested_by") REFERENCES "public"."users"("id");
 
 ALTER TABLE "assurance_test_results" ADD CONSTRAINT "assurance_test_results_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
 ALTER TABLE "assurance_test_results" ADD CONSTRAINT "assurance_test_results_engagement_id_engagements_id_fk" FOREIGN KEY ("engagement_id") REFERENCES "public"."engagements"("id") ON DELETE cascade;
 ALTER TABLE "assurance_test_results" ADD CONSTRAINT "assurance_test_results_connector_id_assurance_connectors_id_fk" FOREIGN KEY ("connector_id") REFERENCES "public"."assurance_connectors"("id") ON DELETE cascade;
 ALTER TABLE "assurance_test_results" ADD CONSTRAINT "assurance_test_results_run_id_assurance_test_runs_id_fk" FOREIGN KEY ("run_id") REFERENCES "public"."assurance_test_runs"("id") ON DELETE cascade;
-ALTER TABLE "assurance_test_results" ADD CONSTRAINT "assurance_test_results_reviewed_by_user_id_fk" FOREIGN KEY ("reviewed_by") REFERENCES "public"."user"("id");
+ALTER TABLE "assurance_test_results" ADD CONSTRAINT "assurance_test_results_reviewed_by_user_id_fk" FOREIGN KEY ("reviewed_by") REFERENCES "public"."users"("id");
 
 ALTER TABLE "assurance_test_result_controls" ADD CONSTRAINT "assurance_test_result_controls_result_id_assurance_test_results_id_fk" FOREIGN KEY ("result_id") REFERENCES "public"."assurance_test_results"("id") ON DELETE cascade;
 ALTER TABLE "assurance_test_result_controls" ADD CONSTRAINT "assurance_test_result_controls_framework_control_id_framework_controls_id_fk" FOREIGN KEY ("framework_control_id") REFERENCES "public"."framework_controls"("id");
 
 ALTER TABLE "assurance_test_control_mappings" ADD CONSTRAINT "assurance_test_control_mappings_connector_id_assurance_connectors_id_fk" FOREIGN KEY ("connector_id") REFERENCES "public"."assurance_connectors"("id") ON DELETE cascade;
 ALTER TABLE "assurance_test_control_mappings" ADD CONSTRAINT "assurance_test_control_mappings_framework_control_id_framework_controls_id_fk" FOREIGN KEY ("framework_control_id") REFERENCES "public"."framework_controls"("id");
-ALTER TABLE "assurance_test_control_mappings" ADD CONSTRAINT "assurance_test_control_mappings_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id");
+ALTER TABLE "assurance_test_control_mappings" ADD CONSTRAINT "assurance_test_control_mappings_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id");
 
 ALTER TABLE "common_control_mappings" ADD CONSTRAINT "common_control_mappings_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade;
 ALTER TABLE "common_control_mappings" ADD CONSTRAINT "common_control_mappings_source_framework_control_id_framework_controls_id_fk" FOREIGN KEY ("source_framework_control_id") REFERENCES "public"."framework_controls"("id");
 ALTER TABLE "common_control_mappings" ADD CONSTRAINT "common_control_mappings_target_framework_control_id_framework_controls_id_fk" FOREIGN KEY ("target_framework_control_id") REFERENCES "public"."framework_controls"("id");
-ALTER TABLE "common_control_mappings" ADD CONSTRAINT "common_control_mappings_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id");
+ALTER TABLE "common_control_mappings" ADD CONSTRAINT "common_control_mappings_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id");
 
 ALTER TABLE "evidence_reuse_links" ADD CONSTRAINT "evidence_reuse_links_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id");
 ALTER TABLE "evidence_reuse_links" ADD CONSTRAINT "evidence_reuse_links_source_engagement_id_engagements_id_fk" FOREIGN KEY ("source_engagement_id") REFERENCES "public"."engagements"("id") ON DELETE cascade;
@@ -143,9 +143,9 @@ ALTER TABLE "evidence_reuse_links" ADD CONSTRAINT "evidence_reuse_links_target_e
 ALTER TABLE "evidence_reuse_links" ADD CONSTRAINT "evidence_reuse_links_source_evidence_item_id_evidence_items_id_fk" FOREIGN KEY ("source_evidence_item_id") REFERENCES "public"."evidence_items"("id");
 ALTER TABLE "evidence_reuse_links" ADD CONSTRAINT "evidence_reuse_links_target_framework_control_id_framework_controls_id_fk" FOREIGN KEY ("target_framework_control_id") REFERENCES "public"."framework_controls"("id");
 ALTER TABLE "evidence_reuse_links" ADD CONSTRAINT "evidence_reuse_links_common_control_mapping_id_common_control_mappings_id_fk" FOREIGN KEY ("common_control_mapping_id") REFERENCES "public"."common_control_mappings"("id");
-ALTER TABLE "evidence_reuse_links" ADD CONSTRAINT "evidence_reuse_links_proposed_by_user_id_fk" FOREIGN KEY ("proposed_by") REFERENCES "public"."user"("id");
-ALTER TABLE "evidence_reuse_links" ADD CONSTRAINT "evidence_reuse_links_decided_by_user_id_fk" FOREIGN KEY ("decided_by") REFERENCES "public"."user"("id");
-ALTER TABLE "evidence_reuse_links" ADD CONSTRAINT "evidence_reuse_links_revoked_by_user_id_fk" FOREIGN KEY ("revoked_by") REFERENCES "public"."user"("id");
+ALTER TABLE "evidence_reuse_links" ADD CONSTRAINT "evidence_reuse_links_proposed_by_user_id_fk" FOREIGN KEY ("proposed_by") REFERENCES "public"."users"("id");
+ALTER TABLE "evidence_reuse_links" ADD CONSTRAINT "evidence_reuse_links_decided_by_user_id_fk" FOREIGN KEY ("decided_by") REFERENCES "public"."users"("id");
+ALTER TABLE "evidence_reuse_links" ADD CONSTRAINT "evidence_reuse_links_revoked_by_user_id_fk" FOREIGN KEY ("revoked_by") REFERENCES "public"."users"("id");
 
 CREATE UNIQUE INDEX "assurance_connectors_engagement_name_uq" ON "assurance_connectors" ("engagement_id", "name");
 CREATE INDEX "assurance_connectors_tenant_idx" ON "assurance_connectors" ("tenant_id");

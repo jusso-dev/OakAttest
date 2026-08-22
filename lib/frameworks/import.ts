@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
-import { frameworkControls, frameworkImports } from '@/db/schema/frameworks';
+import { frameworkControls, frameworkImports, frameworkPacks } from '@/db/schema/frameworks';
 import {
   parseOscalCatalogue,
   iterateControls,
@@ -49,6 +49,24 @@ export async function importFrameworkCatalogue(opts: FrameworkImportOptions) {
     if (existing.sourceSha256 !== sourceSha256) {
       throw new Error(`Framework revision ${revision} already exists with different content. Import it under a new revision.`);
     }
+    await db.insert(frameworkPacks).values({
+      frameworkId,
+      revision,
+      label: `${opts.frameworkKey ?? DEFAULT_FRAMEWORK_KEY} ${revision}`,
+      status: 'active',
+      sourceKind: 'official_catalogue',
+      sourceUrl: opts.sourceUrl,
+      sourceSha256,
+      controlCount: existing.controlCount,
+      effectiveAt: new Date(),
+      activatedAt: new Date(),
+      authoredBy: opts.triggeredBy ?? null,
+      approvedBy: opts.triggeredBy ?? null,
+    }).onConflictDoUpdate({
+      target: [frameworkPacks.frameworkId, frameworkPacks.revision],
+      targetWhere: isNull(frameworkPacks.tenantId),
+      set: { sourceUrl: opts.sourceUrl, sourceSha256, controlCount: existing.controlCount, updatedAt: new Date() },
+    });
     return { revision, count: existing.controlCount, sourceSha256, frameworkId };
   }
 
@@ -112,6 +130,25 @@ export async function importFrameworkCatalogue(opts: FrameworkImportOptions) {
         } as never,
       })
       .onConflictDoNothing();
+
+    await tx.insert(frameworkPacks).values({
+      frameworkId,
+      revision,
+      label: `${opts.frameworkKey ?? DEFAULT_FRAMEWORK_KEY} ${revision}`,
+      status: 'active',
+      sourceKind: 'official_catalogue',
+      sourceUrl: opts.sourceUrl,
+      sourceSha256,
+      controlCount: count,
+      effectiveAt: new Date(),
+      activatedAt: new Date(),
+      authoredBy: opts.triggeredBy ?? null,
+      approvedBy: opts.triggeredBy ?? null,
+    }).onConflictDoUpdate({
+      target: [frameworkPacks.frameworkId, frameworkPacks.revision],
+      targetWhere: isNull(frameworkPacks.tenantId),
+      set: { sourceUrl: opts.sourceUrl, sourceSha256, controlCount: count, updatedAt: new Date() },
+    });
   });
 
   return { revision, count, sourceSha256, frameworkId };

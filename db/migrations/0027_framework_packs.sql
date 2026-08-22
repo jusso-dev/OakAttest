@@ -5,7 +5,7 @@ ALTER TABLE "frameworks" ADD COLUMN "lifecycle_status" text DEFAULT 'active' NOT
 ALTER TABLE "frameworks" ADD COLUMN "created_by" uuid;
 ALTER TABLE "frameworks" ADD COLUMN "updated_at" timestamp with time zone DEFAULT now() NOT NULL;
 ALTER TABLE "frameworks" ADD CONSTRAINT "frameworks_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade;
-ALTER TABLE "frameworks" ADD CONSTRAINT "frameworks_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."user"("id");
+ALTER TABLE "frameworks" ADD CONSTRAINT "frameworks_created_by_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id");
 ALTER TABLE "frameworks" ADD CONSTRAINT "frameworks_lifecycle_check" CHECK ("lifecycle_status" IN ('draft', 'active', 'retired'));
 DROP INDEX IF EXISTS "frameworks_key_uq";
 CREATE UNIQUE INDEX "frameworks_global_key_uq" ON "frameworks" ("key") WHERE "tenant_id" IS NULL;
@@ -43,8 +43,8 @@ CREATE TABLE "framework_packs" (
 ALTER TABLE "framework_packs" ADD CONSTRAINT "framework_packs_framework_id_frameworks_id_fk" FOREIGN KEY ("framework_id") REFERENCES "public"."frameworks"("id") ON DELETE cascade;
 ALTER TABLE "framework_packs" ADD CONSTRAINT "framework_packs_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade;
 ALTER TABLE "framework_packs" ADD CONSTRAINT "framework_packs_base_framework_id_frameworks_id_fk" FOREIGN KEY ("base_framework_id") REFERENCES "public"."frameworks"("id");
-ALTER TABLE "framework_packs" ADD CONSTRAINT "framework_packs_authored_by_user_id_fk" FOREIGN KEY ("authored_by") REFERENCES "public"."user"("id");
-ALTER TABLE "framework_packs" ADD CONSTRAINT "framework_packs_approved_by_user_id_fk" FOREIGN KEY ("approved_by") REFERENCES "public"."user"("id");
+ALTER TABLE "framework_packs" ADD CONSTRAINT "framework_packs_authored_by_user_id_fk" FOREIGN KEY ("authored_by") REFERENCES "public"."users"("id");
+ALTER TABLE "framework_packs" ADD CONSTRAINT "framework_packs_approved_by_user_id_fk" FOREIGN KEY ("approved_by") REFERENCES "public"."users"("id");
 CREATE UNIQUE INDEX "framework_packs_global_revision_uq" ON "framework_packs" ("framework_id", "revision") WHERE "tenant_id" IS NULL;
 CREATE UNIQUE INDEX "framework_packs_tenant_revision_uq" ON "framework_packs" ("framework_id", "tenant_id", "revision") WHERE "tenant_id" IS NOT NULL;
 CREATE INDEX "framework_packs_framework_status_idx" ON "framework_packs" ("framework_id", "status");
