@@ -1,7 +1,8 @@
-// Thin wrapper around Resend so the rest of the code calls one function per
-// template. Templates render via React Email components.
+// Thin wrapper around Paperboy so the rest of the code calls one function per
+// template. Templates render via React Email components to HTML. Paperboy has
+// no react field.
 
-import { Resend } from 'resend';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { MagicLinkEmail } from './templates/MagicLink';
 import { EngagementInviteEmail } from './templates/EngagementInvite';
 import { TenantInviteEmail } from './templates/TenantInvite';
@@ -10,18 +11,113 @@ import {
   TrustPortalAccessRequestEmail,
 } from './templates/TrustPortalAccess';
 
-const apiKey = process.env.RESEND_API_KEY;
+const apiKey = process.env.PAPERBOY_API_KEY;
+const paperboyUrl = process.env.PAPERBOY_URL;
 const from = process.env.EMAIL_FROM ?? 'OakAttest <no-reply@oakattest.example>';
 
-const resend = apiKey ? new Resend(apiKey) : null;
+function htmlToText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|h[1-6]|tr|li)>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableNetworkError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const err = error as { name?: string; code?: string; cause?: { code?: string } };
+  if (err.name === 'AbortError' || err.name === 'TypeError') return true;
+  const code = err.code ?? err.cause?.code;
+  return (
+    code === 'ECONNRESET' ||
+    code === 'ECONNREFUSED' ||
+    code === 'ETIMEDOUT' ||
+    code === 'ENOTFOUND' ||
+    code === 'EAI_AGAIN' ||
+    code === 'UND_ERR_CONNECT_TIMEOUT' ||
+    code === 'UND_ERR_SOCKET'
+  );
+}
+
+async function postPaperboy(payload: {
+  from: string;
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}) {
+  const url = `${(paperboyUrl ?? '').replace(/\/+$/, '')}/api/v1/emails`;
+  const idempotencyKey = crypto.randomUUID();
+  const body = JSON.stringify(payload);
+  const maxAttempts = 4;
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'Idempotency-Key': idempotencyKey,
+        },
+        body,
+      });
+
+      if (response.ok) {
+        return (await response.json()) as { id: string };
+      }
+
+      const detail = await response.text().catch(() => '');
+      lastError = new Error(
+        `Paperboy send failed: HTTP ${response.status}${detail ? ` ${detail}` : ''}`,
+      );
+      if (response.status !== 429 && response.status < 500) throw lastError;
+    } catch (error) {
+      lastError = error;
+      if (error instanceof Error && error.message.startsWith('Paperboy send failed: HTTP')) {
+        const status = Number(/HTTP (\d+)/.exec(error.message)?.[1] ?? 0);
+        if (status !== 429 && status < 500) throw error;
+      } else if (!isRetryableNetworkError(error)) {
+        throw error;
+      }
+    }
+
+    if (attempt < maxAttempts) await sleep(200 * 2 ** (attempt - 1));
+  }
+
+  throw lastError;
+}
 
 async function send(opts: { to: string; subject: string; react: React.ReactElement }) {
-  if (!resend) {
+  if (!apiKey || !paperboyUrl) {
     // eslint-disable-next-line no-console
     console.info('[email:dev]', opts.subject, '->', opts.to);
     return;
   }
-  await resend.emails.send({ from, to: opts.to, subject: opts.subject, react: opts.react });
+  const html = renderToStaticMarkup(opts.react);
+  await postPaperboy({
+    from,
+    to: opts.to,
+    subject: opts.subject,
+    html,
+    text: htmlToText(html),
+  });
 }
 
 export async function sendMagicLinkEmail({ to, url }: { to: string; url: string }) {
