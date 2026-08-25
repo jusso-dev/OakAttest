@@ -43,6 +43,6 @@ revocation state, grant expiry, and remaining download count. It then issues a 6
 - `BETTER_AUTH_URL` must be the externally reachable Assessment Platform URL so access emails contain a
   valid link.
 - `BETTER_AUTH_SECRET` must be configured and kept stable; it keys privacy-preserving visitor fingerprints.
-- Email delivery is optional in development. Production approval links require working Resend settings.
+- Email delivery is optional in development. Production approval links require working Paperboy settings.
 - S3 access uses the host IAM role through the AWS SDK default credential provider chain. Do not set static
   AWS access keys in Coolify.
