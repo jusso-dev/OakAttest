@@ -15,7 +15,7 @@ ongoing compliance.
 - S3-compatible storage, presigned URLs, encryption at rest
 - Zod for shared validation, React Hook Form, TanStack Table v8, Recharts
 - `@react-pdf/renderer` for SSP, findings, and certification reports
-- Resend + React Email for transactional mail
+- Paperboy + React Email for transactional mail
 - Inngest or BullMQ for background jobs
 - Vitest + Playwright for tests
 
