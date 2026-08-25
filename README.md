@@ -336,7 +336,8 @@ Important environment variables:
 - `NEXT_PUBLIC_BETTER_AUTH_URL`: browser-visible Better Auth base URL.
 - `BETTER_AUTH_SECRET`: local or production auth secret.
 - `EMAIL_FROM`: sender for invite and magic-link emails.
-- `RESEND_API_KEY`: optional, otherwise emails are logged in development.
+- `PAPERBOY_URL`: Paperboy origin for outbound mail (no trailing path). Optional in development.
+- `PAPERBOY_API_KEY`: optional, otherwise emails are logged in development.
 - `CRON_SECRET`: shared secret for externally-triggered scheduled sync routes.
 - `CRON_TIMEZONE`: timezone for in-process scheduled jobs. Defaults to `Australia/Sydney`.
 - `ISM_RELEASE_SYNC_CRON`: daily ISM release sync schedule. Defaults to `0 3 * * *`.
