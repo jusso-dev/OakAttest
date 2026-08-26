@@ -28,6 +28,7 @@ jobs:
       - name: Locate Docker CLI
         shell: bash
         run: |
+          set -euo pipefail
           for candidate in \
             /usr/bin/docker \
             /usr/local/bin/docker \
@@ -36,16 +37,23 @@ jobs:
             /Applications/Docker.app/Contents/Resources/bin/docker; do
             if [ -x "$candidate" ]; then
               echo "${candidate%/docker}" >> "$GITHUB_PATH"
-              "$candidate" version
+              export PATH="${candidate%/docker}:$PATH"
+              echo "docker binary: ${candidate}"
+              which docker
+              docker info
               exit 0
             fi
           done
           echo "::error::Docker is not installed for the self-hosted runner user."
+          echo "PATH=${PATH}"
+          which docker || true
           exit 1
 
       - name: Start isolated PostgreSQL
         run: |
           set -euo pipefail
+          echo "docker binary: $(which docker)"
+          docker info
           name="oakattest-ci-pg-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}"
           echo "PG_CONTAINER=${name}" >> "$GITHUB_ENV"
           docker rm -f "${name}" >/dev/null 2>&1 || true
