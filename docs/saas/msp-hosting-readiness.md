@@ -19,7 +19,7 @@ must close before opening the instance to mutually-distrusting MSPs through a pu
 |---|---|---|
 | Open self-signup | ✅ ready | `app/(auth)/sign-up`, `lib/auth/auth.ts` (`emailAndPassword.enabled`, `autoSignIn`) |
 | Self-serve tenant creation | ✅ ready | `app/actions/tenants.ts:46` — any authed user founds a tenant, becomes `tenant_owner`; no admin gate, no bootstrap |
-| Invite links (email-optional) | ✅ ready | 32-byte token, 72h expiry, `app/actions/tenants.ts:211`; Resend optional → copy link, `emails/send.ts:12` |
+| Invite links (email-optional) | ✅ ready | 32-byte token, 72h expiry, `app/actions/tenants.ts:211`; Paperboy optional → copy link, `emails/send.ts` |
 | Per-tenant white-label branding | ✅ ready | `tenants.branding` (logo, colours, productName) |
 | Per-tenant MFA policy + grace | ✅ ready | `tenants.securityPolicy`, `lib/auth/mfa-policy.ts` |
 | App-level tenant isolation | ✅ ready | active-tenant cookie re-validated every request `lib/auth/active-tenant.ts:40`; RBAC + explicit `tenantId` WHERE; URL traversal blocked `app/(app)/engagements/[id]/layout.tsx:47` |
@@ -98,7 +98,7 @@ This is also where Pax8 manual provisioning (see `pax8-integration-spec.md` §6)
 ### 3.5 Operational must-haves for hosted mode — MEDIUM
 
 - **Email delivery is mandatory now** (invites, magic-links, verification). Self-installed
-  may skip it; your hosted instance may not. Configure Resend + a sending domain.
+  may skip it; your hosted instance may not. Configure Paperboy + a sending domain.
 - Backups + PITR on Postgres; documented restore.
 - Region/residency: `tenants.dataRegion` defaults `ap-southeast-2`. Decide whether all MSPs
   share one region (simplest) and state it in onboarding. Multi-region is out of scope.

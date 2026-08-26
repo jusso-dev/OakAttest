@@ -21,7 +21,7 @@ const injectionPatterns = [
 ];
 
 const secretPatterns = [
-  /\b(AWS_SECRET_ACCESS_KEY|AWS_ACCESS_KEY_ID|AWS_SESSION_TOKEN|BETTER_AUTH_SECRET|RESEND_API_KEY|DATABASE_URL)\b/i,
+  /\b(AWS_SECRET_ACCESS_KEY|AWS_ACCESS_KEY_ID|AWS_SESSION_TOKEN|BETTER_AUTH_SECRET|PAPERBOY_API_KEY|DATABASE_URL)\b/i,
   /\b(private key|api key|access token|secret key|password|credential)s?\b/i,
   /\b(read|show|print|dump|exfiltrate|export)\b.*\b(\.env|environment variables|secrets?)\b/i,
 ];
