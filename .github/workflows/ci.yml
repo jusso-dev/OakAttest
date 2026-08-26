@@ -14,38 +14,59 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: [self-hosted, linux]
+    runs-on: [self-hosted]
     timeout-minutes: 30
     env:
       BETTER_AUTH_URL: http://localhost:3000
       BETTER_AUTH_SECRET: ci-only-secret-at-least-thirty-two-characters
       NEXT_TELEMETRY_DISABLED: "1"
-      DATABASE_URL: postgresql://oakattest_ci:oakattest_ci@127.0.0.1:55432/oakattest_ci
-      PG_CONTAINER: oakattest-ci-pg-${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Locate Docker CLI
+        shell: bash
+        run: |
+          for candidate in \
+            /usr/bin/docker \
+            /usr/local/bin/docker \
+            /opt/homebrew/bin/docker \
+            "$HOME/.orbstack/bin/docker" \
+            /Applications/Docker.app/Contents/Resources/bin/docker; do
+            if [ -x "$candidate" ]; then
+              echo "${candidate%/docker}" >> "$GITHUB_PATH"
+              "$candidate" version
+              exit 0
+            fi
+          done
+          echo "::error::Docker is not installed for the self-hosted runner user."
+          exit 1
+
       - name: Start isolated PostgreSQL
         run: |
-          docker rm --force "${PG_CONTAINER}" 2>/dev/null || true
-          docker run --detach --name "${PG_CONTAINER}" \
-            --env POSTGRES_USER=oakattest_ci \
-            --env POSTGRES_PASSWORD=oakattest_ci \
-            --env POSTGRES_DB=oakattest_ci \
-            --publish 127.0.0.1:55432:5432 \
+          set -euo pipefail
+          name="oakattest-ci-pg-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}"
+          echo "PG_CONTAINER=${name}" >> "$GITHUB_ENV"
+          docker rm -f "${name}" >/dev/null 2>&1 || true
+          docker run -d --name "${name}" \
+            -e POSTGRES_USER=oakattest_ci \
+            -e POSTGRES_PASSWORD=oakattest_ci \
+            -e POSTGRES_DB=oakattest_ci \
+            -p 0:5432 \
             postgres:16-alpine
-          for attempt in $(seq 1 30); do
-            if docker exec "${PG_CONTAINER}" pg_isready -U oakattest_ci -d oakattest_ci; then
-              break
+          port="$(docker port "${name}" 5432/tcp | head -n1 | sed 's/.*://')"
+          echo "DATABASE_URL=postgresql://oakattest_ci:oakattest_ci@127.0.0.1:${port}/oakattest_ci" >> "$GITHUB_ENV"
+          for _ in $(seq 1 60); do
+            if docker exec "${name}" pg_isready -U oakattest_ci -d oakattest_ci >/dev/null 2>&1; then
+              echo "postgres ready on ${port}"
+              exit 0
             fi
-            if [ "$attempt" -eq 30 ]; then
-              docker logs "${PG_CONTAINER}"
-              exit 1
-            fi
-            sleep 1
+            sleep 2
           done
+          echo "postgres did not become ready"
+          docker logs "${name}"
+          exit 1
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -90,4 +111,4 @@ jobs:
 
       - name: Stop isolated PostgreSQL
         if: always()
-        run: docker rm --force "${PG_CONTAINER}" 2>/dev/null || true
+        run: docker rm -f "${PG_CONTAINER}" >/dev/null 2>&1 || true
