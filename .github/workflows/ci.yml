@@ -16,32 +16,36 @@ jobs:
   validate:
     runs-on: [self-hosted, linux]
     timeout-minutes: 30
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: oakattest_ci
-          POSTGRES_PASSWORD: oakattest_ci
-          POSTGRES_DB: oakattest_ci
-        ports:
-          - 5432
-        options: >-
-          --health-cmd "pg_isready -U oakattest_ci -d oakattest_ci"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
-
     env:
       BETTER_AUTH_URL: http://localhost:3000
       BETTER_AUTH_SECRET: ci-only-secret-at-least-thirty-two-characters
       NEXT_TELEMETRY_DISABLED: "1"
+      DATABASE_URL: postgresql://oakattest_ci:oakattest_ci@127.0.0.1:55432/oakattest_ci
+      PG_CONTAINER: oakattest-ci-pg-${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure database connection
-        run: echo "DATABASE_URL=postgresql://oakattest_ci:oakattest_ci@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/oakattest_ci" >> "$GITHUB_ENV"
+      - name: Start isolated PostgreSQL
+        run: |
+          docker rm --force "${PG_CONTAINER}" 2>/dev/null || true
+          docker run --detach --name "${PG_CONTAINER}" \
+            --env POSTGRES_USER=oakattest_ci \
+            --env POSTGRES_PASSWORD=oakattest_ci \
+            --env POSTGRES_DB=oakattest_ci \
+            --publish 127.0.0.1:55432:5432 \
+            postgres:16-alpine
+          for attempt in $(seq 1 30); do
+            if docker exec "${PG_CONTAINER}" pg_isready -U oakattest_ci -d oakattest_ci; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              docker logs "${PG_CONTAINER}"
+              exit 1
+            fi
+            sleep 1
+          done
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -83,3 +87,7 @@ jobs:
           platforms: linux/arm64
           push: false
           tags: ghcr.io/yumaitau/oakattest:pr-${{ github.event.pull_request.number || github.run_id }}
+
+      - name: Stop isolated PostgreSQL
+        if: always()
+        run: docker rm --force "${PG_CONTAINER}" 2>/dev/null || true
