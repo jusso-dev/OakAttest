@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { McpServer, type CallToolResult } from '@modelcontextprotocol/server';
 import { and, asc, desc, eq, gt, isNull, lte, or } from 'drizzle-orm';
 import { z } from 'zod';
@@ -521,23 +522,99 @@ function tool<T extends McpInputSchema>(
       principal,
       name,
       config.scope,
+      input,
+      config.readOnly,
       () => config.handler(config.inputSchema.parse(input)),
     ),
   );
+}
+
+function canonicalJson(value: unknown): string {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value) ?? 'null';
+  if (Array.isArray(value)) return `[${value.map((item) => canonicalJson(item)).join(',')}]`;
+  const entries = Object.entries(value as Record<string, unknown>).sort(([left], [right]) =>
+    left.localeCompare(right),
+  );
+  return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`).join(',')}}`;
+}
+
+function toolFingerprint(tokenId: string, name: string, input: unknown): string {
+  const digest = crypto
+    .createHash('sha256')
+    .update(canonicalJson({ tokenId, name, input }))
+    .digest('hex');
+  return `fp:${digest}`;
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  const seen = new Set<unknown>();
+  let current: unknown = error;
+  while (current && typeof current === 'object' && !seen.has(current)) {
+    seen.add(current);
+    if ((current as { code?: string }).code === '23505') return true;
+    current = (current as { cause?: unknown }).cause;
+  }
+  return false;
+}
+
+async function storedToolResult(fingerprint: string): Promise<CallToolResult | null> {
+  const [row] = await db
+    .select({ afterJson: auditLog.afterJson })
+    .from(auditLog)
+    .where(and(eq(auditLog.action, 'mcp.tool.call'), eq(auditLog.resourceId, fingerprint)))
+    .limit(1);
+  const stored = row?.afterJson as { result?: unknown } | null;
+  if (!stored || !('result' in stored)) return null;
+  const result = { result: stored.result };
+  return {
+    content: [{ type: 'text' as const, text: JSON.stringify(result) }],
+    structuredContent: result,
+  };
 }
 
 async function executeTool(
   principal: McpPrincipal,
   name: string,
   scope: import('@/db/schema/mcp').McpScope,
+  input: unknown,
+  readOnly: boolean,
   operation: () => Promise<unknown>,
 ): Promise<CallToolResult> {
   const startedAt = Date.now();
+  const fingerprint = readOnly ? null : toolFingerprint(principal.tokenId, name, input);
   try {
     requireMcpScope(principal, scope);
+    if (fingerprint) {
+      const replay = await storedToolResult(fingerprint);
+      if (replay) return replay;
+    }
     const value = await runWithMachineActor(principal.actor, operation);
-    await recordToolCall(principal, name, true, Date.now() - startedAt);
     const result = { result: serialise(value) };
+    if (fingerprint) {
+      try {
+        await db.insert(auditLog).values({
+          tenantId: principal.tenantId,
+          actorType: 'integration',
+          actorUserId: principal.actor.id,
+          action: 'mcp.tool.call',
+          resourceType: 'mcp_tool',
+          resourceId: fingerprint,
+          afterJson: {
+            tokenId: principal.tokenId,
+            name,
+            succeeded: true,
+            durationMs: Date.now() - startedAt,
+            result: result.result,
+          } as never,
+        });
+      } catch (error) {
+        if (!isUniqueViolation(error)) throw error;
+        const replay = await storedToolResult(fingerprint);
+        if (replay) return replay;
+      }
+    } else {
+      await recordToolCall(principal, name, true, Date.now() - startedAt);
+    }
     return { content: [{ type: 'text' as const, text: JSON.stringify(result) }], structuredContent: result };
   } catch (error) {
     const message = safeError(error);

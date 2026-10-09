@@ -47,7 +47,13 @@ const styles = StyleSheet.create({
 
 export type EssentialEightReportData = {
   timeZone: string;
-  tenant: { name: string; productName: string };
+  tenant: {
+    name: string;
+    productName: string;
+    primaryColour?: string;
+    accentColour?: string;
+    logoUrl?: string | null;
+  };
   engagement: {
     name: string;
     reference: string | null;
@@ -112,14 +118,30 @@ export function EssentialEightReportDocument({ data }: { data: EssentialEightRep
     >
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.productTag}>{data.tenant.productName}</Text>
+          <Text
+            style={{
+              ...styles.productTag,
+              ...(data.tenant.primaryColour ? { color: data.tenant.primaryColour } : {}),
+            }}
+          >
+            {data.tenant.productName}
+          </Text>
           <Text style={styles.title}>Essential Eight Assessment Report</Text>
           <Text style={styles.subtitle}>
             {data.engagement.name}
             {data.engagement.reference ? ` - ${data.engagement.reference}` : ''}
           </Text>
         </View>
-        <Text style={styles.banner}>{data.engagement.classification.replace('_', ':')}</Text>
+        <Text
+          style={{
+            ...styles.banner,
+            ...(data.tenant.primaryColour
+              ? { backgroundColor: data.tenant.primaryColour }
+              : {}),
+          }}
+        >
+          {data.engagement.classification.replace('_', ':')}
+        </Text>
 
         <Text style={styles.sectionTitle}>1. Report Metadata</Text>
         <InfoRow label="Version" value={`v${data.report.version}`} />

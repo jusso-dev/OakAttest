@@ -170,7 +170,11 @@ export function decideFeature(ent: Entitlements, code: string): boolean {
   return ent.unlimited || ent.features.has(code);
 }
 
-export function decideCanCreateUser(ent: Entitlements): boolean {
+export function decideCanCreateUser(
+  ent: Entitlements,
+  options?: { existingMember?: boolean },
+): boolean {
+  if (options?.existingMember) return true;
   return (
     ent.unlimited || ent.limits.maxUsers === null || ent.usage.userCount < ent.limits.maxUsers
   );
@@ -288,9 +292,12 @@ export async function canStore(
 }
 
 // Throwing variants for server actions (→ map to a user-facing limit message).
-export async function requireCanCreateUser(tenantId: string): Promise<void> {
+export async function requireCanCreateUser(
+  tenantId: string,
+  options?: { existingMember?: boolean },
+): Promise<void> {
   const ent = await resolveEntitlements(tenantId);
-  if (!decideCanCreateUser(ent)) {
+  if (!decideCanCreateUser(ent, options)) {
     throw new UsageLimitExceededError('users', ent.limits.maxUsers ?? 0);
   }
 }

@@ -31,6 +31,8 @@ function isPublic(pathname: string): boolean {
   if (pathname === '/api/health') return true;
   // MCP has its own tenant-scoped bearer authentication in the route handler.
   if (pathname === '/api/mcp') return true;
+  // Cron calls this with x-cron-secret. The route still rejects everyone else.
+  if (/^\/api\/frameworks\/[^/]+\/releases\/sync$/.test(pathname)) return true;
   if (pathname.startsWith('/_next')) return true;
   if (pathname.startsWith('/favicon')) return true;
   return PUBLIC_PATHS.some(

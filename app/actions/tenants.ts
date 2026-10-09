@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { and, count, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import crypto from 'node:crypto';
@@ -10,7 +10,9 @@ import {
   tenants,
   tenantMembers,
   tenantInvitations,
+  engagementMembers,
 } from '@/db/schema/tenants';
+import { mcpApiTokens } from '@/db/schema/mcp';
 import { auditLog } from '@/db/schema/audit';
 import { requireSession } from '@/lib/auth/session';
 import { ACTIONS, isPermitted, type Role } from '@/lib/rbac/matrix';
@@ -22,6 +24,17 @@ import { writeActiveTenantCookie } from '@/lib/auth/active-tenant';
 import { isValidAbn, normalizeAbn } from '@/lib/abn';
 
 // Slugify a tenant name for the URL. Strict: only ASCII lowercase + dashes.
+function isUniqueViolation(error: unknown): boolean {
+  const seen = new Set<unknown>();
+  let current: unknown = error;
+  while (current && typeof current === 'object' && !seen.has(current)) {
+    seen.add(current);
+    if ((current as { code?: string }).code === '23505') return true;
+    current = (current as { cause?: unknown }).cause;
+  }
+  return false;
+}
+
 function slugify(name: string): string {
   return name
     .toLowerCase()
@@ -50,36 +63,45 @@ export async function createTenant(input: z.infer<typeof createSchema>) {
 
   // Anyone with an authenticated session can found a new tenant (becomes the
   // tenant_owner). RBAC kicks in for subsequent actions.
-  const slug = slugify(data.name) || crypto.randomBytes(4).toString('hex');
-
+  const baseSlug = slugify(data.name) || crypto.randomBytes(4).toString('hex');
   const tenantId = crypto.randomUUID();
   const hdrs = await headers();
+  let slug = baseSlug;
 
-  await db.transaction(async (tx) => {
-    await tx.insert(tenants).values({
-      id: tenantId,
-      slug,
-      name: data.name,
-      abn: data.abn ?? null,
-    });
-    await tx.insert(tenantMembers).values({
-      tenantId,
-      userId: session.user.id,
-      role: 'tenant_owner',
-      joinedAt: new Date(),
-    });
-    await tx.insert(auditLog).values({
-      tenantId,
-      actorType: 'user',
-      actorUserId: session.user.id,
-      actorIp: hdrs.get('x-forwarded-for'),
-      actorUserAgent: hdrs.get('user-agent'),
-      action: 'tenant.create',
-      resourceType: 'tenant',
-      resourceId: tenantId,
-      afterJson: { name: data.name, slug } as never,
-    });
-  });
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      await db.transaction(async (tx) => {
+        await tx.insert(tenants).values({
+          id: tenantId,
+          slug,
+          name: data.name,
+          abn: data.abn ?? null,
+        });
+        await tx.insert(tenantMembers).values({
+          tenantId,
+          userId: session.user.id,
+          role: 'tenant_owner',
+          joinedAt: new Date(),
+        });
+        await tx.insert(auditLog).values({
+          tenantId,
+          actorType: 'user',
+          actorUserId: session.user.id,
+          actorIp: hdrs.get('x-forwarded-for'),
+          actorUserAgent: hdrs.get('user-agent'),
+          action: 'tenant.create',
+          resourceType: 'tenant',
+          resourceId: tenantId,
+          afterJson: { name: data.name, slug } as never,
+        });
+      });
+      break;
+    } catch (error) {
+      if (!isUniqueViolation(error)) throw error;
+      if (attempt === 4) throw new Error('That organisation name is already taken.');
+      slug = `${baseSlug.slice(0, 50)}-${crypto.randomBytes(3).toString('hex')}`;
+    }
+  }
 
   await writeActiveTenantCookie(tenantId);
   revalidatePath('/dashboard');
@@ -269,22 +291,6 @@ async function rolesForTenant(userId: string, tenantId: string): Promise<Role[]>
 // permission test exercises.
 export { isPermitted };
 
-// Count active tenant_owner members — used to prevent removing/demoting the
-// last owner, which would orphan the tenant.
-async function activeOwnerCount(tenantId: string): Promise<number> {
-  const [row] = await db
-    .select({ value: count() })
-    .from(tenantMembers)
-    .where(
-      and(
-        eq(tenantMembers.tenantId, tenantId),
-        eq(tenantMembers.role, 'tenant_owner'),
-        isNull(tenantMembers.deletedAt),
-      ),
-    );
-  return row?.value ?? 0;
-}
-
 const changeRoleSchema = z.object({
   tenantId: z.string().uuid(),
   userId: z.string().uuid(),
@@ -299,45 +305,56 @@ export async function changeTenantMemberRole(input: z.infer<typeof changeRoleSch
     tenantId: data.tenantId,
   });
 
-  const [member] = await db
-    .select({ role: tenantMembers.role })
-    .from(tenantMembers)
-    .where(
-      and(
-        eq(tenantMembers.tenantId, data.tenantId),
-        eq(tenantMembers.userId, data.userId),
-        isNull(tenantMembers.deletedAt),
-      ),
-    )
-    .limit(1);
-  if (!member) throw new Error('Member not found');
-  if (member.role === data.role) return { ok: true };
+  await db.transaction(async (tx) => {
+    const owners = await tx
+      .select({ userId: tenantMembers.userId })
+      .from(tenantMembers)
+      .where(
+        and(
+          eq(tenantMembers.tenantId, data.tenantId),
+          eq(tenantMembers.role, 'tenant_owner'),
+          isNull(tenantMembers.deletedAt),
+        ),
+      )
+      .for('update');
 
-  // Don't demote the last owner.
-  if (member.role === 'tenant_owner' && data.role !== 'tenant_owner') {
-    if ((await activeOwnerCount(data.tenantId)) <= 1) {
+    const [member] = await tx
+      .select({ role: tenantMembers.role })
+      .from(tenantMembers)
+      .where(
+        and(
+          eq(tenantMembers.tenantId, data.tenantId),
+          eq(tenantMembers.userId, data.userId),
+          isNull(tenantMembers.deletedAt),
+        ),
+      )
+      .limit(1);
+    if (!member) throw new Error('Member not found');
+    if (member.role === data.role) return;
+
+    if (member.role === 'tenant_owner' && data.role !== 'tenant_owner' && owners.length <= 1) {
       throw new Error('Cannot demote the last tenant owner. Promote another owner first.');
     }
-  }
 
-  await db
-    .update(tenantMembers)
-    .set({ role: data.role })
-    .where(
-      and(
-        eq(tenantMembers.tenantId, data.tenantId),
-        eq(tenantMembers.userId, data.userId),
-        isNull(tenantMembers.deletedAt),
-      ),
-    );
-  await recordAudit({
-    tenantId: data.tenantId,
-    actorUserId: session.user.id,
-    action: 'tenant.member.role_change',
-    resourceType: 'tenant_member',
-    resourceId: data.userId,
-    beforeJson: { role: member.role },
-    afterJson: { role: data.role },
+    await tx
+      .update(tenantMembers)
+      .set({ role: data.role })
+      .where(
+        and(
+          eq(tenantMembers.tenantId, data.tenantId),
+          eq(tenantMembers.userId, data.userId),
+          isNull(tenantMembers.deletedAt),
+        ),
+      );
+    await tx.insert(auditLog).values({
+      tenantId: data.tenantId,
+      actorUserId: session.user.id,
+      action: 'tenant.member.role_change',
+      resourceType: 'tenant_member',
+      resourceId: data.userId,
+      beforeJson: { role: member.role } as never,
+      afterJson: { role: data.role } as never,
+    });
   });
   revalidatePath('/admin');
   return { ok: true };
@@ -351,45 +368,83 @@ const removeMemberSchema = z.object({
 export async function removeTenantMember(input: z.infer<typeof removeMemberSchema>) {
   const session = await requireSession();
   const data = removeMemberSchema.parse(input);
-  await requirePermission(ACTIONS.tenantManage, {
-    userId: session.user.id,
-    tenantId: data.tenantId,
-  });
+  await requirePermission(
+    ACTIONS.tenantManage,
+    {
+      userId: session.user.id,
+      tenantId: data.tenantId,
+    },
+    { subscription: 'skip' },
+  );
 
-  const [member] = await db
-    .select({ role: tenantMembers.role })
-    .from(tenantMembers)
-    .where(
-      and(
-        eq(tenantMembers.tenantId, data.tenantId),
-        eq(tenantMembers.userId, data.userId),
-        isNull(tenantMembers.deletedAt),
-      ),
-    )
-    .limit(1);
-  if (!member) throw new Error('Member not found');
-  if (member.role === 'tenant_owner' && (await activeOwnerCount(data.tenantId)) <= 1) {
-    throw new Error('Cannot remove the last tenant owner. Assign another owner first.');
-  }
+  const removedAt = new Date();
+  await db.transaction(async (tx) => {
+    const owners = await tx
+      .select({ userId: tenantMembers.userId })
+      .from(tenantMembers)
+      .where(
+        and(
+          eq(tenantMembers.tenantId, data.tenantId),
+          eq(tenantMembers.role, 'tenant_owner'),
+          isNull(tenantMembers.deletedAt),
+        ),
+      )
+      .for('update');
 
-  await db
-    .update(tenantMembers)
-    .set({ deletedAt: new Date() })
-    .where(
-      and(
-        eq(tenantMembers.tenantId, data.tenantId),
-        eq(tenantMembers.userId, data.userId),
-        isNull(tenantMembers.deletedAt),
-      ),
-    );
-  // Drop their engagement memberships in this tenant too.
-  await recordAudit({
-    tenantId: data.tenantId,
-    actorUserId: session.user.id,
-    action: 'tenant.member.remove',
-    resourceType: 'tenant_member',
-    resourceId: data.userId,
-    beforeJson: { role: member.role },
+    const [member] = await tx
+      .select({ role: tenantMembers.role })
+      .from(tenantMembers)
+      .where(
+        and(
+          eq(tenantMembers.tenantId, data.tenantId),
+          eq(tenantMembers.userId, data.userId),
+          isNull(tenantMembers.deletedAt),
+        ),
+      )
+      .limit(1);
+    if (!member) throw new Error('Member not found');
+    if (member.role === 'tenant_owner' && owners.length <= 1) {
+      throw new Error('Cannot remove the last tenant owner. Assign another owner first.');
+    }
+
+    await tx
+      .update(tenantMembers)
+      .set({ deletedAt: removedAt })
+      .where(
+        and(
+          eq(tenantMembers.tenantId, data.tenantId),
+          eq(tenantMembers.userId, data.userId),
+          isNull(tenantMembers.deletedAt),
+        ),
+      );
+    await tx
+      .update(engagementMembers)
+      .set({ deletedAt: removedAt })
+      .where(
+        and(
+          eq(engagementMembers.tenantId, data.tenantId),
+          eq(engagementMembers.userId, data.userId),
+          isNull(engagementMembers.deletedAt),
+        ),
+      );
+    await tx
+      .update(mcpApiTokens)
+      .set({ revokedAt: removedAt })
+      .where(
+        and(
+          eq(mcpApiTokens.tenantId, data.tenantId),
+          eq(mcpApiTokens.actorUserId, data.userId),
+          isNull(mcpApiTokens.revokedAt),
+        ),
+      );
+    await tx.insert(auditLog).values({
+      tenantId: data.tenantId,
+      actorUserId: session.user.id,
+      action: 'tenant.member.remove',
+      resourceType: 'tenant_member',
+      resourceId: data.userId,
+      beforeJson: { role: member.role } as never,
+    });
   });
   await refreshTenantUsage(data.tenantId);
   revalidatePath('/admin');

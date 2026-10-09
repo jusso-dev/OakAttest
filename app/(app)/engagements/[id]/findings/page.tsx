@@ -15,7 +15,7 @@ import { residualRisks } from '@/db/schema/certification';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FindingCreateForm } from '@/components/findings/FindingCreateForm';
 import { FindingRow } from '@/components/findings/FindingRow';
-import { requirePageSession } from '@/lib/auth/session';
+import { requireEngagementPage } from '@/lib/auth/engagement-access';
 import { rolesForUser } from '@/lib/rbac/require';
 
 export default async function FindingsPage({
@@ -27,7 +27,7 @@ export default async function FindingsPage({
 }) {
   const { id } = await params;
   const query = await searchParams;
-  const session = await requirePageSession();
+  const { session } = await requireEngagementPage(id);
   const q = readParam(query.q).trim();
   const status = readParam(query.status);
   const severity = readParam(query.severity);

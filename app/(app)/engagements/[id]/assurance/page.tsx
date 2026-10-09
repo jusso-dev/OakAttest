@@ -9,7 +9,7 @@ import {
   systemAuthorisations,
   systemRisks,
 } from '@/db/schema/assurance-lifecycle';
-import { requirePageSession } from '@/lib/auth/session';
+import { requireEngagementPage } from '@/lib/auth/engagement-access';
 import { userTimeZone } from '@/lib/auth/user-timezone';
 import { requirePermission, rolesForUser } from '@/lib/rbac/require';
 import { ACTIONS, isPermitted } from '@/lib/rbac/matrix';
@@ -26,7 +26,7 @@ export const metadata = { title: 'Assurance lifecycle · Assessment Platform' };
 
 export default async function AssuranceLifecyclePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const session = await requirePageSession();
+  const { session } = await requireEngagementPage(id);
   const [engagement] = await db
     .select({
       id: engagements.id,

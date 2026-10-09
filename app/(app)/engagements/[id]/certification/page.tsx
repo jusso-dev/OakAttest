@@ -5,8 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { CertificationDraftForm } from '@/components/engagement/CertificationDraftForm';
 import { CertificationRow } from '@/components/engagement/CertificationRow';
 import { ResidualRiskForm } from '@/components/engagement/ResidualRiskForm';
+import { ResidualRiskControls } from '@/components/certification/ResidualRiskControls';
 import { AuthorisationPackagePanel } from '@/components/engagement/AuthorisationPackagePanel';
-import { requirePageSession } from '@/lib/auth/session';
+import { requireEngagementPage } from '@/lib/auth/engagement-access';
 import { rolesForUser } from '@/lib/rbac/require';
 import { engagements } from '@/db/schema/engagements';
 import { getCertificationReadiness } from '@/lib/certification/readiness';
@@ -17,7 +18,7 @@ export default async function CertificationPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await requirePageSession();
+  const { session } = await requireEngagementPage(id);
 
   const [engagement] = await db
     .select({ tenantId: engagements.tenantId })
@@ -103,6 +104,20 @@ export default async function CertificationPage({
                   )}
                   {r.mitigation && (
                     <p className="mt-1 text-xs text-slate-600">Mitigation: {r.mitigation}</p>
+                  )}
+                  {isLead && (
+                    <ResidualRiskControls
+                      engagementId={id}
+                      risk={{
+                        id: r.id,
+                        title: r.title,
+                        description: r.description,
+                        likelihood: r.likelihood,
+                        impact: r.impact,
+                        mitigation: r.mitigation,
+                        acceptedAt: r.acceptedAt,
+                      }}
+                    />
                   )}
                 </li>
               ))}

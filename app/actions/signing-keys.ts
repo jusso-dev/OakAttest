@@ -82,17 +82,29 @@ export async function revokeTenantSigningKey(input: z.infer<typeof revokeSchema>
   const session = await requireSession();
   const data = revokeSchema.parse(input);
 
-  await requirePermission(ACTIONS.tenantManage, {
-    userId: session.user.id,
-    tenantId: data.tenantId,
-  });
+  await requirePermission(
+    ACTIONS.tenantManage,
+    {
+      userId: session.user.id,
+      tenantId: data.tenantId,
+    },
+    { subscription: 'skip' },
+  );
 
   const now = new Date();
   await db.transaction(async (tx) => {
-    await tx
+    const [revoked] = await tx
       .update(tenantSigningKeys)
       .set({ revokedAt: now })
-      .where(and(eq(tenantSigningKeys.id, data.keyId), eq(tenantSigningKeys.tenantId, data.tenantId)));
+      .where(
+        and(
+          eq(tenantSigningKeys.id, data.keyId),
+          eq(tenantSigningKeys.tenantId, data.tenantId),
+          isNull(tenantSigningKeys.revokedAt),
+        ),
+      )
+      .returning({ id: tenantSigningKeys.id });
+    if (!revoked) throw new Error('Signing key not found or already revoked.');
     await tx.insert(auditLog).values({
       tenantId: data.tenantId,
       actorType: 'user',

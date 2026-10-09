@@ -33,6 +33,7 @@
     "@aws-sdk/client-securityhub": "^3.1116.0",
     "@aws-sdk/client-sts": "^3.1116.0",
     "@aws-sdk/s3-request-presigner": "^3.1074.0",
+    "@better-auth/passkey": "^1.7.1",
     "@hookform/resolvers": "^5.4.0",
     "@modelcontextprotocol/server": "^2.0.0",
     "@react-email/components": "^1.0.12",

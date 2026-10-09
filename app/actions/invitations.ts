@@ -14,6 +14,7 @@ import { auditLog } from '@/db/schema/audit';
 import { requireSession } from '@/lib/auth/session';
 import { requirePermission } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
+import { invitationEmailMatches } from '@/lib/auth/invitation-email';
 import { requireCanCreateUser, refreshTenantUsage } from '@/lib/licensing';
 import { sendEngagementInviteEmail } from '@/emails/send';
 import { writeActiveTenantCookie } from '@/lib/auth/active-tenant';
@@ -103,6 +104,34 @@ export async function inviteToEngagement(input: z.infer<typeof inviteSchema>) {
   return { id, url, expiresAt: expiresAt.toISOString() };
 }
 
+async function alreadyCountedMember(tenantId: string, userId: string): Promise<boolean> {
+  const [tenantMember, engagementMember] = await Promise.all([
+    db
+      .select({ userId: tenantMembers.userId })
+      .from(tenantMembers)
+      .where(
+        and(
+          eq(tenantMembers.tenantId, tenantId),
+          eq(tenantMembers.userId, userId),
+          isNull(tenantMembers.deletedAt),
+        ),
+      )
+      .limit(1),
+    db
+      .select({ userId: engagementMembers.userId })
+      .from(engagementMembers)
+      .where(
+        and(
+          eq(engagementMembers.tenantId, tenantId),
+          eq(engagementMembers.userId, userId),
+          isNull(engagementMembers.deletedAt),
+        ),
+      )
+      .limit(1),
+  ]);
+  return tenantMember.length + engagementMember.length > 0;
+}
+
 const acceptSchema = z.object({ token: z.string().min(8) });
 
 export async function acceptEngagementInvitation(input: z.infer<typeof acceptSchema>) {
@@ -119,15 +148,13 @@ export async function acceptEngagementInvitation(input: z.infer<typeof acceptSch
   if (invitation.acceptedAt) throw new Error('Invitation already accepted');
   if (invitation.expiresAt < new Date()) throw new Error('Invitation has expired');
 
-  if (
-    session.user.email &&
-    invitation.email.toLowerCase() !== session.user.email.toLowerCase()
-  ) {
+  if (!invitationEmailMatches(invitation.email, session.user.email)) {
     throw new Error('This invitation is addressed to a different email');
   }
 
-  // Plan seat limit — client-side users count toward the tenant's seats.
-  await requireCanCreateUser(invitation.tenantId);
+  await requireCanCreateUser(invitation.tenantId, {
+    existingMember: await alreadyCountedMember(invitation.tenantId, session.user.id),
+  });
 
   await db.transaction(async (tx) => {
     await tx
@@ -176,9 +203,13 @@ export async function acceptTenantInvitation(input: z.infer<typeof acceptTenantS
   if (invitation.revokedAt) throw new Error('Invitation has been revoked');
   if (invitation.acceptedAt) throw new Error('Invitation already accepted');
   if (invitation.expiresAt < new Date()) throw new Error('Invitation has expired');
+  if (!invitationEmailMatches(invitation.email, session.user.email)) {
+    throw new Error('This invitation is addressed to a different email');
+  }
 
-  // Plan seat limit (authoritative at the point the seat is consumed).
-  await requireCanCreateUser(invitation.tenantId);
+  await requireCanCreateUser(invitation.tenantId, {
+    existingMember: await alreadyCountedMember(invitation.tenantId, session.user.id),
+  });
 
   await db.transaction(async (tx) => {
     await tx

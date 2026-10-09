@@ -36,6 +36,7 @@ import {
   type AuditType,
 } from '@/lib/audit-readiness';
 import { getEngagementCoverage } from '@/lib/assessment/coverage';
+import { toCsv } from '@/lib/security/csv';
 import {
   STORAGE_BUCKET,
   buildAuditPackageKey,
@@ -831,17 +832,6 @@ function sha256(value: string | Buffer) {
 
 function safeFilename(value: string) {
   return value.replace(/[^a-zA-Z0-9._-]+/g, '_');
-}
-
-function toCsv(headers: string[], rows: Array<Record<string, unknown>>) {
-  const escape = (value: unknown) => {
-    const text = value === null || value === undefined ? '' : String(value);
-    return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
-  };
-  return [
-    headers.join(','),
-    ...rows.map((row) => headers.map((header) => escape(row[header])).join(',')),
-  ].join('\n');
 }
 
 function revalidateAuditReadiness(engagementId: string) {

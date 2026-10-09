@@ -1,9 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { resolveActiveTenant } from '@/lib/auth/active-tenant';
+import { requirePlatformAdmin } from '@/lib/auth/platform';
 import { requireSession } from '@/lib/auth/session';
-import { ACTIONS } from '@/lib/rbac/matrix';
-import { requirePermission } from '@/lib/rbac/require';
 import { syncAvailableIsmReleases } from '@/lib/frameworks/sync';
 
 export const runtime = 'nodejs';
@@ -19,13 +17,7 @@ async function requireCronOrFrameworkAdmin(request: NextRequest) {
   if (isValidCronSecret(request.headers.get('x-cron-secret'))) return;
 
   const session = await requireSession();
-  const tenant = await resolveActiveTenant(session.user.id);
-  if (!tenant) throw new Error('Create or join an organisation before syncing framework releases.');
-
-  await requirePermission(ACTIONS.tenantManageIsm, {
-    userId: session.user.id,
-    tenantId: tenant.tenantId,
-  });
+  await requirePlatformAdmin(session.user.id);
 }
 
 export async function POST(

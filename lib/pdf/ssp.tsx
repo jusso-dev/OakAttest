@@ -75,7 +75,13 @@ export type SspData = {
     certifiedAt: string | null;
     boundaryLockedAt: string | null;
   };
-  tenant: { name: string; productName: string };
+  tenant: {
+    name: string;
+    productName: string;
+    primaryColour?: string;
+    accentColour?: string;
+    logoUrl?: string | null;
+  };
   client: { name: string; abn: string | null };
   system: { name: string; description: string | null; environment: string | null };
   boundary: { version: number; nodes: number; edges: number } | null;
@@ -132,14 +138,30 @@ export function SspDocument({ data }: { data: SspData }) {
     >
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.productTag}>{data.tenant.productName}</Text>
+          <Text
+            style={{
+              ...styles.productTag,
+              ...(data.tenant.primaryColour ? { color: data.tenant.primaryColour } : {}),
+            }}
+          >
+            {data.tenant.productName}
+          </Text>
           <Text style={styles.title}>System Security Plan</Text>
           <Text style={styles.subtitle}>
             {data.engagement.name}
             {data.engagement.reference ? ` · ${data.engagement.reference}` : ''}
           </Text>
         </View>
-        <Text style={styles.classificationBanner}>{banner}</Text>
+        <Text
+          style={{
+            ...styles.classificationBanner,
+            ...(data.tenant.primaryColour
+              ? { backgroundColor: data.tenant.primaryColour }
+              : {}),
+          }}
+        >
+          {banner}
+        </Text>
 
         <Text style={styles.sectionTitle}>1. Export and Engagement Metadata</Text>
         <View style={styles.row}>
@@ -260,7 +282,16 @@ export function SspDocument({ data }: { data: SspData }) {
       </Page>
 
       <Page size="A4" style={styles.page} wrap>
-        <Text style={styles.classificationBanner}>{banner}</Text>
+        <Text
+          style={{
+            ...styles.classificationBanner,
+            ...(data.tenant.primaryColour
+              ? { backgroundColor: data.tenant.primaryColour }
+              : {}),
+          }}
+        >
+          {banner}
+        </Text>
         <Text style={styles.sectionTitle}>7. Control Implementation Statements</Text>
         {data.controls.map((c) => (
           <View key={c.controlId} style={{ marginBottom: 10 }} wrap={false}>
@@ -289,7 +320,16 @@ export function SspDocument({ data }: { data: SspData }) {
       </Page>
 
       <Page size="A4" style={styles.page}>
-        <Text style={styles.classificationBanner}>{banner}</Text>
+        <Text
+          style={{
+            ...styles.classificationBanner,
+            ...(data.tenant.primaryColour
+              ? { backgroundColor: data.tenant.primaryColour }
+              : {}),
+          }}
+        >
+          {banner}
+        </Text>
         <Text style={styles.sectionTitle}>8. Essential Eight Posture</Text>
         {data.essentialEight.length === 0 ? (
           <Text style={styles.body}>Essential Eight assessment not yet recorded.</Text>

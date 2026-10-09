@@ -10,6 +10,7 @@ import { requireSession } from '@/lib/auth/session';
 import { createMcpTokenSecret } from '@/lib/mcp/auth';
 import { ACTIONS } from '@/lib/rbac/matrix';
 import { requirePermission } from '@/lib/rbac/require';
+import { FEATURES, requireFeature } from '@/lib/licensing';
 
 const createSchema = z.object({
   tenantId: z.string().uuid(),
@@ -24,6 +25,7 @@ export async function createMcpApiToken(input: z.infer<typeof createSchema>) {
     userId: session.user.id,
     tenantId: data.tenantId,
   });
+  await requireFeature(data.tenantId, FEATURES.API_ACCESS);
 
   const secret = createMcpTokenSecret();
   const expiresAt = new Date(Date.now() + data.expiresInDays * 86_400_000);
@@ -58,10 +60,14 @@ const revokeSchema = z.object({ tenantId: z.string().uuid(), tokenId: z.string()
 export async function revokeMcpApiToken(input: z.infer<typeof revokeSchema>) {
   const session = await requireSession();
   const data = revokeSchema.parse(input);
-  await requirePermission(ACTIONS.tenantManage, {
-    userId: session.user.id,
-    tenantId: data.tenantId,
-  });
+  await requirePermission(
+    ACTIONS.tenantManage,
+    {
+      userId: session.user.id,
+      tenantId: data.tenantId,
+    },
+    { subscription: 'skip' },
+  );
 
   const [record] = await db
     .update(mcpApiTokens)

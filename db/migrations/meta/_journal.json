@@ -204,6 +204,13 @@
       "when": 1790001600000,
       "tag": "0028_better_auth_account_issuer",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1790001700000,
+      "tag": "0029_security_wins",
+      "breakpoints": true
     }
   ]
 }

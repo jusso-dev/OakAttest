@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { and, eq, max, desc, isNotNull, isNull } from 'drizzle-orm';
+import { and, eq, max, desc, isNotNull, isNull, sql } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import JSZip from 'jszip';
 import { db } from '@/lib/db/client';
@@ -37,6 +37,7 @@ import {
   MANAGED_HMAC_REPORT_ALGORITHM,
   signCertificationBundle,
 } from '@/lib/security/signing';
+import { toCsv } from '@/lib/security/csv';
 
 const generateSchema = z.object({
   engagementId: z.string().uuid(),
@@ -115,62 +116,62 @@ export async function generateCertificationDraft(input: z.infer<typeof generateS
       ),
     );
 
-  const [{ maxV }] = await db
-    .select({ maxV: max(certificationReports.version) })
-    .from(certificationReports)
-    .where(
-      and(
-        eq(certificationReports.tenantId, engagement.tenantId),
-        eq(certificationReports.engagementId, data.engagementId),
-      ),
-    );
-  const nextVersion = (maxV ?? 0) + 1;
-
-  const cert: CertificationData = {
-    engagement: {
-      name: engagement.name,
-      reference: engagement.reference,
-      classification: engagement.classification,
-      frameworkRevision: engagement.frameworkRevision,
-    },
-    tenant: { name: tenant.name, productName: branding.productName },
-    client: { name: client?.name ?? '—' },
-    scope: data.scope,
-    methodology: data.methodology,
-    findings: {
-      total: findingRows.length,
-      nonConformanceOpen,
-      observations,
-      bySeverity,
-    },
-    residualRisks: risks.map((r) => ({
-      title: r.title,
-      description: r.description,
-      mitigation: r.mitigation,
-    })),
-    recommendation: data.recommendation,
-    conditions: data.conditions ?? null,
-    validUntil: data.validUntil ?? null,
-    readiness: toCertificationReadinessSnapshot(readiness),
-    signedBy: null,
-    signedAt: null,
-    bundleHash: null,
-    publicVerificationUrl: null,
-    reportVersion: nextVersion,
-  };
-
-  const pdfBuffer = await renderCertificationPdf(cert);
-  const pdfSha = crypto.createHash('sha256').update(pdfBuffer).digest('hex');
-  const pdfKey = buildCertificationKey({
-    tenantId: engagement.tenantId,
-    engagementId: data.engagementId,
-    version: nextVersion,
-    kind: 'pdf',
-  });
-  await putBuffer({ key: pdfKey, body: pdfBuffer, contentType: 'application/pdf' });
-
   const id = crypto.randomUUID();
+  let nextVersion = 0;
+  let cert: CertificationData;
+
   await db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${data.engagementId}))`);
+    const [{ maxV }] = await tx
+      .select({ maxV: max(certificationReports.version) })
+      .from(certificationReports)
+      .where(
+        and(
+          eq(certificationReports.tenantId, engagement.tenantId),
+          eq(certificationReports.engagementId, data.engagementId),
+        ),
+      );
+    nextVersion = (maxV ?? 0) + 1;
+
+    cert = {
+      engagement: {
+        name: engagement.name,
+        reference: engagement.reference,
+        classification: engagement.classification,
+        frameworkRevision: engagement.frameworkRevision,
+      },
+      tenant: {
+        name: tenant.name,
+        productName: branding.productName,
+        primaryColour: branding.primaryColour,
+        accentColour: branding.accentColour,
+        logoUrl: branding.logoUrl,
+      },
+      client: { name: client?.name ?? '—' },
+      scope: data.scope,
+      methodology: data.methodology,
+      findings: {
+        total: findingRows.length,
+        nonConformanceOpen,
+        observations,
+        bySeverity,
+      },
+      residualRisks: risks.map((r) => ({
+        title: r.title,
+        description: r.description,
+        mitigation: r.mitigation,
+      })),
+      recommendation: data.recommendation,
+      conditions: data.conditions ?? null,
+      validUntil: data.validUntil ?? null,
+      readiness: toCertificationReadinessSnapshot(readiness),
+      signedBy: null,
+      signedAt: null,
+      bundleHash: null,
+      publicVerificationUrl: null,
+      reportVersion: nextVersion,
+    };
+
     await tx.insert(certificationReports).values({
       id,
       engagementId: data.engagementId,
@@ -178,9 +179,6 @@ export async function generateCertificationDraft(input: z.infer<typeof generateS
       version: nextVersion,
       status: 'draft',
       snapshot: cert as never,
-      pdfStorageKey: pdfKey,
-      pdfStorageBucket: STORAGE_BUCKET,
-      pdfSha256: pdfSha,
       createdBy: session.user.id,
     });
     await tx.insert(auditLog).values({
@@ -190,9 +188,33 @@ export async function generateCertificationDraft(input: z.infer<typeof generateS
       action: 'certification.draft',
       resourceType: 'certification_report',
       resourceId: id,
-      afterJson: { version: nextVersion, sha256: pdfSha } as never,
+      afterJson: { version: nextVersion } as never,
     });
   });
+
+  const pdfBuffer = await renderCertificationPdf(cert!);
+  const pdfSha = crypto.createHash('sha256').update(pdfBuffer).digest('hex');
+  const pdfKey = buildCertificationKey({
+    tenantId: engagement.tenantId,
+    engagementId: data.engagementId,
+    version: nextVersion,
+    kind: 'pdf',
+  });
+  await putBuffer({ key: pdfKey, body: pdfBuffer, contentType: 'application/pdf' });
+  await db
+    .update(certificationReports)
+    .set({
+      pdfStorageKey: pdfKey,
+      pdfStorageBucket: STORAGE_BUCKET,
+      pdfSha256: pdfSha,
+    })
+    .where(
+      and(
+        eq(certificationReports.id, id),
+        eq(certificationReports.tenantId, engagement.tenantId),
+        eq(certificationReports.engagementId, data.engagementId),
+      ),
+    );
 
   return { id, version: nextVersion, readiness };
 }
@@ -494,7 +516,7 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
   });
 
   await db.transaction(async (tx) => {
-    await tx
+    const updated = await tx
       .update(certificationReports)
       .set({
         status: 'signed',
@@ -514,10 +536,16 @@ export async function signAndBundleCertification(input: z.infer<typeof signSchem
           eq(certificationReports.id, report.id),
           eq(certificationReports.tenantId, report.tenantId),
           eq(certificationReports.engagementId, data.engagementId),
+          eq(certificationReports.status, 'draft'),
         ),
-      );
+      )
+      .returning({ id: certificationReports.id });
+    if (updated.length === 0) {
+      throw new Error('Report is already signed.');
+    }
 
-    // Mark engagement as certified.
+    // Certification moves the engagement into maintenance. It does not lock
+    // every later edit; only this signed report row is immutable.
     await tx
       .update(engagements)
       .set({
@@ -590,16 +618,6 @@ export async function getCertificationDownloadUrl(opts: {
   });
 
   return { url };
-}
-
-// Pure CSV writer. Escapes commas, quotes, and newlines per RFC 4180.
-function toCsv(headers: string[], rows: Array<Record<string, string>>): string {
-  const esc = (v: string) =>
-    /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
-  return [
-    headers.join(','),
-    ...rows.map((r) => headers.map((h) => esc(r[h] ?? '')).join(',')),
-  ].join('\n');
 }
 
 function sha256(value: string | Buffer): string {

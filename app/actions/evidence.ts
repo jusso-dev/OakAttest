@@ -25,6 +25,7 @@ import {
   presignDownload,
   verifyObjectChecksum,
 } from '@/lib/storage/s3';
+import { pendingEvidenceSha } from '@/lib/evidence/pending-sha';
 import { assertEvidenceFinalised } from '@/lib/evidence/state';
 import { assertClassificationAllowed } from '@/lib/classification/guard';
 import { indexEvidenceDocument } from '@/lib/rag/documents';
@@ -148,6 +149,15 @@ export async function startEvidenceUpload(input: z.infer<typeof startUploadSchem
     if (!request) throw new Error('Evidence request not found');
   }
 
+  let controlIds = data.ismControlIds ?? [];
+  if (data.evidenceRequestId) {
+    const links = await db
+      .select({ frameworkControlId: evidenceRequestControls.frameworkControlId })
+      .from(evidenceRequestControls)
+      .where(eq(evidenceRequestControls.evidenceRequestId, data.evidenceRequestId));
+    controlIds = links.map((link) => link.frameworkControlId);
+  }
+
   const id = crypto.randomUUID();
   const key = buildEvidenceKey({
     tenantId,
@@ -188,7 +198,7 @@ export async function startEvidenceUpload(input: z.infer<typeof startUploadSchem
       filename: data.filename,
       mimeType: data.mimeType ?? null,
       sizeBytes: data.sizeBytes,
-      sha256: 'pending',
+      sha256: pendingEvidenceSha(id),
       storageKey: key,
       storageBucket: STORAGE_BUCKET,
       version: (previous?.version ?? 0) + 1,
@@ -197,9 +207,9 @@ export async function startEvidenceUpload(input: z.infer<typeof startUploadSchem
       uploadedBy: session.user.id,
     });
 
-    if (data.ismControlIds && data.ismControlIds.length > 0) {
+    if (controlIds.length > 0) {
       await tx.insert(evidenceItemControls).values(
-        data.ismControlIds.map((cid) => ({ evidenceItemId: id, frameworkControlId: cid })),
+        controlIds.map((cid) => ({ evidenceItemId: id, frameworkControlId: cid })),
       );
     }
 

@@ -8,7 +8,8 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { signIn } from '@/lib/auth/client';
+import Link from 'next/link';
+import { authClient, signIn } from '@/lib/auth/client';
 import { safeNextPath } from '@/lib/auth/redirect';
 
 const schema = z.object({
@@ -39,6 +40,10 @@ export function SignInForm() {
       setServerError(result.error.message ?? 'Unable to sign in');
       return;
     }
+    if (result.data && 'twoFactorRedirect' in result.data && result.data.twoFactorRedirect) {
+      router.replace('/mfa/challenge');
+      return;
+    }
     router.replace(safeNextPath(next));
   }
 
@@ -58,10 +63,23 @@ export function SignInForm() {
           {...register('password')}
         />
         {errors.password && <p className="text-xs text-red-700">{errors.password.message}</p>}
+        <p className="text-right text-xs">
+          <Link href="/forgot-password" className="text-[var(--oak-shield)] hover:underline">
+            Forgot password
+          </Link>
+        </p>
       </div>
       {serverError && <p className="text-sm text-red-700">{serverError}</p>}
       <Button type="submit" variant="primary" disabled={isSubmitting} className="w-full">
         {isSubmitting ? 'Signing in…' : 'Sign in'}
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        onClick={() => authClient.signIn.passkey()}
+      >
+        Sign in with a passkey
       </Button>
     </form>
   );

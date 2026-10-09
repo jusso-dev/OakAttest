@@ -79,6 +79,7 @@ export default async function InvitePage({
         <AcceptForm
           token={token}
           kind={invitation.kind}
+          email={invitation.email}
           publicSignupEnabled={publicSignupEnabled}
         />
       </CardContent>

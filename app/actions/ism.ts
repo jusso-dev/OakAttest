@@ -9,8 +9,7 @@ import { db } from '@/lib/db/client';
 import { engagementControls, frameworkControls, frameworkImports } from '@/db/schema/frameworks';
 import { requireSession } from '@/lib/auth/session';
 import { resolveActiveTenant } from '@/lib/auth/active-tenant';
-import { requirePermission } from '@/lib/rbac/require';
-import { ACTIONS } from '@/lib/rbac/matrix';
+import { requirePlatformAdmin } from '@/lib/auth/platform';
 import { importFrameworkCatalogue } from '@/lib/frameworks/import';
 import {
   fetchIsmCatalog,
@@ -26,15 +25,9 @@ export type IsmActionState = {
 
 async function requireIsmAdmin() {
   const session = await requireSession();
+  await requirePlatformAdmin(session.user.id);
   const tenant = await resolveActiveTenant(session.user.id);
-  if (!tenant) throw new Error('Create or join an organisation before managing ISM controls.');
-
-  await requirePermission(ACTIONS.tenantManageIsm, {
-    userId: session.user.id,
-    tenantId: tenant.tenantId,
-  });
-
-  return { session, tenantId: tenant.tenantId };
+  return { session, tenantId: tenant?.tenantId ?? null };
 }
 
 async function importFromSource(opts: {
@@ -42,7 +35,7 @@ async function importFromSource(opts: {
   sourceUrl: string;
   source: 'url' | 'file';
   actorUserId: string;
-  tenantId: string;
+  tenantId: string | null;
 }) {
   const result = await importFrameworkCatalogue({
     source: opts.source,

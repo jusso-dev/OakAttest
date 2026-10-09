@@ -15,6 +15,7 @@ const principal = {
     id: '00000000-0000-4000-8000-000000000003',
     email: 'agent@example.com',
     name: 'Assessment agent',
+    tenantId: '00000000-0000-4000-8000-000000000002',
   },
   scopes: [...MCP_SCOPES],
   expiresAt: new Date('2030-01-01T00:00:00.000Z'),

@@ -10,7 +10,7 @@ import {
 } from '@/db/schema/questionnaires';
 import { engagementMembers, tenantMembers } from '@/db/schema/tenants';
 import { QuestionnaireWorkspace } from '@/components/questionnaires/QuestionnaireWorkspace';
-import { requirePageSession } from '@/lib/auth/session';
+import { requireEngagementPage } from '@/lib/auth/engagement-access';
 import { userTimeZone } from '@/lib/auth/user-timezone';
 import { classificationAllowed } from '@/lib/classification/guard';
 import { db } from '@/lib/db/client';
@@ -26,7 +26,7 @@ export default async function QuestionnairesPage({
 }) {
   const { id: engagementId } = await params;
   const query = await searchParams;
-  const session = await requirePageSession();
+  const { session } = await requireEngagementPage(engagementId);
   const [engagement] = await db.select({
     tenantId: engagements.tenantId,
     classification: engagements.classification,

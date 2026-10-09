@@ -1,8 +1,12 @@
+import { headers } from 'next/headers';
 import { and, eq, isNull } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
+import { tenantIpAllowlist } from '@/db/schema/auth';
 import { tenantMembers, engagementMembers } from '@/db/schema/tenants';
+import { getMachineActor } from '@/lib/auth/session';
 import { partnerRoleForTenant } from '@/lib/auth/partner';
 import { isPlatformAdmin } from '@/lib/auth/platform';
+import { clientIpFromHeaders, ipAllowed } from '@/lib/security/ip-allowlist';
 import {
   type Action,
   type Role,
@@ -112,8 +116,35 @@ export async function rolesForUser(ctx: AuthContext): Promise<Role[]> {
 // Mutating actions also pass through the subscription entitlement gate
 // (`lib/billing/entitlement.ts`). Reads never hit the gate. Self-installed
 // deployments (no subscription row) are treated as `allow` and never gated.
-export async function requirePermission(action: Action, ctx: AuthContext): Promise<Role[]> {
+export type PermissionOptions = {
+  /** Suspended tenants must still be able to revoke access. Default is enforce. */
+  subscription?: 'enforce' | 'skip';
+};
+
+async function assertTenantIpAllowed(action: Action, tenantId: string): Promise<void> {
+  const rows = await db
+    .select({ cidr: tenantIpAllowlist.cidr })
+    .from(tenantIpAllowlist)
+    .where(eq(tenantIpAllowlist.tenantId, tenantId));
+  if (rows.length === 0) return;
+  const hdrs = await headers();
+  const ip = clientIpFromHeaders(hdrs);
+  if (!ipAllowed(ip, rows.map((row) => row.cidr))) {
+    throw new PermissionDeniedError(action, 'IP address is not on the tenant allowlist');
+  }
+}
+
+export async function requirePermission(
+  action: Action,
+  ctx: AuthContext,
+  options?: PermissionOptions,
+): Promise<Role[]> {
   if (!ctx.userId) throw new AuthRequiredError();
+  const machine = getMachineActor();
+  if (machine?.tenantId && machine.tenantId !== ctx.tenantId) {
+    throw new PermissionDeniedError(action, 'MCP token is bound to a different tenant');
+  }
+  await assertTenantIpAllowed(action, ctx.tenantId);
   const roles = await rolesForUser(ctx);
   if (roles.length === 0) {
     throw new PermissionDeniedError(action, 'no membership in tenant/engagement');
@@ -126,7 +157,7 @@ export async function requirePermission(action: Action, ctx: AuthContext): Promi
     );
   }
 
-  if (MUTATING_ACTIONS.has(action)) {
+  if (options?.subscription !== 'skip' && MUTATING_ACTIONS.has(action)) {
     const entitlement = await resolveEntitlement(ctx.tenantId);
     if (entitlement.state === 'block') {
       throw new SubscriptionBlockedError(action, entitlement);

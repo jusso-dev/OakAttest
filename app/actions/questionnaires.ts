@@ -303,7 +303,7 @@ export async function reviewQuestionnaireAnswer(input: z.infer<typeof reviewSche
   const context = await requireAnswer(data.answerId, data.engagementId);
   await requirePermission(ACTIONS.questionnaireReview, permissionContext(session.user.id, context));
   assertQuestionnaireEditable(context.questionnaireStatus);
-  if (context.submittedBy === session.user.id) {
+  if (context.submittedBy === session.user.id || context.createdBy === session.user.id) {
     throw new Error('Submitter cannot approve their own questionnaire answer.');
   }
   await assertLatestAnswer(context);
@@ -361,13 +361,25 @@ export async function finaliseQuestionnaire(input: z.infer<typeof finaliseSchema
   const blockers = questionnaireFinalisationBlockers(questions, latestAnswers);
   if (blockers.length > 0) throw new Error(`Questionnaire cannot be finalised: ${blockers.slice(0, 5).join(' ')}`);
 
+  const answersSha256 = crypto
+    .createHash('sha256')
+    .update(canonicalJson(
+      [...latestAnswers].sort((a, b) => a.questionId.localeCompare(b.questionId)),
+    ))
+    .digest('hex');
+
   await db.transaction(async (tx) => {
-    await tx.update(questionnaires).set({
+    const [updated] = await tx.update(questionnaires).set({
       status: 'finalised',
       finalisedBy: session.user.id,
       finalisedAt: new Date(),
       updatedAt: new Date(),
-    }).where(and(eq(questionnaires.id, data.questionnaireId), eq(questionnaires.tenantId, questionnaire.tenantId)));
+    }).where(and(
+      eq(questionnaires.id, data.questionnaireId),
+      eq(questionnaires.tenantId, questionnaire.tenantId),
+      inArray(questionnaires.status, ['draft', 'in_progress', 'in_review']),
+    )).returning({ id: questionnaires.id });
+    if (!updated) throw new Error('Questionnaire can no longer be finalised');
     await tx.insert(auditLog).values({
       tenantId: questionnaire.tenantId,
       engagementId: data.engagementId,
@@ -375,7 +387,11 @@ export async function finaliseQuestionnaire(input: z.infer<typeof finaliseSchema
       action: 'questionnaire.finalise',
       resourceType: 'questionnaire',
       resourceId: data.questionnaireId,
-      afterJson: { questionCount: questions.length, approvedAnswerCount: latestAnswers.length } as never,
+      afterJson: {
+        questionCount: questions.length,
+        approvedAnswerCount: latestAnswers.length,
+        answersSha256,
+      } as never,
     });
   });
   revalidateQuestionnaires(data.engagementId);
@@ -546,6 +562,7 @@ async function requireAnswer(answerId: string, engagementId: string) {
     answerText: questionnaireAnswers.answerText,
     version: questionnaireAnswers.version,
     status: questionnaireAnswers.status,
+    createdBy: questionnaireAnswers.createdBy,
     submittedBy: questionnaireAnswers.submittedBy,
   }).from(questionnaireAnswers)
     .innerJoin(questionnaires, eq(questionnaires.id, questionnaireAnswers.questionnaireId))
@@ -594,6 +611,7 @@ async function latestAnswersWithCitationCounts({
     questionId: questionnaireAnswers.questionId,
     status: questionnaireAnswers.status,
     version: questionnaireAnswers.version,
+    answerText: questionnaireAnswers.answerText,
   }).from(questionnaireAnswers).where(and(
     eq(questionnaireAnswers.questionnaireId, questionnaireId),
     eq(questionnaireAnswers.tenantId, tenantId),
@@ -613,8 +631,11 @@ async function latestAnswersWithCitationCounts({
   const counts = new Map<string, number>();
   citations.forEach((citation) => counts.set(citation.answerId, (counts.get(citation.answerId) ?? 0) + 1));
   return latestRows.map((row) => ({
+    id: row.id,
     questionId: row.questionId,
+    version: row.version,
     status: row.status,
+    answerText: row.answerText,
     citationCount: counts.get(row.id) ?? 0,
   }));
 }
@@ -625,6 +646,17 @@ function permissionContext(userId: string, context: { tenantId: string; engageme
 
 function assertQuestionnaireEditable(status: string) {
   if (status === 'finalised') throw new Error('Finalised questionnaires are locked.');
+}
+
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, child]) => `${JSON.stringify(key)}:${canonicalJson(child)}`)
+      .join(',')}}`;
+  }
+  return JSON.stringify(value);
 }
 
 function revalidateQuestionnaires(engagementId: string) {

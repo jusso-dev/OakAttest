@@ -32,6 +32,17 @@ function slugify(name: string): string {
     .slice(0, 60);
 }
 
+function isUniqueViolation(err: unknown): boolean {
+  let current: unknown = err;
+  while (current && typeof current === 'object') {
+    if ('code' in current && (current as { code: unknown }).code === '23505') {
+      return true;
+    }
+    current = 'cause' in current ? (current as { cause: unknown }).cause : undefined;
+  }
+  return false;
+}
+
 // Generic business identifier (ABN / EIN / company number). Stored as-is so
 // MSPs can onboard clients in any jurisdiction.
 const abnField = z.preprocess(
@@ -54,23 +65,33 @@ export async function createPartner(input: z.infer<typeof createPartnerSchema>) 
   // external MSP owner use `provisionPartner` (invite flow) instead.
   await requirePlatformAdmin(session.user.id);
   const data = createPartnerSchema.parse(input);
-  const slug = slugify(data.name) || crypto.randomBytes(4).toString('hex');
+  const baseSlug = slugify(data.name) || crypto.randomBytes(4).toString('hex');
+  let slug = baseSlug;
   const partnerId = crypto.randomUUID();
 
-  await db.transaction(async (tx) => {
-    await tx.insert(partners).values({
-      id: partnerId,
-      slug,
-      name: data.name,
-      billingEmail: data.billingEmail ?? null,
-    });
-    await tx.insert(partnerMembers).values({
-      partnerId,
-      userId: session.user.id,
-      role: 'partner_owner',
-      joinedAt: new Date(),
-    });
-  });
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      await db.transaction(async (tx) => {
+        await tx.insert(partners).values({
+          id: partnerId,
+          slug,
+          name: data.name,
+          billingEmail: data.billingEmail ?? null,
+        });
+        await tx.insert(partnerMembers).values({
+          partnerId,
+          userId: session.user.id,
+          role: 'partner_owner',
+          joinedAt: new Date(),
+        });
+      });
+      break;
+    } catch (err) {
+      if (!isUniqueViolation(err)) throw err;
+      if (attempt === 4) throw new Error('That name is already taken.');
+      slug = `${baseSlug}-${crypto.randomBytes(3).toString('hex')}`;
+    }
+  }
 
   revalidatePath('/partner');
   return { id: partnerId, slug };
@@ -89,53 +110,63 @@ export async function createClientTenant(input: z.infer<typeof createClientTenan
   const data = createClientTenantSchema.parse(input);
   await requirePartnerRole(session.user.id, data.partnerId, ['partner_owner', 'partner_admin']);
 
-  const slug = slugify(data.name) || crypto.randomBytes(4).toString('hex');
+  const baseSlug = slugify(data.name) || crypto.randomBytes(4).toString('hex');
+  let slug = baseSlug;
   const tenantId = crypto.randomUUID();
 
-  await db.transaction(async (tx) => {
-    await tx.insert(tenants).values({
-      id: tenantId,
-      partnerId: data.partnerId,
-      slug,
-      name: data.name,
-      abn: data.abn ?? null,
-    });
-
-    if (data.planCode) {
-      const [plan] = await tx
-        .select({ code: plans.code })
-        .from(plans)
-        .where(eq(plans.code, data.planCode))
-        .limit(1);
-      if (plan) {
-        await tx.insert(subscriptions).values({
-          tenantId,
-          planId: data.planCode,
-          status: 'active',
-          externalProvider: 'manual',
-          effectiveStartAt: new Date(),
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      await db.transaction(async (tx) => {
+        await tx.insert(tenants).values({
+          id: tenantId,
+          partnerId: data.partnerId,
+          slug,
+          name: data.name,
+          abn: data.abn ?? null,
         });
-      }
+
+        if (data.planCode) {
+          const [plan] = await tx
+            .select({ code: plans.code })
+            .from(plans)
+            .where(eq(plans.code, data.planCode))
+            .limit(1);
+          if (plan) {
+            await tx.insert(subscriptions).values({
+              tenantId,
+              planId: data.planCode,
+              status: 'active',
+              externalProvider: 'manual',
+              effectiveStartAt: new Date(),
+            });
+          }
+        }
+
+        // Seed a matching client record inside the new tenant so an engagement can
+        // be started immediately (the assessor fills in the contact details).
+        await tx.insert(clients).values({
+          tenantId,
+          name: data.name,
+          businessNumber: data.abn ?? null,
+        });
+
+        await tx.insert(auditLog).values({
+          tenantId,
+          actorType: 'user',
+          actorUserId: session.user.id,
+          action: 'tenant.provisioned',
+          resourceType: 'tenant',
+          resourceId: tenantId,
+          afterJson: { name: data.name, partnerId: data.partnerId, plan: data.planCode ?? null } as never,
+        });
+      });
+      break;
+    } catch (err) {
+      if (!isUniqueViolation(err)) throw err;
+      if (attempt === 4) throw new Error('That name is already taken.');
+      slug = `${baseSlug}-${crypto.randomBytes(3).toString('hex')}`;
     }
-
-    // Seed a matching client record inside the new tenant so an engagement can
-    // be started immediately (the assessor fills in the contact details).
-    await tx.insert(clients).values({
-      tenantId,
-      name: data.name,
-      businessNumber: data.abn ?? null,
-    });
-
-    await tx.insert(auditLog).values({
-      tenantId,
-      actorType: 'user',
-      actorUserId: session.user.id,
-      action: 'tenant.provisioned',
-      resourceType: 'tenant',
-      resourceId: tenantId,
-      afterJson: { name: data.name, partnerId: data.partnerId, plan: data.planCode ?? null } as never,
-    });
-  });
+  }
 
   revalidatePath('/partner');
   return { id: tenantId, slug };

@@ -1,16 +1,15 @@
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, inArray } from 'drizzle-orm';
 import Link from 'next/link';
 import { db } from '@/lib/db/client';
-import { evidenceRequests, evidenceItems } from '@/db/schema/evidence';
+import { evidenceRequests, evidenceItems, evidenceRequestControls } from '@/db/schema/evidence';
 import { engagementControls, frameworkControls } from '@/db/schema/frameworks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { requirePageSession } from '@/lib/auth/session';
+import { requireEngagementPage } from '@/lib/auth/engagement-access';
 import { rolesForUser } from '@/lib/rbac/require';
 import { EvidenceRequestForm } from '@/components/evidence/EvidenceRequestForm';
 import { EvidenceUploader } from '@/components/evidence/EvidenceUploader';
 import { EvidenceReviewActions } from '@/components/evidence/EvidenceReviewActions';
 import { EvidenceDownloadButton } from '@/components/evidence/EvidenceDownloadButton';
-import { engagements } from '@/db/schema/engagements';
 import { EnterpriseEvidenceGuidance } from '@/components/evidence/EnterpriseEvidenceGuidance';
 import { EnterpriseEvidenceCsvPanel } from '@/components/evidence/EnterpriseEvidenceCsvPanel';
 import { evidenceStorageState } from '@/lib/evidence/state';
@@ -22,14 +21,7 @@ export default async function EvidencePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await requirePageSession();
-
-  const [engagement] = await db
-    .select({ tenantId: engagements.tenantId, classification: engagements.classification })
-    .from(engagements)
-    .where(eq(engagements.id, id))
-    .limit(1);
-  if (!engagement) throw new Error('Engagement not found');
+  const { session, engagement } = await requireEngagementPage(id);
 
   const requests = await db
     .select()
@@ -42,6 +34,27 @@ export default async function EvidencePage({
     .from(evidenceItems)
     .where(eq(evidenceItems.engagementId, id))
     .orderBy(desc(evidenceItems.uploadedAt));
+
+  const requestControls =
+    requests.length === 0
+      ? []
+      : await db
+          .select({
+            requestId: evidenceRequestControls.evidenceRequestId,
+            id: evidenceRequestControls.frameworkControlId,
+            controlId: frameworkControls.controlId,
+          })
+          .from(evidenceRequestControls)
+          .innerJoin(
+            frameworkControls,
+            eq(frameworkControls.id, evidenceRequestControls.frameworkControlId),
+          )
+          .where(
+            inArray(
+              evidenceRequestControls.evidenceRequestId,
+              requests.map((request) => request.id),
+            ),
+          );
 
   const controls = await db
     .select({
@@ -116,10 +129,9 @@ export default async function EvidencePage({
                       <EvidenceUploader
                         engagementId={id}
                         evidenceRequestId={r.id}
-                        controls={controls.map((c) => ({
-                          id: c.id,
-                          controlId: c.controlId,
-                        }))}
+                        controls={requestControls
+                          .filter((control) => control.requestId === r.id)
+                          .map((control) => ({ id: control.id, controlId: control.controlId }))}
                         workspaceClassification={engagement.classification}
                       />
                     )}

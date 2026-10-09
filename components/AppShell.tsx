@@ -110,6 +110,7 @@ export function AppShell({
       />
       <SidebarLink href="/burl" icon={Bot} label="Burl" collapsed={linkCollapsed} />
       <SidebarLink href="/settings/profile" icon={UserRoundCog} label="Profile settings" collapsed={linkCollapsed} />
+      <SidebarLink href="/settings/security" icon={Settings} label="Sessions" collapsed={linkCollapsed} />
 
       {(isPlatformAdmin || isPartnerMember) && (
         <>

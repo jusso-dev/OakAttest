@@ -6,6 +6,8 @@ import { users } from '@/db/schema/auth';
 import { mcpApiTokens, type McpScope } from '@/db/schema/mcp';
 import { tenants } from '@/db/schema/tenants';
 import type { MachineActor } from '@/lib/auth/session';
+import { tenantIpAllowlist } from '@/db/schema/auth';
+import { clientIpFromHeaders, ipAllowed } from '@/lib/security/ip-allowlist';
 
 export const MCP_TOKEN_PREFIX = 'oak_mcp_';
 
@@ -64,6 +66,20 @@ export async function authenticateMcpRequest(
     .limit(1);
   if (!row) return unauthorized();
 
+  const allowlist = await db
+    .select({ cidr: tenantIpAllowlist.cidr })
+    .from(tenantIpAllowlist)
+    .where(eq(tenantIpAllowlist.tenantId, row.tenantId));
+  if (
+    allowlist.length > 0 &&
+    !ipAllowed(
+      clientIpFromHeaders(request.headers),
+      allowlist.map((entry) => entry.cidr),
+    )
+  ) {
+    return Response.json({ error: 'IP address is not on the tenant allowlist.' }, { status: 403 });
+  }
+
   await db
     .update(mcpApiTokens)
     .set({ lastUsedAt: now })
@@ -72,7 +88,7 @@ export async function authenticateMcpRequest(
   const principal: McpPrincipal = {
     tokenId: row.tokenId,
     tenantId: row.tenantId,
-    actor: { id: row.actorUserId, email: row.email, name: row.name },
+    actor: { id: row.actorUserId, email: row.email, name: row.name, tenantId: row.tenantId },
     scopes: row.scopes,
     expiresAt: row.expiresAt,
   };

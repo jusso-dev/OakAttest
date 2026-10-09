@@ -18,6 +18,42 @@ import {
 export const dynamic = 'force-dynamic';
 
 export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ token: string }> },
+) {
+  const { token } = await params;
+  if (!/^[A-Za-z0-9_-]{40,80}$/.test(token)) return unavailable();
+
+  return new Response(
+    `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Confirm trust artefact download</title>
+</head>
+<body>
+  <main>
+    <h1>Confirm download</h1>
+    <p>This controlled download is recorded in the issuer audit log. Continue only if you intended to open this access link.</p>
+    <form method="POST" action="">
+      <button type="submit">Confirm download</button>
+    </form>
+  </main>
+</body>
+</html>`,
+    {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-store, max-age=0',
+        'Referrer-Policy': 'no-referrer',
+      },
+    },
+  );
+}
+
+export async function POST(
   request: Request,
   { params }: { params: Promise<{ token: string }> },
 ) {

@@ -3,7 +3,7 @@ import { db } from '@/lib/db/client';
 import { cveScans, cveScanFindings } from '@/db/schema/cve';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CveSubmitForm } from '@/components/evidence/CveSubmitForm';
-import { requirePageSession } from '@/lib/auth/session';
+import { requireEngagementPage } from '@/lib/auth/engagement-access';
 import { UserDateTime } from '@/components/timezone/UserTimezone';
 
 export const metadata = { title: 'CVE scan · OakAttest' };
@@ -14,7 +14,7 @@ export default async function CveScanPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  await requirePageSession();
+  await requireEngagementPage(id);
 
   const scans = await db
     .select()

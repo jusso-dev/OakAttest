@@ -327,7 +327,13 @@ async function buildSspData(
       certifiedAt: engagement.certifiedAt?.toISOString() ?? null,
       boundaryLockedAt: engagement.boundaryLockedAt?.toISOString() ?? null,
     },
-    tenant: { name: tenant.name, productName: branding.productName },
+    tenant: {
+      name: tenant.name,
+      productName: branding.productName,
+      primaryColour: branding.primaryColour,
+      accentColour: branding.accentColour,
+      logoUrl: branding.logoUrl,
+    },
     client: { name: client?.name ?? '—', abn: client?.abn ?? null },
     system: {
       name: system?.name ?? '—',
@@ -637,6 +643,12 @@ export async function saveSspSection(input: z.infer<typeof sectionSchema>) {
       !canTransitionSspStatus(existing.reviewStatus as SspReviewStatus, nextStatus as SspReviewStatus)
     ) {
       throw new Error(`Cannot move SSP section from ${existing.reviewStatus} to ${nextStatus}.`);
+    }
+    if (nextStatus === 'approved') {
+      const contentChanging = !existing || existing.content !== data.content;
+      if (contentChanging || existing?.lastEditedBy === session.user.id) {
+        throw new Error('The approver must be a different person from the author.');
+      }
     }
     if (existing) {
       await tx

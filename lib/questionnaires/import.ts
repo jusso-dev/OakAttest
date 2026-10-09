@@ -195,11 +195,28 @@ async function parsePdf(buffer: Buffer): Promise<string[]> {
 }
 
 async function loadOfficeArchive(buffer: Buffer, label: 'XLSX' | 'DOCX') {
+  let zip: JSZip;
   try {
-    return await JSZip.loadAsync(buffer);
+    zip = await JSZip.loadAsync(buffer);
   } catch {
     throw new Error(`${label} questionnaire is not a valid Office document.`);
   }
+
+  const maxUncompressedBytes = 32 * 1024 * 1024;
+  let uncompressedBytes = 0;
+  for (const entry of Object.values(zip.files)) {
+    if (entry.dir) continue;
+    const size = (entry as JSZip.JSZipObject & { _data?: { uncompressedSize?: number } })._data
+      ?.uncompressedSize ?? 0;
+    uncompressedBytes += size;
+    if (uncompressedBytes > maxUncompressedBytes) {
+      throw new Error(
+        `${label} questionnaire uncompressed contents exceed 32 MB and were rejected before extraction.`,
+      );
+    }
+  }
+
+  return zip;
 }
 
 function questionnaireFormat(filename: string, mimeType?: string | null): QuestionnaireFormat {
@@ -270,11 +287,12 @@ function cleanPrompt(value: string) {
 }
 
 function deduplicateQuestions(questions: ImportedQuestion[]) {
-  const seen = new Set<string>();
-  return questions.filter((question) => {
+  const seen = new Map<string, number>();
+  return questions.map((question) => {
     const key = question.prompt.toLocaleLowerCase('en-AU');
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
+    const occurrence = (seen.get(key) ?? 0) + 1;
+    seen.set(key, occurrence);
+    if (occurrence === 1) return question;
+    return { ...question, prompt: `${question.prompt} (${occurrence})` };
   });
 }

@@ -13,7 +13,7 @@ import { clientOrganisations, engagements } from '@/db/schema/engagements';
 import { evidenceItemControls, evidenceItems } from '@/db/schema/evidence';
 import { engagementControls, frameworkControls } from '@/db/schema/frameworks';
 import { engagementMembers } from '@/db/schema/tenants';
-import { requirePageSession } from '@/lib/auth/session';
+import { requireEngagementPage } from '@/lib/auth/engagement-access';
 import { userTimeZone } from '@/lib/auth/user-timezone';
 import { hasFeature } from '@/lib/licensing';
 import { requirePermission, rolesForUser } from '@/lib/rbac/require';
@@ -25,7 +25,7 @@ import { AssuranceAutomationWorkspace } from '@/components/connectors/AssuranceA
 
 export default async function AssuranceConnectorsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const session = await requirePageSession();
+  const { session } = await requireEngagementPage(id);
   const [engagement] = await db
     .select({
       tenantId: engagements.tenantId,

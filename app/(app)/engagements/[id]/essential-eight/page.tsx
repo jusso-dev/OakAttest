@@ -15,6 +15,7 @@ import { EssentialEightGrid } from '@/components/engagement/EssentialEightGrid';
 import { EssentialEightChart } from '@/components/engagement/EssentialEightChart';
 import { calculateEssentialEightOverall, ESSENTIAL_EIGHT_STRATEGIES } from '@/lib/essential-eight';
 import { groupEssentialEightMappedControls } from '@/lib/essential-eight-mapping';
+import { requireEngagementPage } from '@/lib/auth/engagement-access';
 import { getEngagementFramework, hasEssentialEight } from '@/lib/frameworks/registry';
 
 export const metadata = { title: 'Essential Eight · OakAttest' };
@@ -25,6 +26,7 @@ export default async function EssentialEightPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  await requireEngagementPage(id);
 
   // Essential Eight is an ISM overlay. Frameworks without it (NIST, SOC 2, ISO)
   // have no E8 maturity view — send them back to the overview.

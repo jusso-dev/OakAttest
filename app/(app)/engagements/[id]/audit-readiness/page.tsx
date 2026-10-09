@@ -13,7 +13,7 @@ import { evidenceItems } from '@/db/schema/evidence';
 import { frameworks } from '@/db/schema/frameworks';
 import { engagementMembers } from '@/db/schema/tenants';
 import { users } from '@/db/schema/auth';
-import { requirePageSession } from '@/lib/auth/session';
+import { requireEngagementPage } from '@/lib/auth/engagement-access';
 import { requirePermission, rolesForUser } from '@/lib/rbac/require';
 import { ACTIONS, isPermitted } from '@/lib/rbac/matrix';
 import {
@@ -40,7 +40,7 @@ export const metadata = { title: 'Audit readiness · OakAttest' };
 
 export default async function AuditReadinessPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const session = await requirePageSession();
+  const { session } = await requireEngagementPage(id);
   const timeZone = await userTimeZone(session.user.id);
   const [engagement] = await db
     .select({

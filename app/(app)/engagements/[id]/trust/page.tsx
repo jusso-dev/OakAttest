@@ -8,7 +8,7 @@ import {
   trustPortalPublications,
   trustPortals,
 } from '@/db/schema/trust-portal';
-import { requirePageSession } from '@/lib/auth/session';
+import { requireEngagementPage } from '@/lib/auth/engagement-access';
 import { userTimeZone } from '@/lib/auth/user-timezone';
 import { requirePermission, rolesForUser } from '@/lib/rbac/require';
 import { ACTIONS, isPermitted } from '@/lib/rbac/matrix';
@@ -21,7 +21,7 @@ export default async function TrustPortalManagementPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await requirePageSession();
+  const { session } = await requireEngagementPage(id);
   const [engagement] = await db
     .select({ tenantId: engagements.tenantId, name: engagements.name })
     .from(engagements)

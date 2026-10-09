@@ -14,7 +14,7 @@ import {
 import { engagements } from '@/db/schema/engagements';
 import { engagementControls } from '@/db/schema/frameworks';
 import { requireSession } from '@/lib/auth/session';
-import { requireFeature } from '@/lib/licensing';
+import { FEATURES, requireFeature } from '@/lib/licensing';
 import { requirePermission } from '@/lib/rbac/require';
 import { ACTIONS } from '@/lib/rbac/matrix';
 import { connectorAdapter } from '@/lib/connectors/registry';
@@ -349,6 +349,9 @@ async function authorisedConnector(
     tenantId: context.tenantId,
     engagementId: data.engagementId,
   });
+  if (action === ACTIONS.connectorRun) {
+    await requireFeature(context.tenantId, FEATURES.INTEGRATIONS);
+  }
   const [connector] = await db
     .select()
     .from(assuranceConnectors)

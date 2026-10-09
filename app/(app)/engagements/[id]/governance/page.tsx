@@ -11,7 +11,7 @@ import {
 } from '@/db/schema/operational-grc';
 import { engagementMembers } from '@/db/schema/tenants';
 import { OperationalGrcWorkspace } from '@/components/governance/OperationalGrcWorkspace';
-import { requirePageSession } from '@/lib/auth/session';
+import { requireEngagementPage } from '@/lib/auth/engagement-access';
 import { userTimeZone } from '@/lib/auth/user-timezone';
 import { db } from '@/lib/db/client';
 import { governanceOverdueItems } from '@/lib/governance/workflow';
@@ -21,7 +21,7 @@ import { formatDateInput } from '@/lib/timezone';
 
 export default async function GovernancePage({ params }: { params: Promise<{ id: string }> }) {
   const { id: engagementId } = await params;
-  const session = await requirePageSession();
+  const { session } = await requireEngagementPage(engagementId);
   const [engagement] = await db.select({ tenantId: engagements.tenantId }).from(engagements)
     .where(eq(engagements.id, engagementId)).limit(1);
   if (!engagement) throw new Error('Engagement not found.');

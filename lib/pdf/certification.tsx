@@ -45,7 +45,13 @@ export type CertificationData = {
     classification: Classification;
     frameworkRevision: string;
   };
-  tenant: { name: string; productName: string };
+  tenant: {
+    name: string;
+    productName: string;
+    primaryColour?: string;
+    accentColour?: string;
+    logoUrl?: string | null;
+  };
   client: { name: string };
   scope: string;
   methodology: string;
@@ -79,14 +85,30 @@ export function CertificationDocument({ data }: { data: CertificationData }) {
     <Document title={`Certification Report — ${data.engagement.name}`}>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.productTag}>{data.tenant.productName}</Text>
+          <Text
+            style={{
+              ...styles.productTag,
+              ...(data.tenant.primaryColour ? { color: data.tenant.primaryColour } : {}),
+            }}
+          >
+            {data.tenant.productName}
+          </Text>
           <Text style={styles.title}>IRAP Certification Report</Text>
           <Text style={styles.subtitle}>
             {data.engagement.name}
             {data.engagement.reference ? ` · ${data.engagement.reference}` : ''}
           </Text>
         </View>
-        <Text style={styles.classificationBanner}>{banner}</Text>
+        <Text
+          style={{
+            ...styles.classificationBanner,
+            ...(data.tenant.primaryColour
+              ? { backgroundColor: data.tenant.primaryColour }
+              : {}),
+          }}
+        >
+          {banner}
+        </Text>
 
         <Text style={styles.sectionTitle}>1. Scope</Text>
         <Text style={styles.body}>{data.scope}</Text>

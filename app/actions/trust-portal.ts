@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { and, desc, eq, max, ne } from 'drizzle-orm';
+import { and, count, desc, eq, gte, max, ne } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { auditLog } from '@/db/schema/audit';
 import { certificationReports } from '@/db/schema/certification';
@@ -351,6 +351,20 @@ export async function requestTrustPortalAccess(input: z.infer<typeof requestSche
   }
 
   const requesterEmail = data.requesterEmail.toLowerCase();
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const [recent] = await db
+    .select({ value: count() })
+    .from(trustPortalAccessRequests)
+    .where(
+      and(
+        eq(trustPortalAccessRequests.requesterEmail, requesterEmail),
+        gte(trustPortalAccessRequests.requestedAt, oneHourAgo),
+      ),
+    );
+  if ((recent?.value ?? 0) >= 5) {
+    throw new Error('Too many access requests. Try again later.');
+  }
+
   const [existing] = await db
     .select({ id: trustPortalAccessRequests.id })
     .from(trustPortalAccessRequests)

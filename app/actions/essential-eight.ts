@@ -517,7 +517,13 @@ export async function generateEssentialEightReport(input: { engagementId: string
   const evidenceById = new Map(evidenceRows.map((item) => [item.id, item]));
   const reportData: EssentialEightReportData = {
     timeZone,
-    tenant: { name: tenant?.name ?? 'Tenant', productName: branding.productName },
+    tenant: {
+      name: tenant?.name ?? 'Tenant',
+      productName: branding.productName,
+      primaryColour: branding.primaryColour,
+      accentColour: branding.accentColour,
+      logoUrl: branding.logoUrl,
+    },
     engagement: {
       name: engagement.name,
       reference: engagement.reference,

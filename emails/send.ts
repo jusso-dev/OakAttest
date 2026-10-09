@@ -4,6 +4,7 @@
 
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MagicLinkEmail } from './templates/MagicLink';
+import { PasswordResetEmail } from './templates/PasswordReset';
 import { EngagementInviteEmail } from './templates/EngagementInvite';
 import { TenantInviteEmail } from './templates/TenantInvite';
 import {
@@ -117,6 +118,14 @@ async function send(opts: { to: string; subject: string; react: React.ReactEleme
     subject: opts.subject,
     html,
     text: htmlToText(html),
+  });
+}
+
+export async function sendPasswordResetEmail({ to, url }: { to: string; url: string }) {
+  await send({
+    to,
+    subject: 'Reset your OakAttest password',
+    react: PasswordResetEmail({ url }),
   });
 }
 

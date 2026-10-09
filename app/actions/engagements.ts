@@ -12,9 +12,14 @@ import { engagementMembers } from '@/db/schema/tenants';
 import { frameworkControls, engagementControls, frameworkPacks } from '@/db/schema/frameworks';
 import { resolveFrameworkId, selectPreferredFrameworkPack } from '@/lib/frameworks/registry';
 import { notifyEngagementWatchers } from '@/lib/engagement-watch';
-import { evidenceItemControls, evidenceRequestControls } from '@/db/schema/evidence';
-import { findingControls } from '@/db/schema/findings';
-import { interviewControls } from '@/db/schema/interviews';
+import {
+  evidenceItems,
+  evidenceItemControls,
+  evidenceRequests,
+  evidenceRequestControls,
+} from '@/db/schema/evidence';
+import { findings, findingControls } from '@/db/schema/findings';
+import { interviews, interviewControls } from '@/db/schema/interviews';
 import { auditLog } from '@/db/schema/audit';
 import { CLASSIFICATION_RANK, type Classification } from '@/db/schema/enums';
 import { requireSession } from '@/lib/auth/session';
@@ -447,6 +452,8 @@ export async function migrateEngagementIsmRevision(input: z.infer<typeof migrate
           await preserveControlLinksForRevisionMigration(tx, {
             fromIsmControlId: current.frameworkControlId,
             toIsmControlId: next.id,
+            tenantId: engagement.tenantId,
+            engagementId: data.engagementId,
           });
           await tx
             .update(engagementControls)
@@ -526,25 +533,58 @@ export async function migrateEngagementIsmRevision(input: z.infer<typeof migrate
 
 async function preserveControlLinksForRevisionMigration(
   tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
-  opts: { fromIsmControlId: string; toIsmControlId: string },
+  opts: {
+    fromIsmControlId: string;
+    toIsmControlId: string;
+    tenantId: string;
+    engagementId: string;
+  },
 ) {
   const [evidenceLinks, requestLinks, findingLinks, interviewLinks] = await Promise.all([
     tx
       .select({ evidenceItemId: evidenceItemControls.evidenceItemId })
       .from(evidenceItemControls)
-      .where(eq(evidenceItemControls.frameworkControlId, opts.fromIsmControlId)),
+      .innerJoin(evidenceItems, eq(evidenceItems.id, evidenceItemControls.evidenceItemId))
+      .where(
+        and(
+          eq(evidenceItemControls.frameworkControlId, opts.fromIsmControlId),
+          eq(evidenceItems.tenantId, opts.tenantId),
+          eq(evidenceItems.engagementId, opts.engagementId),
+        ),
+      ),
     tx
       .select({ evidenceRequestId: evidenceRequestControls.evidenceRequestId })
       .from(evidenceRequestControls)
-      .where(eq(evidenceRequestControls.frameworkControlId, opts.fromIsmControlId)),
+      .innerJoin(evidenceRequests, eq(evidenceRequests.id, evidenceRequestControls.evidenceRequestId))
+      .where(
+        and(
+          eq(evidenceRequestControls.frameworkControlId, opts.fromIsmControlId),
+          eq(evidenceRequests.tenantId, opts.tenantId),
+          eq(evidenceRequests.engagementId, opts.engagementId),
+        ),
+      ),
     tx
       .select({ findingId: findingControls.findingId })
       .from(findingControls)
-      .where(eq(findingControls.frameworkControlId, opts.fromIsmControlId)),
+      .innerJoin(findings, eq(findings.id, findingControls.findingId))
+      .where(
+        and(
+          eq(findingControls.frameworkControlId, opts.fromIsmControlId),
+          eq(findings.tenantId, opts.tenantId),
+          eq(findings.engagementId, opts.engagementId),
+        ),
+      ),
     tx
       .select({ interviewId: interviewControls.interviewId })
       .from(interviewControls)
-      .where(eq(interviewControls.frameworkControlId, opts.fromIsmControlId)),
+      .innerJoin(interviews, eq(interviews.id, interviewControls.interviewId))
+      .where(
+        and(
+          eq(interviewControls.frameworkControlId, opts.fromIsmControlId),
+          eq(interviews.tenantId, opts.tenantId),
+          eq(interviews.engagementId, opts.engagementId),
+        ),
+      ),
   ]);
 
   if (evidenceLinks.length > 0) {

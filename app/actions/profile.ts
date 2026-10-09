@@ -14,7 +14,8 @@ const timeZoneSchema = z.string().trim().min(1).max(100).refine(isValidTimeZone,
 });
 
 export async function acceptDataHandlingTerms() {
-  const session = await requireSession();
+  // Terms are unaccepted, so the session policy must not demand them here.
+  const session = await requireSession({ skipPolicy: true });
   await db.transaction(async (tx) => {
     await tx
       .update(users)

@@ -6,7 +6,7 @@ import {
   getEngagementCoverage,
   type CoverageBlocker,
 } from '@/lib/assessment/coverage';
-import { requirePageSession } from '@/lib/auth/session';
+import { requireEngagementPage } from '@/lib/auth/engagement-access';
 import { rolesForUser } from '@/lib/rbac/require';
 import { db } from '@/lib/db/client';
 import { engagements } from '@/db/schema/engagements';
@@ -22,7 +22,7 @@ export default async function CoveragePage({
 }) {
   const { id } = await params;
   const query = await searchParams;
-  const session = await requirePageSession();
+  const { session } = await requireEngagementPage(id);
   const [engagement] = await db
     .select({ tenantId: engagements.tenantId })
     .from(engagements)

@@ -2,6 +2,7 @@
 // Seeds the SaaS plan catalogue: plans, features, plan_features, plan_limits.
 // Idempotent — safe to re-run. Run with: npm run db:seed:plans
 import 'dotenv/config';
+import { and, eq, notInArray } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { plans, features, planFeatures, planLimits } from '@/db/schema/plans';
 
@@ -132,15 +133,33 @@ async function main() {
       await db
         .insert(planFeatures)
         .values(rows)
-        .onConflictDoNothing({
+        .onConflictDoUpdate({
           target: [planFeatures.planId, planFeatures.featureId],
+          set: { enabled: true },
         });
     }
+    const enabledFeatureIds = rows.map((r) => r.featureId);
+    await db
+      .update(planFeatures)
+      .set({ enabled: false })
+      .where(
+        enabledFeatureIds.length > 0
+          ? and(eq(planFeatures.planId, pid), notInArray(planFeatures.featureId, enabledFeatureIds))
+          : eq(planFeatures.planId, pid),
+      );
     // Limits
     await db
       .insert(planLimits)
       .values({ planId: pid, ...p.limits })
-      .onConflictDoNothing({ target: planLimits.planId });
+      .onConflictDoUpdate({
+        target: planLimits.planId,
+        set: {
+          maxUsers: p.limits.maxUsers,
+          maxFrameworks: p.limits.maxFrameworks,
+          maxEntities: p.limits.maxEntities,
+          maxStorageGb: p.limits.maxStorageGb,
+        },
+      });
   }
 
   // eslint-disable-next-line no-console

@@ -27,6 +27,17 @@ function slugify(name: string): string {
   );
 }
 
+function isUniqueViolation(err: unknown): boolean {
+  let current: unknown = err;
+  while (current && typeof current === 'object') {
+    if ('code' in current && (current as { code: unknown }).code === '23505') {
+      return true;
+    }
+    current = 'cause' in current ? (current as { cause: unknown }).cause : undefined;
+  }
+  return false;
+}
+
 function inviteUrl(token: string): string {
   const baseUrl = process.env.BETTER_AUTH_URL ?? 'http://localhost:3000';
   return `${baseUrl}/invite/${token}`;
@@ -56,32 +67,43 @@ export async function provisionPartner(input: z.infer<typeof provisionPartnerSch
   const token = crypto.randomBytes(32).toString('base64url');
   const expiresAt = new Date(Date.now() + INVITE_TTL_MS);
   const invitationId = crypto.randomUUID();
+  const baseSlug = slugify(data.name);
+  let slug = baseSlug;
 
-  await db.transaction(async (tx) => {
-    await tx.insert(partners).values({
-      id: partnerId,
-      slug: slugify(data.name),
-      name: data.name,
-      billingEmail: data.billingEmail ?? null,
-    });
-    await tx.insert(partnerInvitations).values({
-      id: invitationId,
-      partnerId,
-      email: data.ownerEmail.toLowerCase(),
-      role: 'partner_owner',
-      token,
-      invitedBy: session.user.id,
-      expiresAt,
-    });
-    await tx.insert(auditLog).values({
-      actorType: 'user',
-      actorUserId: session.user.id,
-      action: 'partner.provisioned',
-      resourceType: 'partner',
-      resourceId: partnerId,
-      afterJson: { name: data.name, ownerEmail: data.ownerEmail.toLowerCase() } as never,
-    });
-  });
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      await db.transaction(async (tx) => {
+        await tx.insert(partners).values({
+          id: partnerId,
+          slug,
+          name: data.name,
+          billingEmail: data.billingEmail ?? null,
+        });
+        await tx.insert(partnerInvitations).values({
+          id: invitationId,
+          partnerId,
+          email: data.ownerEmail.toLowerCase(),
+          role: 'partner_owner',
+          token,
+          invitedBy: session.user.id,
+          expiresAt,
+        });
+        await tx.insert(auditLog).values({
+          actorType: 'user',
+          actorUserId: session.user.id,
+          action: 'partner.provisioned',
+          resourceType: 'partner',
+          resourceId: partnerId,
+          afterJson: { name: data.name, ownerEmail: data.ownerEmail.toLowerCase() } as never,
+        });
+      });
+      break;
+    } catch (err) {
+      if (!isUniqueViolation(err)) throw err;
+      if (attempt === 4) throw new Error('That name is already taken.');
+      slug = `${baseSlug}-${crypto.randomBytes(3).toString('hex')}`;
+    }
+  }
 
   const url = inviteUrl(token);
   await sendTenantInviteEmail({
