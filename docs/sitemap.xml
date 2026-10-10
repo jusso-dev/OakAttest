@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-  xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  xmlns:image="http://www.sitemaps.org/schemas/sitemap-image/1.1">
   <url>
     <loc>https://jusso-dev.github.io/OakAttest/</loc>
     <lastmod>2026-05-18</lastmod>
@@ -30,5 +30,11 @@
       <image:loc>https://jusso-dev.github.io/OakAttest/screenshots/15-assessment-coverage.png</image:loc>
       <image:title>OakAttest assessment coverage blockers</image:title>
     </image:image>
+  </url>
+  <url>
+    <loc>https://jusso-dev.github.io/OakAttest/privacy.html</loc>
+    <lastmod>2026-08-20</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
   </url>
 </urlset>

@@ -24,6 +24,7 @@ const PUBLIC_PATHS = [
   '/verify',
   '/forgot-password',
   '/reset-password',
+  '/privacy',
 ];
 
 function isPublic(pathname: string): boolean {
