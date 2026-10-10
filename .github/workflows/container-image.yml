@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,10 +37,11 @@ jobs:
           platforms: linux/arm64
           push: true
           tags: |
-            ghcr.io/yumaitau/oakattest:main
-            ghcr.io/yumaitau/oakattest:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/oakattest:main
+            ghcr.io/${{ github.repository_owner }}/oakattest:${{ github.sha }}
 
       - name: Deploy image through Coolify
+        if: vars.DEPLOY_WEBHOOK != ''
         env:
           DEPLOY_WEBHOOK: ${{ vars.DEPLOY_WEBHOOK }}
           DEPLOY_WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
