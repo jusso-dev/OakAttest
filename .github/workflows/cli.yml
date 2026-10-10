@@ -6,6 +6,11 @@ on:
     paths:
       - "tools/OakAttest.Cli/**"
       - ".github/workflows/cli.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/OakAttest.Cli/**"
+      - ".github/workflows/cli.yml"
   workflow_dispatch:
 
 permissions:
@@ -17,7 +22,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
       DOTNET_INSTALL_DIR: ${{ runner.temp }}/dotnet

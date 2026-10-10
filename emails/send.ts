@@ -2,7 +2,10 @@
 // template. Templates render via React Email components to HTML. Paperboy has
 // no react field.
 
-import { renderToStaticMarkup } from 'react-dom/server';
+import type { ReactElement } from 'react';
+// `react-dom/server` is banned in the App Router graph (Next aliases
+// renderToStaticMarkup to a throw). The edge build still renders static markup.
+import { renderToStaticMarkup } from 'react-dom/server.edge';
 import { MagicLinkEmail } from './templates/MagicLink';
 import { PasswordResetEmail } from './templates/PasswordReset';
 import { EngagementInviteEmail } from './templates/EngagementInvite';
@@ -105,7 +108,7 @@ async function postPaperboy(payload: {
   throw lastError;
 }
 
-async function send(opts: { to: string; subject: string; react: React.ReactElement }) {
+async function send(opts: { to: string; subject: string; react: ReactElement }) {
   if (!apiKey || !paperboyUrl) {
     // eslint-disable-next-line no-console
     console.info('[email:dev]', opts.subject, '->', opts.to);

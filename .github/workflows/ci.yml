@@ -3,6 +3,8 @@ name: Pull request validation
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -14,7 +16,7 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
       postgres:
@@ -72,14 +74,3 @@ jobs:
 
       - name: Production build
         run: npm run build
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build ARM64 runtime image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: linux/arm64
-          push: false
-          tags: ghcr.io/yumaitau/oakattest:pr-${{ github.event.pull_request.number || github.run_id }}
