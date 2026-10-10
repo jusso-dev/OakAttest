@@ -270,10 +270,12 @@ Gap-closing tests are scoped under issue #27 (`Add tenant and workspace isolatio
 
 ## 13. Marketplace implications
 
-- One subscription per tenant constrains how Microsoft Partner Center maps SaaS offer purchases. The landing page (#41) and webhook (#44) must reject re-binding an existing tenant to a second subscription.
-- Private offer flows (#60) attach to the same tenant model — no new isolation primitives are required.
+AWS Marketplace is the listing path. Microsoft Partner Center and Azure Marketplace are not required work. The listing walkthrough is `docs/saas/aws-marketplace.md`.
+
+- One subscription per tenant. Fulfillment (#88) must reject binding an existing tenant to a second AWS customer identifier.
+- Private offers are out of scope for v1. They would use this same tenant model.
 - Plan entitlements (issue #40) layer on top of the tenancy model. They constrain quotas (members, engagements) but do not change isolation rules.
-- Region is per-tenant. Multi-region tenants are out of scope for v1.
+- Hosted region for v1 is `ap-southeast-2`. Multi-region tenants are out of scope.
 
 ---
 
@@ -282,9 +284,9 @@ Gap-closing tests are scoped under issue #27 (`Add tenant and workspace isolatio
 These are tracked in adjacent issues, not in scope for #39:
 
 - Plan entitlement schema → #40
-- Marketplace SaaS landing page → #41
-- SaaS webhook (provisioning, grace, cancel) → #44
-- Marketplace Fulfillment API integration → #43
+- AWS Marketplace listing foundation → #79 (`docs/saas/aws-marketplace.md`)
+- AWS Marketplace subscribe and unsubscribe → #88
+- Microsoft Partner Center landing, webhook, and fulfillment (#41, #43, #44) are not required
 - Per-tenant retention policy implementation → #46
 - Export bundle for archive/delete → #45
 - Engineering isolation tests against this spec → #27
