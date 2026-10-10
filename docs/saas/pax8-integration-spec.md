@@ -1,5 +1,7 @@
 # OakAttest × Pax8 Marketplace — Integration Spec (Plan)
 
+Not part of the product. OakAttest is free and open source. Do not implement this spec.
+
 Status: planning. Companion to `docs/saas/oakattest-tenancy-model.md` §8–§9, §13.
 Goal: distribute OakAttest through the **Pax8** partner marketplace so MSPs buy it via Pax8
 and their purchase auto-provisions an isolated OakAttest tenant.

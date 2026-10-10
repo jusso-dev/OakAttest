@@ -115,7 +115,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           {
             id: 'admin-subscription',
             label: 'Subscription',
-            description: 'Plan, usage and limits',
+            description: 'Recorded plan and usage',
             href: '/admin/subscription',
           },
           {

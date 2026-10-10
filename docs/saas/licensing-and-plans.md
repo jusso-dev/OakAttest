@@ -3,9 +3,11 @@
 Status: authoritative for engineering. Companion to `oakattest-tenancy-model.md`
 (introduces the **partner** isolation primitive that doc's §15 requires recording).
 
-Goal: a single shared SaaS instance where MSPs manage many isolated client tenants,
-each on a subscription plan that gates features and usage. Billing is **manual onboarding**
-(no marketplace webhooks) with the schema kept generic for future Pax8/Azure/AWS.
+OakAttest is free and open source. Marketplace fulfillment (AWS, Azure, Pax8) is not
+part of the product. A recorded plan does not gate features or usage.
+
+The notes below describe an earlier paid-plan catalogue. Do not build marketplace
+webhooks or paywalls from them.
 
 ---
 

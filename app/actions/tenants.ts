@@ -368,14 +368,10 @@ const removeMemberSchema = z.object({
 export async function removeTenantMember(input: z.infer<typeof removeMemberSchema>) {
   const session = await requireSession();
   const data = removeMemberSchema.parse(input);
-  await requirePermission(
-    ACTIONS.tenantManage,
-    {
-      userId: session.user.id,
-      tenantId: data.tenantId,
-    },
-    { subscription: 'skip' },
-  );
+  await requirePermission(ACTIONS.tenantManage, {
+    userId: session.user.id,
+    tenantId: data.tenantId,
+  });
 
   const removedAt = new Date();
   await db.transaction(async (tx) => {

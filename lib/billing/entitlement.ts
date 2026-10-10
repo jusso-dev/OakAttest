@@ -2,8 +2,8 @@ import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { subscriptions, type Subscription } from '@/db/schema/subscriptions';
 
-// Entitlement decisions a caller cares about. `block` denies write actions;
-// reads are never gated by entitlement.
+// Subscription status is recorded for operators. OakAttest is free and open
+// source, so status never blocks reads or writes. `block` is unused.
 export type EntitlementState = 'allow' | 'grace' | 'block';
 
 export type Entitlement = {
@@ -41,9 +41,7 @@ export function decideEntitlement(
       return { state: 'allow', reason: 'active', subscription: row, graceEndsAt: null };
 
     case 'pending':
-      // Marketplace has acknowledged purchase but the customer has not finished
-      // landing-page activation. Allow writes so onboarding can complete; the
-      // landing page itself is the only write path before activation anyway.
+      // Recorded only. Access is not limited.
       return {
         state: 'allow',
         reason: 'pending_provisioning',
@@ -55,9 +53,9 @@ export function decideEntitlement(
     case 'suspended': {
       const grace = row.graceEndsAt;
       if (grace && grace.getTime() > now.getTime()) {
-        return { state: 'grace', reason: 'grace_open', subscription: row, graceEndsAt: grace };
+        return { state: 'allow', reason: 'grace_open', subscription: row, graceEndsAt: grace };
       }
-      return { state: 'block', reason: 'grace_expired', subscription: row, graceEndsAt: grace };
+      return { state: 'allow', reason: 'grace_expired', subscription: row, graceEndsAt: grace };
     }
 
     case 'provisioning':
@@ -73,7 +71,7 @@ export function decideEntitlement(
       return { state: 'allow', reason: 'trial', subscription: row, graceEndsAt: null };
 
     case 'cancelled':
-      return { state: 'block', reason: 'cancelled', subscription: row, graceEndsAt: null };
+      return { state: 'allow', reason: 'cancelled', subscription: row, graceEndsAt: null };
   }
 }
 

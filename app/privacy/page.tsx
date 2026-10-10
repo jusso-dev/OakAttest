@@ -33,9 +33,8 @@ export default function PrivacyPage() {
           include: name, email address, organisation, role, authentication identifiers,
           tenant and workspace records, engagement, assessment, evidence files and metadata,
           findings, assessor notes, export records, audit logs (user ID, tenant or workspace
-          ID, action, resource, timestamp, IP address and user agent where available),
-          Marketplace subscription identifiers and lifecycle state, and support
-          correspondence.
+          ID, action, resource, timestamp, IP address and user agent where available), and
+          support correspondence.
         </p>
 
         <h2 className="pt-2 text-lg font-semibold text-slate-900">2. Types of information</h2>
@@ -58,14 +57,13 @@ export default function PrivacyPage() {
           We may collect Personal Information from you whenever you input it into OakAttest
           or provide it to us in any other way. We may collect cookies that keep you signed
           in. We generally collect Personal Information from you only, but sometimes a third
-          party such as a tenant administrator or Microsoft Marketplace may give it to us.
+          party such as a tenant administrator may give it to us.
         </p>
 
         <h2 className="pt-2 text-lg font-semibold text-slate-900">4. Purpose of collection</h2>
         <p>
           We collect Personal Information to operate OakAttest, provide support, secure the
-          service, maintain auditability, produce exports you request, satisfy Marketplace
-          subscription lifecycle requirements where a listing is used, and meet our legal,
+          service, maintain auditability, produce exports you request, and meet our legal,
           accounting and record-keeping obligations. Final subprocessors, regions, and
           support tooling must be listed before public submission. Expected categories
           include Azure hosting, email delivery, logging or monitoring, and support tooling.

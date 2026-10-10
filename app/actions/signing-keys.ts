@@ -82,14 +82,10 @@ export async function revokeTenantSigningKey(input: z.infer<typeof revokeSchema>
   const session = await requireSession();
   const data = revokeSchema.parse(input);
 
-  await requirePermission(
-    ACTIONS.tenantManage,
-    {
-      userId: session.user.id,
-      tenantId: data.tenantId,
-    },
-    { subscription: 'skip' },
-  );
+  await requirePermission(ACTIONS.tenantManage, {
+    userId: session.user.id,
+    tenantId: data.tenantId,
+  });
 
   const now = new Date();
   await db.transaction(async (tx) => {

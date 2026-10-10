@@ -30,7 +30,7 @@ Tenant (assessor firm)
 
 | Term | Definition | Table |
 |---|---|---|
-| Tenant | An assessor firm or organisation. Owns a Marketplace subscription. | `tenants` |
+| Tenant | An assessor firm or organisation. | `tenants` |
 | Tenant member | A user with a role in the assessor firm. | `tenant_members` |
 | Engagement | One scoped IRAP assessment package for one client system. The unit of work. | `engagements` |
 | Client organisation | The assessed party for a given engagement. One per engagement. | `client_organisations` |
@@ -69,7 +69,7 @@ Source of truth for tenant column presence: every file in `db/schema/` except `a
 Two scopes. Source of truth: `lib/rbac/matrix.ts`.
 
 ### Tenant roles (`tenantRoleEnum`)
-- `tenant_owner` — Marketplace subscription owner. Billing, branding, IP allowlist, member management.
+- `tenant_owner` — tenant admin. Branding, IP allowlist, member management.
 - `assessor_admin` — Can invite, manage ISM revisions, view members, create engagements.
 
 ### Engagement roles (`engagementRoleEnum`)
@@ -174,12 +174,12 @@ A tenant_owner can trigger the assessment export bundle (issue #45) prior to arc
 
 ## 8. Billing account relationship
 
-- **One Marketplace subscription = one tenant.** Enforced by storing `billingCustomerId` on `tenants` and rejecting subscription provisioning when the value is already set.
-- The Marketplace SaaS landing page (issue #41) creates the tenant atomically with the subscription. The user who completes the landing page becomes the first `tenant_owner`.
-- `tenant_owner` is the **billing contact**. Multiple `tenant_owner` rows are permitted; the matrix allows it. By convention, the row with the earliest `joinedAt` is the displayed primary, but the system does not enforce a single owner.
-- Subscription cancellation does NOT delete tenant data. It transitions the tenant to a read-only grace state (modelled in issue #40, `OakAttest SaaS subscription model`). Reactivation in the grace window restores write access.
-- Self-installed deployments leave `billingCustomerId` null. No Marketplace coupling.
-- Private offers and assessor-firm-pay (vs client-pay) variants are handled by issue #60; the underlying mapping does not change.
+OakAttest is free and open source. There is no marketplace fulfillment and no paywall.
+
+- A subscription row is optional. When present it is a recorded label. It does not block reads or writes and it does not lock features.
+- `tenant_owner` administers the tenant. Multiple `tenant_owner` rows are permitted. The system does not enforce a single owner.
+- Cancelling a recorded subscription does not delete tenant data and does not remove access.
+- `billingCustomerId` may be null. Nothing in the product requires it.
 
 ---
 
@@ -189,11 +189,11 @@ A tenant_owner can trigger the assessment export bundle (issue #45) prior to arc
 |---|---|
 | Cardinality | 1 subscription : 1 tenant. Never many-to-one. |
 | Subscription ID storage | `tenants.billingCustomerId` (text, swappable). |
-| Marketplace SaaS plan | Stored on the subscription record (issue #40), not on `tenants`. The tenant references the live plan via the subscription. |
-| Per-tenant entitlements | Derived from the plan; resolved on session establishment, cached on the session row. Entitlement schema lands with #40. |
+| Recorded plan | Optional label on the subscription row. Not an access control. |
+| Per-tenant entitlements | Not enforced. The product is unlimited. |
 | Tenant slug | Stable and unique (`tenants_slug_uq`). Used in URLs (`/orgs/{slug}/...`). |
 | Region | `tenants.dataRegion` defaults to `ap-southeast-2`. Single-region per tenant; cross-region moves require export + re-provision. |
-| Plan downgrades | Cannot reduce a tenant below its current usage (active engagements, member count). Block at the subscription webhook layer (issue #44). |
+| Plan changes | Do not reduce access. There is no subscription webhook. |
 | Reassessment cadence | Per-classification, configured on `tenants.compliancePolicy.reassessmentMonths`. Affects due-date banners only, not access. |
 
 MFA enforcement and the grace window are tenant-policy concerns held on `tenants.securityPolicy`:
@@ -234,7 +234,7 @@ User-initiated. Soft-deletes the user row (`users.disabledAt`) and the membershi
 
 ### A tenant is suspended for non-payment
 
-Marketplace webhook (issue #44) sets the subscription to a grace state. RBAC denies all write actions tenant-wide; reads remain. Tenant_owner sees a billing banner. After the grace window, the tenant transitions to read-only-archive (no writes, including audit) and engagements are archived but not deleted.
+Not a product path. OakAttest does not bill, and subscription status does not remove access.
 
 ---
 
@@ -270,9 +270,8 @@ Gap-closing tests are scoped under issue #27 (`Add tenant and workspace isolatio
 
 ## 13. Marketplace implications
 
-- One subscription per tenant constrains how Microsoft Partner Center maps SaaS offer purchases. The landing page (#41) and webhook (#44) must reject re-binding an existing tenant to a second subscription.
-- Private offer flows (#60) attach to the same tenant model — no new isolation primitives are required.
-- Plan entitlements (issue #40) layer on top of the tenancy model. They constrain quotas (members, engagements) but do not change isolation rules.
+No marketplace listing. AWS Marketplace, Microsoft Partner Center, Azure Marketplace, and Pax8 fulfillment are not part of this product.
+
 - Region is per-tenant. Multi-region tenants are out of scope for v1.
 
 ---
@@ -281,10 +280,7 @@ Gap-closing tests are scoped under issue #27 (`Add tenant and workspace isolatio
 
 These are tracked in adjacent issues, not in scope for #39:
 
-- Plan entitlement schema → #40
-- Marketplace SaaS landing page → #41
-- SaaS webhook (provisioning, grace, cancel) → #44
-- Marketplace Fulfillment API integration → #43
+- Marketplace landing, webhook, and fulfillment (#41, #43, #44) are not required
 - Per-tenant retention policy implementation → #46
 - Export bundle for archive/delete → #45
 - Engineering isolation tests against this spec → #27
