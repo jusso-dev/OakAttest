@@ -9,7 +9,7 @@ import {
 } from '@/app/actions/partners';
 
 // Manual subscription lifecycle controls. Each transition is audited server-side.
-// `cancelled` is terminal — reinstating requires a new Marketplace subscription.
+// Status changes are recorded only. They do not remove access.
 export function SubscriptionLifecycleControls({
   tenantId,
   status,
@@ -29,7 +29,7 @@ export function SubscriptionLifecycleControls({
   if (isCancelled) {
     return (
       <p className="text-sm text-slate-600">
-        Subscription is cancelled (terminal). Reinstating requires a new Marketplace subscription.
+        Subscription is marked cancelled. Access is unchanged.
       </p>
     );
   }
@@ -41,7 +41,7 @@ export function SubscriptionLifecycleControls({
           variant="outline"
           triggerLabel="Suspend"
           title="Suspend subscription?"
-          description="Suspending starts the grace window; writes are blocked once it expires. You can reinstate later."
+          description="Marks the subscription suspended. Access stays open. You can reinstate later."
           confirmLabel="Suspend"
           confirmVariant="primary"
           onConfirm={() => run(() => suspendTenantSubscription({ tenantId }))}
@@ -52,7 +52,7 @@ export function SubscriptionLifecycleControls({
           variant="primary"
           triggerLabel="Reinstate"
           title="Reinstate subscription?"
-          description="Restores the subscription to active and lifts write blocks."
+          description="Marks the subscription active again. Access was not removed."
           confirmLabel="Reinstate"
           confirmVariant="primary"
           onConfirm={() => run(() => reinstateTenantSubscription({ tenantId }))}
@@ -62,7 +62,7 @@ export function SubscriptionLifecycleControls({
         variant="destructive"
         triggerLabel="Cancel subscription"
         title="Cancel subscription?"
-        description="This is terminal — the subscription cannot be reinstated without a new Marketplace subscription. The tenant loses access when access state blocks."
+        description="Marks the subscription cancelled. Tenant data and access stay in place."
         confirmLabel="Cancel subscription"
         onConfirm={() => run(() => cancelTenantSubscription({ tenantId }))}
       />

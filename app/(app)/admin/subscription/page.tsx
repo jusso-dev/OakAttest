@@ -31,15 +31,15 @@ const STATE_LABEL: Record<string, string> = {
 const REASON_LABEL: Record<string, string> = {
   active: 'Subscription is in good standing.',
   pending_provisioning:
-    'Marketplace purchase received. Activation completes when the workspace owner finishes the landing page.',
+    'A subscription row exists and is not active yet. Access is not limited.',
   no_subscription:
-    'No Marketplace subscription is bound to this tenant. Self-installed or development deployment.',
+    'No subscription row. This free open-source deployment is unlimited.',
   grace_open:
-    'Subscription is suspended but the grace window is still open. Writes are permitted until the grace period ends.',
+    'Subscription is marked suspended. Access is not limited.',
   grace_expired:
-    'Grace window has passed. Writes are blocked until the subscription is reinstated.',
+    'The recorded grace window has passed. Access is not limited.',
   cancelled:
-    'Subscription has been cancelled. Reinstating requires a new Marketplace subscription.',
+    'Subscription is marked cancelled. Access is not limited.',
 };
 
 export default async function SubscriptionAdminPage() {
@@ -87,7 +87,7 @@ export default async function SubscriptionAdminPage() {
     <div className="mx-auto max-w-4xl space-y-6">
       <header>
         <p className="text-xs uppercase text-slate-600">Tenant admin · Subscription</p>
-        <h1 className="mt-1 text-2xl font-semibold text-slate-900">Marketplace subscription</h1>
+        <h1 className="mt-1 text-2xl font-semibold text-slate-900">Subscription</h1>
       </header>
 
       <Card>
@@ -96,7 +96,7 @@ export default async function SubscriptionAdminPage() {
           <CardDescription>
             {lic.planName
               ? `Current plan: ${lic.planName}.`
-              : 'No subscription — self-installed / unlimited.'}
+              : 'No paid plan. This free product is unlimited.'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
@@ -138,7 +138,7 @@ export default async function SubscriptionAdminPage() {
         <CardHeader>
           <CardTitle>Current state</CardTitle>
           <CardDescription>
-            Access state derived from Marketplace status and grace window.
+            Recorded status. It does not limit access.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
@@ -178,11 +178,11 @@ export default async function SubscriptionAdminPage() {
         <Card>
           <CardHeader>
             <CardTitle>Subscription details</CardTitle>
-            <CardDescription>From the last Marketplace webhook.</CardDescription>
+            <CardDescription>Stored on the subscription row.</CardDescription>
           </CardHeader>
           <CardContent>
             <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-              <dt className="text-slate-600">Marketplace ID</dt>
+              <dt className="text-slate-600">External ID</dt>
               <dd className="font-mono text-xs text-slate-900">
                 {sub.marketplaceSubscriptionId}
               </dd>
@@ -216,10 +216,9 @@ export default async function SubscriptionAdminPage() {
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle>No Marketplace subscription</CardTitle>
+            <CardTitle>No subscription row</CardTitle>
             <CardDescription>
-              This tenant has no subscription row. Self-installed and development deployments do
-              not require one.
+              This tenant has no subscription row. The free product does not need one.
             </CardDescription>
           </CardHeader>
         </Card>

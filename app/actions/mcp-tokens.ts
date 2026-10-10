@@ -60,14 +60,10 @@ const revokeSchema = z.object({ tenantId: z.string().uuid(), tokenId: z.string()
 export async function revokeMcpApiToken(input: z.infer<typeof revokeSchema>) {
   const session = await requireSession();
   const data = revokeSchema.parse(input);
-  await requirePermission(
-    ACTIONS.tenantManage,
-    {
-      userId: session.user.id,
-      tenantId: data.tenantId,
-    },
-    { subscription: 'skip' },
-  );
+  await requirePermission(ACTIONS.tenantManage, {
+    userId: session.user.id,
+    tenantId: data.tenantId,
+  });
 
   const [record] = await db
     .update(mcpApiTokens)

@@ -75,9 +75,8 @@ export const subscriptions = pgTable(
     quantity: integer('quantity').notNull().default(1),
     effectiveStartAt: timestamp('effective_start_at', { withTimezone: true }),
     effectiveEndAt: timestamp('effective_end_at', { withTimezone: true }),
-    // Set when the subscription enters `suspended`. While `now() <
-    // graceEndsAt`, the status is reported as `grace` and writes remain
-    // permitted with a banner. After this, writes are blocked.
+    // Set when the subscription enters `suspended`. Recorded only.
+    // Subscription status does not block writes.
     graceEndsAt: timestamp('grace_ends_at', { withTimezone: true }),
     // Last time the SaaS webhook (#44) updated this row. Used by the admin
     // view to surface drift between Marketplace and OakAttest.

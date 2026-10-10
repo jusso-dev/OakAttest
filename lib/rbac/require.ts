@@ -13,22 +13,10 @@ import {
   isPermitted,
   partnerRoleToTenantRole,
 } from './matrix';
-import { resolveEntitlement, type Entitlement } from '@/lib/billing/entitlement';
-import { MUTATING_ACTIONS } from '@/lib/billing/actions';
-
 export class PermissionDeniedError extends Error {
   constructor(public action: Action, public reason: string) {
     super(`Permission denied for ${action}: ${reason}`);
     this.name = 'PermissionDeniedError';
-  }
-}
-
-export class SubscriptionBlockedError extends Error {
-  constructor(public action: Action, public entitlement: Entitlement) {
-    super(
-      `Subscription gate blocked ${action}: ${entitlement.reason}`,
-    );
-    this.name = 'SubscriptionBlockedError';
   }
 }
 
@@ -113,13 +101,7 @@ export async function rolesForUser(ctx: AuthContext): Promise<Role[]> {
 // Throws on denial. Callers should let the error propagate so the route
 // renders a 403; do not swallow.
 //
-// Mutating actions also pass through the subscription entitlement gate
-// (`lib/billing/entitlement.ts`). Reads never hit the gate. Self-installed
-// deployments (no subscription row) are treated as `allow` and never gated.
-export type PermissionOptions = {
-  /** Suspended tenants must still be able to revoke access. Default is enforce. */
-  subscription?: 'enforce' | 'skip';
-};
+// OakAttest is free and open source. Subscription status does not gate writes.
 
 async function assertTenantIpAllowed(action: Action, tenantId: string): Promise<void> {
   const rows = await db
@@ -137,7 +119,6 @@ async function assertTenantIpAllowed(action: Action, tenantId: string): Promise<
 export async function requirePermission(
   action: Action,
   ctx: AuthContext,
-  options?: PermissionOptions,
 ): Promise<Role[]> {
   if (!ctx.userId) throw new AuthRequiredError();
   const machine = getMachineActor();
@@ -155,13 +136,6 @@ export async function requirePermission(
       action,
       `no role among [${roles.join(', ')}] permits this action`,
     );
-  }
-
-  if (options?.subscription !== 'skip' && MUTATING_ACTIONS.has(action)) {
-    const entitlement = await resolveEntitlement(ctx.tenantId);
-    if (entitlement.state === 'block') {
-      throw new SubscriptionBlockedError(action, entitlement);
-    }
   }
 
   return roles;

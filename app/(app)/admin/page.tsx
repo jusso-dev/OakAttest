@@ -270,7 +270,7 @@ export default async function AdminPage({
         <CardHeader>
           <CardTitle>Subscription</CardTitle>
           <CardDescription>
-            View Marketplace subscription state, grace window, and audit history.
+            Recorded plan status. It does not limit this free product.
           </CardDescription>
         </CardHeader>
         <CardContent>

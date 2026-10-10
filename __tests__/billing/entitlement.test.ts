@@ -46,36 +46,37 @@ describe('decideEntitlement', () => {
     expect(e.reason).toBe('pending_provisioning');
   });
 
-  it('suspended with future graceEndsAt → grace', () => {
+  it('suspended with future graceEndsAt stays allowed', () => {
     const grace = new Date(NOW.getTime() + 24 * 60 * 60 * 1000);
     const e = decideEntitlement(sub({ status: 'suspended', graceEndsAt: grace }), NOW);
-    expect(e.state).toBe('grace');
+    expect(e.state).toBe('allow');
     expect(e.reason).toBe('grace_open');
     expect(e.graceEndsAt).toEqual(grace);
   });
 
-  it('suspended with past graceEndsAt → block', () => {
+  it('suspended with past graceEndsAt stays allowed', () => {
     const grace = new Date(NOW.getTime() - 1000);
     const e = decideEntitlement(sub({ status: 'suspended', graceEndsAt: grace }), NOW);
-    expect(e.state).toBe('block');
+    expect(e.state).toBe('allow');
     expect(e.reason).toBe('grace_expired');
   });
 
-  it('suspended with no graceEndsAt → block', () => {
+  it('suspended with no graceEndsAt stays allowed', () => {
     const e = decideEntitlement(sub({ status: 'suspended', graceEndsAt: null }), NOW);
-    expect(e.state).toBe('block');
+    expect(e.state).toBe('allow');
     expect(e.reason).toBe('grace_expired');
   });
 
-  it('grace status mirrors suspended logic when window open', () => {
+  it('grace status stays allowed when window open', () => {
     const grace = new Date(NOW.getTime() + 1000);
     const e = decideEntitlement(sub({ status: 'grace', graceEndsAt: grace }), NOW);
-    expect(e.state).toBe('grace');
+    expect(e.state).toBe('allow');
+    expect(e.reason).toBe('grace_open');
   });
 
-  it('cancelled → block (terminal)', () => {
+  it('cancelled stays allowed', () => {
     const e = decideEntitlement(sub({ status: 'cancelled' }), NOW);
-    expect(e.state).toBe('block');
+    expect(e.state).toBe('allow');
     expect(e.reason).toBe('cancelled');
   });
 });

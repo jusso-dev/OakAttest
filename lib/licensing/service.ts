@@ -1,7 +1,7 @@
 import { and, asc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db/client';
 import { subscriptions } from '@/db/schema/subscriptions';
-import { plans, features, planFeatures, planLimits } from '@/db/schema/plans';
+import { plans, features, planFeatures } from '@/db/schema/plans';
 import { tenantUsage } from '@/db/schema/usage';
 import { featureForFramework, type FeatureCode } from './catalog';
 import { countActiveUsers, countActiveEntities, sumStorageBytes } from './usage';
@@ -74,16 +74,16 @@ export class UsageLimitExceededError extends Error {
 }
 
 // Resolve everything licensing needs for a tenant in one place.
+// Free open-source product: a recorded plan is display-only. It does not
+// lock features or quotas.
 export async function resolveEntitlements(tenantId: string): Promise<Entitlements> {
+  const usage = await loadUsage(tenantId);
   const [sub] = await db
     .select({ planId: subscriptions.planId })
     .from(subscriptions)
     .where(eq(subscriptions.tenantId, tenantId))
     .limit(1);
 
-  const usage = await loadUsage(tenantId);
-
-  // No subscription row → self-installed / direct tenant → unlimited.
   if (!sub) {
     return {
       planCode: null,
@@ -96,49 +96,17 @@ export async function resolveEntitlements(tenantId: string): Promise<Entitlement
   }
 
   const [plan] = await db
-    .select()
+    .select({ name: plans.name })
     .from(plans)
     .where(eq(plans.code, sub.planId))
     .limit(1);
 
-  // Subscription points at an unknown plan code → fail closed: grant no
-  // features. Limits left unset (cannot resolve) so we do not wrongly block.
-  if (!plan) {
-    return {
-      planCode: sub.planId,
-      planName: null,
-      unlimited: false,
-      features: new Set(),
-      limits: UNLIMITED_LIMITS,
-      usage,
-    };
-  }
-
-  const featRows = await db
-    .select({ code: features.code, enabled: planFeatures.enabled })
-    .from(planFeatures)
-    .innerJoin(features, eq(features.id, planFeatures.featureId))
-    .where(eq(planFeatures.planId, plan.id));
-
-  const [limitRow] = await db
-    .select()
-    .from(planLimits)
-    .where(eq(planLimits.planId, plan.id))
-    .limit(1);
-
   return {
-    planCode: plan.code,
-    planName: plan.name,
-    unlimited: false,
-    features: new Set(featRows.filter((f) => f.enabled).map((f) => f.code)),
-    limits: limitRow
-      ? {
-          maxUsers: limitRow.maxUsers,
-          maxFrameworks: limitRow.maxFrameworks,
-          maxEntities: limitRow.maxEntities,
-          maxStorageGb: limitRow.maxStorageGb,
-        }
-      : UNLIMITED_LIMITS,
+    planCode: sub.planId,
+    planName: plan?.name ?? null,
+    unlimited: true,
+    features: new Set(),
+    limits: UNLIMITED_LIMITS,
     usage,
   };
 }

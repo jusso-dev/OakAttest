@@ -13,7 +13,7 @@ This keeps the existing schema; it does NOT require tenant groups or a parent/ch
 ## 1. Verdict
 
 The multi-tenant core is **production-shaped and ready for a trusted pilot today**. Four gaps
-must close before opening the instance to mutually-distrusting MSPs through a public marketplace.
+must close before opening one instance to mutually distrusting organisations. Marketplace listing is not a goal.
 
 | Capability | State | Evidence |
 |---|---|---|
@@ -35,7 +35,7 @@ must close before opening the instance to mutually-distrusting MSPs through a pu
 When competing MSPs share one Postgres database, the blast radius of a single missing
 `tenantId` predicate is a cross-customer data leak of sensitive client compliance evidence.
 App-level isolation is correct today, but it is enforced by convention (every query must
-filter by `tenantId`, every action must call `requirePermission`). A shared marketplace
+filter by `tenantId`, every action must call `requirePermission`). A shared
 instance warrants a second, structural line of defence.
 
 ---
@@ -93,7 +93,7 @@ You, the host, need an internal-ops scope (doc §4.5 reserves it; not modelled y
 - List all tenants, their subscription state, seat usage, last activity.
 - Suspend / read-only / offboard a tenant (support-led, doc §7).
 - View platform-wide audit without breaking per-tenant isolation (separate role).
-This is also where Pax8 manual provisioning (see `pax8-integration-spec.md` §6) lives.
+Pax8 provisioning is not part of the product.
 
 ### 3.5 Operational must-haves for hosted mode — MEDIUM
 
@@ -113,4 +113,4 @@ This is also where Pax8 manual provisioning (see `pax8-integration-spec.md` §6)
 1. Pilot-ready (now): hand a single MSP a login + invite link. Works.
 2. Pre-public (close §3.1, §3.2, §3.3): structural isolation + tests + abuse controls.
 3. Operate (add §3.4, §3.5): host console + email/backups/residency.
-4. Then layer billing (`pax8-integration-spec.md`) and frameworks (`../frameworks/multi-framework-plan.md`).
+4. Then frameworks (`../frameworks/multi-framework-plan.md`). Billing and marketplace fulfillment are not part of the product.
