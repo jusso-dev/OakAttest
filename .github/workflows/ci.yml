@@ -40,7 +40,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Configure database connection
         run: echo "DATABASE_URL=postgresql://oakattest_ci:oakattest_ci@127.0.0.1:${{ job.services.postgres.ports['5432'] }}/oakattest_ci" >> "$GITHUB_ENV"
